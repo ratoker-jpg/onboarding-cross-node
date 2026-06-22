@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админка выпуска новичка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6f1ff;
+      --bg-2: #fbf8ff;
+      --panel: #ffffff;
+      --panel-soft: #faf7ff;
+      --text: #1f1733;
+      --muted: #73668f;
+      --line: #e5d6ff;
+      --line-strong: #d8c2ff;
+      --accent: #7f42e1;
+      --accent-hover: #6934c7;
+      --accent-soft: #f0e6ff;
+      --black: #141019;
+      --danger: #d85c3a;
+      --ok: #23824f;
+      --warning: #b46b00;
+      --shadow: 0 18px 48px rgba(82, 45, 145, 0.12);
+      --radius-lg: 32px;
+      --radius-md: 22px;
+      --radius-sm: 16px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Manrope, sans-serif;
+      background:
+        radial-gradient(circle at 8% 4%, rgba(127, 66, 225, 0.16), transparent 34%),
+        radial-gradient(circle at 86% 12%, rgba(203, 174, 255, 0.42), transparent 30%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 58%, #ffffff 100%);
+      color: var(--text);
+    }
+    .page { max-width: 1440px; margin: 0 auto; padding: 28px 18px 64px; }
+    .hero,
+    .card,
+    .toolbar { scroll-margin-top: 28px; }
+    .hero {
+      display: grid;
+      gap: 18px;
+      padding: 34px;
+      border: 1px solid var(--line);
+      border-radius: 36px;
+      background:
+        radial-gradient(circle at 92% 12%, rgba(127, 66, 225, 0.15), transparent 32%),
+        linear-gradient(135deg, #ffffff 0%, #f7efff 100%);
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      display: inline-flex;
+      width: max-content;
+      align-items: center;
+      gap: 9px;
+      border-radius: 999px;
+      background: var(--black);
+      color: #ffffff;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .spark {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #c7a5ff;
+      box-shadow: 0 0 0 7px rgba(199, 165, 255, 0.16);
+    }
+    .hero h1 {
+      margin: 0;
+      max-width: 960px;
+      font-size: clamp(34px, 4vw, 60px);
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+    }
+    .hero p {
+      margin: 0;
+      max-width: 980px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.6;
+    }
+    .hero-actions,
+    .row-actions,
+    .inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .toolbar,
+    .grid,
+    .fields,
+    .fields-3,
+    .fields-4 {
+      display: grid;
+      gap: 14px;
+    }
+    .toolbar {
+      margin-top: 18px;
+      grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto auto auto;
+      align-items: end;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .grid { margin-top: 18px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fields-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .fields-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .wide { grid-column: 1 / -1; }
+    h2 { margin: 0 0 10px; font-size: 24px; line-height: 1.15; letter-spacing: -0.02em; }
+    h3 { margin: 20px 0 10px; font-size: 17px; line-height: 1.25; letter-spacing: -0.01em; }
+    .subtle { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0 0 16px; }
+    label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 700; color: var(--muted); }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: #ffffff;
+      color: var(--text);
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(127, 66, 225, 0.12);
+    }
+    textarea { min-height: 120px; resize: vertical; font-family: Manrope, sans-serif; font-size: 14px; }
+    button,
+    .btn {
+      border: 0;
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 24px rgba(127, 66, 225, 0.22);
+      transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+    button:hover,
+    .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    button.secondary,
+    .btn.secondary { background: #ffffff; color: var(--accent); border: 1px solid var(--line-strong); box-shadow: none; }
+    button.secondary:hover,
+    .btn.secondary:hover { background: var(--accent-soft); }
+    button.dark,
+    .btn.dark { background: var(--black); }
+    button.warn { background: var(--danger); box-shadow: 0 10px 24px rgba(216, 92, 58, 0.16); }
+    button:disabled { opacity: .48; cursor: not-allowed; transform: none; box-shadow: none; }
+    .check {
+      flex-direction: row;
+      align-items: center;
+      gap: 9px;
+      background: var(--panel-soft);
+      padding: 11px 13px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+    .check input { width: auto; accent-color: var(--accent); }
+    .product-row {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
+    }
+    .status-list { display: grid; gap: 10px; margin: 14px 0 2px; }
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 13px 15px;
+      border-radius: 18px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+    }
+    .status-item small { color: var(--muted); }
+    .status-ready { color: var(--ok); font-weight: 800; }
+    .status-missing,
+    .status-not_imported { color: var(--danger); font-weight: 800; }
+    .status-partial { color: var(--warning); font-weight: 800; }
+    .pill {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      border-radius: 999px;
+      padding: 7px 11px;
+      margin: 0 6px 6px 0;
+      background: var(--accent-soft);
+      border: 1px solid var(--line);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    pre.result {
+      margin: 12px 0 0;
+      padding: 14px;
+      min-height: 72px;
+      max-height: 360px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: #fcfaff;
+      color: #2b2440;
+      white-space: pre-wrap;
+      overflow: auto;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .block-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .mini-panel { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #ffffff; }
+    .learning { margin-top: 18px; background: linear-gradient(135deg, #ffffff 0%, #fbf7ff 100%); }
+    .learning-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
+    .learning-head p { max-width: 760px; }
+    .learning-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .lesson-card {
+      position: relative;
+      min-height: 210px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .lesson-card:after {
+      content: "";
+      position: absolute;
+      right: -42px;
+      top: -42px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(127, 66, 225, .08);
+    }
+    .lesson-card > * { position: relative; z-index: 1; }
+    .lesson-num {
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      margin-bottom: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 900;
+    }
+    .lesson-card h3 { margin-top: 0; }
+    .lesson-card p,
+    .lesson-card li { color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .lesson-card ul { margin: 10px 0 0; padding-left: 18px; }
+    .rule-box {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px dashed var(--line-strong);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .tour-layer { position: fixed; inset: 0; z-index: 5000; display: none; pointer-events: none; }
+    .tour-layer.show { display: block; pointer-events: auto; }
+    .tour-spotlight {
+      position: fixed;
+      z-index: 5001;
+      border: 3px solid rgba(255, 255, 255, .98);
+      border-radius: 30px;
+      background: transparent;
+      box-shadow: 0 0 0 9999px rgba(18, 16, 25, .58), 0 24px 80px rgba(0, 0, 0, .28);
+      opacity: 0;
+      transition: left .22s ease, top .22s ease, width .22s ease, height .22s ease, opacity .18s ease;
+      pointer-events: none;
+    }
+    .tour-card {
+      position: fixed;
+      right: 28px;
+      bottom: 28px;
+      z-index: 5002;
+      width: min(500px, calc(100vw - 32px));
+      background: #fff;
+      border: 1px solid var(--line-strong);
+      border-radius: 32px;
+      padding: 24px;
+      box-shadow: 0 30px 100px rgba(0, 0, 0, .30);
+      color: var(--text);
+    }
+    .tour-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .tour-step { display: inline-flex; align-items: center; border-radius: 999px; background: var(--black); color: #fff; padding: 8px 12px; font-size: 13px; font-weight: 900; }
+    .tour-close { width: 38px; height: 38px; border-radius: 50%; padding: 0; background: #fff; color: var(--text); border: 1px solid var(--line); box-shadow: none; font-size: 24px; line-height: 1; display: grid; place-items: center; }
+    .tour-close:hover { transform: none; background: var(--accent-soft); }
+    .tour-card h3 { font-size: 24px; margin: 0 0 10px; }
+    .tour-card p { font-size: 15px; line-height: 1.58; color: var(--muted); margin: 0; }
+    .tour-actions { display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-top: 20px; }
+    .tour-dots { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 16px; }
+    .tour-dot { width: 8px; height: 8px; border-radius: 50%; background: #d8c7fb; }
+    .tour-dot.active { background: var(--accent); box-shadow: 0 0 0 5px rgba(127, 66, 225, .14); }
+    .tour-focus { position: relative; z-index: 120; scroll-margin-top: 120px; }
+    body.tour-open { overflow: hidden; }
+    @media (max-width: 1000px) {
+      .toolbar,
+      .grid,
+      .fields,
+      .fields-3,
+      .fields-4,
+      .block-grid,
+      .learning-grid { grid-template-columns: 1fr; }
+      .hero,
+      .card { border-radius: 24px; padding: 20px; }
+      .learning-head { display: block; }
+    }
+    @media (max-width: 640px) {
+      .tour-card { left: 14px; right: 14px; bottom: 14px; width: auto; border-radius: 26px; padding: 20px; }
+      .tour-actions button { flex: 1; }
+      .tour-spotlight { border-radius: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero" id="topGuide">
+      <span class="eyebrow"><span class="spark"></span> Рабочее место сборки выпуска</span>
+      <h1>Админка выпуска новичка</h1>
+      <p>Собираем данные по новичку: ключи, импорты, файлы, операционка, звонки и готовность к анализу. AI-вызовы и запись в Google Sheets здесь не выполняются.</p>
+      <div class="hero-actions">
+        <button id="startTourBtn" type="button" class="dark">Пройти обучение</button>
+        <a class="btn secondary" href="#learningGuide">Открыть подробную инструкцию</a>
+      </div>
+    </section>
+
+    <section class="toolbar" id="toolbarGuide">
+      <label>Ключ администратора<input id="adminKey" type="password" placeholder="Введите ADMIN_KEY" /></label>
+      <label>Новичок
+        <select id="candidateSelect"><option value="">Загрузите список</option></select>
+      </label>
+      <button id="loadCandidatesBtn" type="button">Загрузить список</button>
+      <button id="openCardBtn" type="button" class="secondary">Открыть карточку</button>
+      <button id="healthBtn" type="button" class="secondary">Проверить сервер</button>
+    </section>
+
+    <article class="card wide learning" id="learningGuide">
+      <div class="learning-head">
+        <div>
+          <h2>Как работать с панелью</h2>
+          <p class="subtle">Панель нужна не для анализа, а для аккуратной сборки полного пакета данных по новичку. Рабочая логика: создали или выбрали кандидата, связали старые ключи, импортировали доступные источники, дозагрузили ручные материалы, проверили completeness.</p>
+        </div>
+        <button id="startTourBtn2" type="button" class="secondary">Показать интерактивно</button>
+      </div>
+      <div class="learning-grid">
+        <section class="lesson-card">
+          <span class="lesson-num">1</span>
+          <h3>Выбрать новичка</h3>
+          <p>Введите ключ администратора, нажмите “Загрузить список”, выберите новичка и откройте карточку. Если новичка ещё нет, создайте его в левой карточке.</p>
+          <ul><li>Ключ новичка выглядит как GTRAIN01.</li><li>Карточка показывает всё, что уже собрано.</li></ul>
+        </section>
+        <section class="lesson-card">
+          <span class="lesson-num">2</span>
+          <h3>Создать ключи</h3>
+          <p>При создании кандидата можно сразу создать серверные ключи тестового дня, погружения и продуктовых учебных блоков.</p>
+          <ul><li>В Google Sheets они не записываются.</li><li>Продуктовые ключи можно добавлять строками.</li></ul>
+        </section>
+        <section class="lesson-card">
+          <span class="lesson-num">3</span>
+          <h3>Связать старые источники</h3>
+          <p>Source link говорит системе: “у этого нового base_key в старой системе вот такой legacy key”. Без этой связи импорт не поймёт, что именно читать.</p>
+          <ul><li>Для бота учебки важен явный legacy key.</li><li>Импорт по всей команде запрещён.</li></ul>
+        </section>
+        <section class="lesson-card">
+          <span class="lesson-num">4</span>
+          <h3>Импортировать, что можно</h3>
+          <p>Используйте кнопки импортов справа. Они только читают данные из источников и сохраняют snapshot в базе.</p>
+          <ul><li>После импорта откройте карточку заново.</li><li>Смотрите “Сводку импортов”, если что-то не подтянулось.</li></ul>
+        </section>
+        <section class="lesson-card">
+          <span class="lesson-num">5</span>
+          <h3>Дозагрузить ручные данные</h3>
+          <p>Собеседование, звонки, время на трубке, операционка и выпускной тест заполняются вручную. TXT сохраняется как текст, скриншоты и файлы сохраняются как вложения.</p>
+          <ul><li>TXT лучше загружать в нужный раздел.</li><li>Скриншоты прикрепляйте как доказательства.</li></ul>
+        </section>
+        <section class="lesson-card">
+          <span class="lesson-num">6</span>
+          <h3>Проверить готовность</h3>
+          <p>Completeness показывает, каких блоков хватает для будущего AI-анализа, а каких ещё нет.</p>
+          <ul><li>Красные пункты — что надо дособрать.</li><li>AI-портрет здесь только отображается.</li></ul>
+        </section>
+      </div>
+      <div class="rule-box"><b>Главное правило:</b> если сомневаетесь, сначала откройте карточку новичка и смотрите “Готовность данных”. Панель подсказывает не “что красиво заполнено”, а какие блоки реально есть в базе для будущего анализа.</div>
+    </article>
+
+    <section class="grid">
+      <article class="card" id="createGuide">
+        <h2>Создание кандидата</h2>
+        <p class="subtle">Только базовые поля. Даты тестового дня и погружения подтягиваются импортами, наставник и рекрутер не вводятся в MVP.</p>
+        <div class="fields">
+          <label>Фамилия<input id="lastName" type="text" /></label>
+          <label>Имя<input id="firstName" type="text" /></label>
+          <label>Сегмент продавца
+            <select id="sellerSegment">
+              <option>Грузоперевозки</option><option>Стройка</option><option>Селлеры</option><option>Микс</option><option>Розница</option><option>ВЭД</option>
+            </select>
+          </label>
+          <label>Направление
+            <select id="direction"><option>S</option><option>M</option><option>L</option><option>Кросс-перс</option><option>Не указано</option></select>
+          </label>
+        </div>
+        <div class="row-actions">
+          <label class="check"><input id="createTestDayKey" type="checkbox" checked />Создать ключ тестового дня</label>
+          <label class="check"><input id="createImmersionKey" type="checkbox" checked />Создать ключ погружения</label>
+        </div>
+        <h3>Продуктовые / учебные ключи</h3>
+        <p class="subtle">Сервер создаёт только сессионный ключ в SQLite. В листы старых систем ключи отсюда не записываются.</p>
+        <div id="productKeys"></div>
+        <div class="row-actions">
+          <button id="addProductKeyBtn" type="button" class="secondary">+ Добавить продуктовый ключ</button>
+          <button id="createCandidateBtn" type="button">Создать кандидата</button>
+        </div>
+        <h3>Результат</h3>
+        <pre id="createResult" class="result"></pre>
+      </article>
+
+      <article class="card" id="sourceGuide">
+        <h2>Связи с источниками и импорты</h2>
+        <p class="subtle">Импорты читают старые источники по явно заданным ключам. Бот учебки не импортирует всю команду.</p>
+        <div class="fields-4">
+          <label>Ключ новичка<input id="sourceBaseKey" type="text" placeholder="GTRAIN01" /></label>
+          <label>Источник
+            <select id="sourceCode">
+              <option value="web_mvp">Web MVP</option>
+              <option value="onboarding_route">Маршрут новичка</option>
+              <option value="bot_training">Бот учебки</option>
+              <option value="crosses_selection">Собеседования</option>
+              <option value="automanual">Автомануал</option>
+            </select>
+          </label>
+          <label>Ключ в старой системе<input id="sourceLegacyKey" type="text" /></label>
+          <label>Комментарий<input id="sourceComment" type="text" /></label>
+        </div>
+        <div class="row-actions">
+          <button id="saveSourceLinkBtn" type="button">Сохранить связь</button>
+          <button id="showSourceLinksBtn" type="button" class="secondary">Показать связи</button>
+        </div>
+        <div class="row-actions">
+          <button data-import="test-day" type="button">Импорт тестового дня</button>
+          <button data-import="immersion" type="button">Импорт погружения</button>
+          <button data-import="training-bot" type="button">Импорт бота учебки</button>
+          <button data-import="interview-questions" type="button" class="secondary">Вопросы собеседования</button>
+          <button data-import="manual-questions" type="button" class="secondary">Вопросы автомануала</button>
+          <button data-import="all" type="button">Импортировать всё</button>
+          <button id="importSummaryBtn" type="button" class="secondary">Сводка импортов</button>
+        </div>
+        <h3>Результат</h3>
+        <pre id="sourceResult" class="result"></pre>
+      </article>
+
+      <article class="card wide" id="cardGuide">
+        <h2>Карточка новичка</h2>
+        <div id="cardSummary" class="subtle">Выберите новичка и откройте карточку.</div>
+        <h3>Готовность данных</h3>
+        <div id="completeness" class="status-list"></div>
+        <div class="block-grid">
+          <div class="mini-panel"><h3>Основное</h3><pre id="candidateBlock" class="result"></pre></div>
+          <div class="mini-panel"><h3>Ключи</h3><pre id="keysBlock" class="result"></pre></div>
+          <div class="mini-panel"><h3>Связи с источниками</h3><pre id="sourceLinksBlock" class="result"></pre></div>
+          <div class="mini-panel"><h3>Импорты</h3><pre id="importsBlock" class="result"></pre></div>
+          <div class="mini-panel"><h3>Файлы</h3><pre id="filesBlock" class="result"></pre></div>
+          <div class="mini-panel"><h3>AI-портрет, только отображение</h3><pre id="aiBlock" class="result"></pre></div>
+        </div>
+      </article>
+
+      <article class="card wide" id="interviewGuide">
+        <h2>Собеседование</h2>
+        <div class="fields">
+          <label>Текст собеседования<textarea id="interviewText" placeholder="Вставьте транскрибацию или загрузите TXT"></textarea></label>
+          <label>Комментарий<textarea id="interviewComment"></textarea></label>
+        </div>
+        <label>TXT-файл<input id="interviewFile" type="file" accept=".txt,text/plain" /></label>
+        <div class="row-actions">
+          <button data-save-manual="interview" data-text="interviewText" data-comment="interviewComment" type="button">Сохранить текст</button>
+          <button data-upload="interview" data-file="interviewFile" data-comment="interviewComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+        </div>
+        <h3>Результат</h3>
+        <pre id="interviewResult" class="result"></pre>
+      </article>
+
+      <article class="card" id="phoneGuide">
+        <h2>Время на трубке</h2>
+        <div class="fields-3">
+          <label>День 1: минуты<input id="phoneDay1Minutes" type="number" /></label>
+          <label>День 1: звонки<input id="phoneDay1Calls" type="number" /></label>
+          <label>День 1: звонки >2 мин, %<input id="phoneDay1Pct" type="number" /></label>
+          <label>День 2: минуты<input id="phoneDay2Minutes" type="number" /></label>
+          <label>День 2: звонки<input id="phoneDay2Calls" type="number" /></label>
+          <label>День 2: звонки >2 мин, %<input id="phoneDay2Pct" type="number" /></label>
+          <label>День 3: минуты<input id="phoneDay3Minutes" type="number" /></label>
+          <label>День 3: звонки<input id="phoneDay3Calls" type="number" /></label>
+          <label>День 3: звонки >2 мин, %<input id="phoneDay3Pct" type="number" /></label>
+        </div>
+        <label>Комментарий<textarea id="phoneComment"></textarea></label>
+        <label>Скриншот или файл<input id="phoneFile" type="file" /></label>
+        <div class="row-actions">
+          <button id="savePhoneBtn" type="button">Сохранить метрики</button>
+          <button data-upload="phone_metrics" data-file="phoneFile" data-comment="phoneComment" data-type="evidence" type="button" class="secondary">Прикрепить файл</button>
+        </div>
+        <h3>Результат</h3>
+        <pre id="phoneResult" class="result"></pre>
+      </article>
+
+      <article class="card" id="opsGuide">
+        <h2>Гигиена операционки</h2>
+        <div class="fields">
+          <label>XSales: статус<select id="opsXsalesStatus"><option value="not_checked">Не проверено</option><option value="ok">Готово</option><option value="partial">Частично</option><option value="problem">Есть проблема</option></select></label>
+          <label>XSales: комментарий<input id="opsXsalesComment" /></label>
+          <label>Просрочки: статус<select id="opsOverdueStatus"><option value="not_checked">Не проверено</option><option value="ok">Готово</option><option value="partial">Частично</option><option value="problem">Есть проблема</option></select></label>
+          <label>Просрочки: комментарий<input id="opsOverdueComment" /></label>
+          <label>Статусы: статус<select id="opsStatusesStatus"><option value="not_checked">Не проверено</option><option value="ok">Готово</option><option value="partial">Частично</option><option value="problem">Есть проблема</option></select></label>
+          <label>Статусы: комментарий<input id="opsStatusesComment" /></label>
+          <label>Комментарии: статус<select id="opsCommentsStatus"><option value="not_checked">Не проверено</option><option value="ok">Готово</option><option value="partial">Частично</option><option value="problem">Есть проблема</option></select></label>
+          <label>Комментарии: комментарий<input id="opsCommentsComment" /></label>
+        </div>
+        <div class="fields-4">
+          <label>Раздел файла<select id="opsFileSection"><option value="ops_xsales">XSales</option><option value="ops_overdue_goals">Просрочки</option><option value="ops_statuses">Статусы</option><option value="ops_comments">Комментарии</option></select></label>
+          <label>Файл<input id="opsFile" type="file" /></label>
+        </div>
+        <div class="row-actions">
+          <button id="saveOpsBtn" type="button">Сохранить операционку</button>
+          <button id="uploadOpsFileBtn" type="button" class="secondary">Прикрепить файл раздела</button>
+        </div>
+        <h3>Результат</h3>
+        <pre id="opsResult" class="result"></pre>
+      </article>
+
+      <article class="card wide" id="callsGuide">
+        <h2>Качество звонков</h2>
+        <div class="block-grid">
+          <div class="mini-panel">
+            <h3>Звонки начала</h3>
+            <div class="fields"><label>Дата<input id="callsStartDate" type="date" /></label><label>Продукт<input id="callsStartProduct" /></label></div>
+            <label>Транскрибация<textarea id="callsStartText"></textarea></label>
+            <label>Комментарий<textarea id="callsStartComment"></textarea></label>
+            <label>TXT-файл<input id="callsStartFile" type="file" accept=".txt,text/plain" /></label>
+            <div class="row-actions">
+              <button data-call-save="calls_start" data-text="callsStartText" data-date="callsStartDate" data-product="callsStartProduct" data-comment="callsStartComment" type="button">Сохранить</button>
+              <button data-upload="calls_start" data-file="callsStartFile" data-comment="callsStartComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+            </div>
+          </div>
+          <div class="mini-panel">
+            <h3>Звонки середины</h3>
+            <div class="fields"><label>Дата<input id="callsMiddleDate" type="date" /></label><label>Продукт<input id="callsMiddleProduct" /></label></div>
+            <label>Транскрибация<textarea id="callsMiddleText"></textarea></label>
+            <label>Комментарий<textarea id="callsMiddleComment"></textarea></label>
+            <label>TXT-файл<input id="callsMiddleFile" type="file" accept=".txt,text/plain" /></label>
+            <div class="row-actions">
+              <button data-call-save="calls_middle" data-text="callsMiddleText" data-date="callsMiddleDate" data-product="callsMiddleProduct" data-comment="callsMiddleComment" type="button">Сохранить</button>
+              <button data-upload="calls_middle" data-file="callsMiddleFile" data-comment="callsMiddleComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+            </div>
+          </div>
+          <div class="mini-panel">
+            <h3>Звонки выпуска</h3>
+            <div class="fields"><label>Дата<input id="callsFinalDate" type="date" /></label><label>Продукт<input id="callsFinalProduct" /></label></div>
+            <label>Транскрибация<textarea id="callsFinalText"></textarea></label>
+            <label>Комментарий<textarea id="callsFinalComment"></textarea></label>
+            <label>TXT-файл<input id="callsFinalFile" type="file" accept=".txt,text/plain" /></label>
+            <div class="row-actions">
+              <button data-call-save="calls_final" data-text="callsFinalText" data-date="callsFinalDate" data-product="callsFinalProduct" data-comment="callsFinalComment" type="button">Сохранить</button>
+              <button data-upload="calls_final" data-file="callsFinalFile" data-comment="callsFinalComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+            </div>
+          </div>
+        </div>
+        <h3>Результат</h3>
+        <pre id="callsResult" class="result"></pre>
+      </article>
+
+      <article class="card" id="finalGuide">
+        <h2>Выпускной тест</h2>
+        <div class="fields">
+          <label>Балл<input id="finalScore" type="number" /></label>
+          <label>Максимальный балл<input id="finalMaxScore" type="number" /></label>
+          <label>Процент<input id="finalPercent" type="number" /></label>
+          <label>Темы ошибок<input id="finalWeakTopics" placeholder="через запятую" /></label>
+        </div>
+        <label>Комментарий<textarea id="finalComment"></textarea></label>
+        <label>Отчёт Teachbase, скриншот или файл<input id="finalFile" type="file" /></label>
+        <div class="row-actions">
+          <button id="saveFinalBtn" type="button">Сохранить тест</button>
+          <button data-upload="final_test" data-file="finalFile" data-comment="finalComment" data-type="report" type="button" class="secondary">Прикрепить файл</button>
+        </div>
+        <h3>Результат</h3>
+        <pre id="finalResult" class="result"></pre>
+      </article>
+
+      <article class="card" id="filesGuide">
+        <h2>Файлы</h2>
+        <p class="subtle">Универсальная загрузка в папку кандидата на сервере: data/uploads/phase1/&lt;ключ новичка&gt;/.</p>
+        <div class="fields">
+          <label>Раздел<select id="genericFileSection"><option value="other">Другое</option><option value="teachbase_report">Отчёт Teachbase</option><option value="phone_metrics">Время на трубке</option><option value="ops_xsales">XSales</option><option value="ops_overdue_goals">Просрочки</option><option value="ops_statuses">Статусы</option><option value="ops_comments">Комментарии</option></select></label>
+          <label>Файл<input id="genericFile" type="file" /></label>
+        </div>
+        <label>Комментарий<textarea id="genericFileComment"></textarea></label>
+        <div class="row-actions"><button id="uploadGenericBtn" type="button">Загрузить файл</button></div>
+        <h3>Результат</h3>
+        <pre id="genericResult" class="result"></pre>
+      </article>
+    </section>
+  </div>
+
+  <div id="tourLayer" class="tour-layer" aria-hidden="true">
+    <div id="tourSpotlight" class="tour-spotlight"></div>
+    <aside class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+      <div class="tour-top">
+        <span id="tourCounter" class="tour-step">Шаг 1</span>
+        <button id="tourClose" type="button" class="tour-close" aria-label="Закрыть обучение">×</button>
+      </div>
+      <h3 id="tourTitle"></h3>
+      <p id="tourText"></p>
+      <div id="tourDots" class="tour-dots"></div>
+      <div class="tour-actions">
+        <button id="tourPrev" type="button" class="secondary">Назад</button>
+        <button id="tourNext" type="button">Дальше</button>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const byId = id => document.getElementById(id);
+    const json = value => JSON.stringify(value, null, 2);
+    const adminKey = () => byId('adminKey').value.trim();
+    const selectedBaseKey = () => byId('candidateSelect').value || byId('sourceBaseKey').value.trim();
+    const isScopedPage = window.location.pathname === '/onboarding_cross' || window.location.pathname.startsWith('/onboarding_cross/');
+    const API_BASE = isScopedPage ? '/onboarding_cross/api/admin/phase1' : '/api/admin/phase1';
+    const DASHBOARD_BASE = isScopedPage ? '/onboarding_cross/api/dashboard/phase1' : '/api/dashboard/phase1';
+    const phase1Api = path => `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+    const dashboardApi = path => `${DASHBOARD_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+
+    const statusLabels = {
+      ready: 'Готово',
+      missing: 'Не хватает',
+      not_imported: 'Не импортировано',
+      partial: 'Частично',
+      ok: 'Готово',
+      problem: 'Есть проблема',
+      not_checked: 'Не проверено',
+    };
+
+    const sourceLabels = {
+      manual_file: 'ручной ввод / файл',
+      manual: 'ручной ввод',
+      file: 'файл',
+      'manual+file': 'ручной ввод + файл',
+      'manual:operations': 'ручной блок операционки',
+      'import:web_mvp': 'импорт Web MVP',
+      'import:onboarding_route': 'импорт маршрута новичка',
+      'import:bot_training': 'импорт бота учебки',
+    };
+
+    function hasOnlyLatin1HeaderChars(value) {
+      return /^[\u0020-\u007e\u00a0-\u00ff]*$/.test(value);
+    }
+
+    async function requestJson(url, options = {}) {
+      const key = adminKey();
+      if (!hasOnlyLatin1HeaderChars(key)) {
+        throw new Error('Ключ администратора содержит недопустимые символы. Скопируйте значение ADMIN_KEY из .env без лишнего текста.');
+      }
+
+      const headers = { 'X-Admin-Key': key };
+      if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+
+      let response;
+      try {
+        response = await fetch(url, { ...options, headers });
+      } catch (err) {
+        if (err instanceof TypeError) {
+          throw new Error('Не удалось отправить запрос: браузер отклонил параметры fetch. Проверьте, что в ADMIN_KEY нет русского текста и лишних символов.');
+        }
+        throw err;
+      }
+      const text = await response.text();
+      let payload;
+      try { payload = text ? JSON.parse(text) : {}; } catch (_) { payload = { raw: text }; }
+      if (!response.ok) throw new Error(json(payload));
+      return payload;
+    }
+
+    function show(id, value) {
+      byId(id).textContent = typeof value === 'string' ? value : json(value);
+    }
+
+    function numberOrNull(id) {
+      const value = byId(id).value;
+      return value === '' ? null : Number(value);
+    }
+
+    function syncBaseKey(baseKey) {
+      if (!baseKey) return;
+      byId('sourceBaseKey').value = baseKey;
+      byId('candidateSelect').value = baseKey;
+    }
+
+    function productRowTemplate(index) {
+      return `
+        <div class="product-row" data-product-row>
+          <div class="fields-4">
+            <label>Название / слот<input data-field="slot" value="Продукт ${index}" /></label>
+            <label>Код продукта<input data-field="product_code" value="PRODUCT_${index}" /></label>
+            <label>Тип ключа<input data-field="key_type" value="training_bot" /></label>
+            <label>Цель старой системы<input data-field="legacy_target" value="bot_training_keys" /></label>
+            <label>ID команды<input data-field="team_id" /></label>
+            <label>Название команды<input data-field="team_name" /></label>
+            <label>Лимит<input data-field="limit_value" type="number" value="3" /></label>
+            <label>Финал<input data-field="final_limit" type="number" value="3" /></label>
+          </div>
+          <div class="row-actions">
+            <label class="check"><input data-field="final_equals_limit" type="checkbox" checked />Финал = Лимит</label>
+            <button type="button" class="warn" data-remove-product>Удалить</button>
+          </div>
+        </div>`;
+    }
+
+    function addProductRow() {
+      const count = document.querySelectorAll('[data-product-row]').length + 1;
+      byId('productKeys').insertAdjacentHTML('beforeend', productRowTemplate(count));
+    }
+
+    function collectProductKeys() {
+      return Array.from(document.querySelectorAll('[data-product-row]')).map(row => {
+        const get = name => row.querySelector(`[data-field="${name}"]`);
+        const limitValue = get('limit_value').value === '' ? null : Number(get('limit_value').value);
+        const finalEqualsLimit = get('final_equals_limit').checked;
+        return {
+          slot: get('slot').value.trim(),
+          product_code: get('product_code').value.trim(),
+          key_type: get('key_type').value.trim() || 'training_bot',
+          team_id: get('team_id').value.trim(),
+          team_name: get('team_name').value.trim(),
+          legacy_target: get('legacy_target').value.trim() || 'bot_training_keys',
+          limit_value: limitValue,
+          final_limit: finalEqualsLimit ? limitValue : (get('final_limit').value === '' ? null : Number(get('final_limit').value)),
+          final_equals_limit: finalEqualsLimit,
+        };
+      }).filter(key => key.product_code || key.slot);
+    }
+
+    function renderCard(card) {
+      const candidate = card.candidate || {};
+      const completeness = card.completeness || { items: [] };
+      byId('cardSummary').innerHTML = `<span class="pill">${candidate.full_name || 'Без ФИО'}</span> <span class="pill">${candidate.base_key || ''}</span> <span class="pill">Готовность: ${completeness.completed_count || 0}/${completeness.total_count || 0}</span>`;
+      byId('completeness').innerHTML = (completeness.items || []).map(item => {
+        const sourceLabel = sourceLabels[item.source] || item.source || 'источник не указан';
+        const statusLabel = statusLabels[item.status] || item.status;
+        return `<div class="status-item"><span>${item.title}<br><small>${sourceLabel}</small></span><span class="status-${item.status}">${statusLabel}</span></div>`;
+      }).join('');
+      show('candidateBlock', candidate);
+      show('keysBlock', card.keys || []);
+      show('sourceLinksBlock', card.source_links || []);
+      show('importsBlock', card.import_summary || []);
+      show('filesBlock', card.files || []);
+      show('aiBlock', card.ai_profile || { status: 'Профиль пока не заполнен' });
+    }
+
+    async function openCard(baseKey = selectedBaseKey()) {
+      if (!baseKey) throw new Error('Укажите ключ новичка или выберите новичка из списка');
+      syncBaseKey(baseKey);
+      const card = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}`));
+      renderCard(card);
+      return card;
+    }
+
+    async function loadCandidates() {
+      const data = await requestJson(phase1Api('/candidates'));
+      byId('candidateSelect').innerHTML = '<option value="">Выберите новичка</option>' + (data.candidates || [])
+        .map(candidate => `<option value="${candidate.base_key}">${candidate.base_key} - ${candidate.full_name}</option>`)
+        .join('');
+      return data;
+    }
+
+    async function saveManual(section, payload, resultId) {
+      const baseKey = selectedBaseKey();
+      const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/manual-input`), {
+        method: 'POST',
+        body: JSON.stringify({ section, payload }),
+      });
+      show(resultId, data);
+      await openCard(baseKey);
+    }
+
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function uploadFile(section, fileInputId, commentId, resultId, fileType = 'attachment') {
+      const baseKey = selectedBaseKey();
+      const input = byId(fileInputId);
+      if (!input.files || !input.files[0]) throw new Error('Выберите файл для загрузки');
+      const file = input.files[0];
+      const dataUrl = await fileToDataUrl(file);
+      const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/files`), {
+        method: 'POST',
+        body: JSON.stringify({
+          section,
+          file_type: fileType,
+          original_name: file.name,
+          mime_type: file.type || 'application/octet-stream',
+          size_bytes: file.size,
+          content_base64: dataUrl,
+          comment: commentId ? byId(commentId).value : '',
+        }),
+      });
+      show(resultId, data);
+      await openCard(baseKey);
+    }
+
+    byId('addProductKeyBtn').addEventListener('click', addProductRow);
+    byId('productKeys').addEventListener('click', event => {
+      if (event.target.matches('[data-remove-product]')) event.target.closest('[data-product-row]').remove();
+    });
+    byId('productKeys').addEventListener('input', event => {
+      const row = event.target.closest('[data-product-row]');
+      if (!row || event.target.dataset.field !== 'limit_value') return;
+      const checkbox = row.querySelector('[data-field="final_equals_limit"]');
+      if (checkbox.checked) row.querySelector('[data-field="final_limit"]').value = event.target.value;
+    });
+    byId('healthBtn').addEventListener('click', async () => {
+      try { show('candidateBlock', await requestJson(phase1Api('/health'))); } catch (err) { show('candidateBlock', err.message); }
+    });
+    byId('loadCandidatesBtn').addEventListener('click', async () => {
+      try { show('candidateBlock', await loadCandidates()); } catch (err) { show('candidateBlock', err.message); }
+    });
+    byId('openCardBtn').addEventListener('click', async () => {
+      try { show('candidateBlock', await openCard()); } catch (err) { show('candidateBlock', err.message); }
+    });
+    byId('candidateSelect').addEventListener('change', event => syncBaseKey(event.target.value));
+    byId('createCandidateBtn').addEventListener('click', async () => {
+      try {
+        const keys = [];
+        if (byId('createTestDayKey').checked) keys.push({ key_type: 'test_day', product_code: 'TD', legacy_target: 'web_mvp_candidates' });
+        if (byId('createImmersionKey').checked) keys.push({ key_type: 'immersion', product_code: 'IMM', legacy_target: 'onboarding_route' });
+        keys.push(...collectProductKeys());
+        const payload = {
+          last_name: byId('lastName').value.trim(),
+          first_name: byId('firstName').value.trim(),
+          seller_segment: byId('sellerSegment').value,
+          direction: byId('direction').value,
+          keys,
+        };
+        const data = await requestJson(phase1Api('/candidates'), { method: 'POST', body: JSON.stringify(payload) });
+        show('createResult', data);
+        await loadCandidates();
+        syncBaseKey(data.candidate && data.candidate.base_key);
+        await openCard(data.candidate.base_key);
+      } catch (err) {
+        show('createResult', err.message);
+      }
+    });
+    byId('saveSourceLinkBtn').addEventListener('click', async () => {
+      try {
+        const baseKey = selectedBaseKey();
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/source-links`), {
+          method: 'POST',
+          body: JSON.stringify({
+            source_code: byId('sourceCode').value,
+            legacy_key: byId('sourceLegacyKey').value.trim(),
+            comment: byId('sourceComment').value.trim(),
+          }),
+        });
+        show('sourceResult', data);
+        await openCard(baseKey);
+      } catch (err) {
+        show('sourceResult', err.message);
+      }
+    });
+    byId('showSourceLinksBtn').addEventListener('click', async () => {
+      try { show('sourceResult', await requestJson(phase1Api(`/candidates/${encodeURIComponent(selectedBaseKey())}/source-links`))); } catch (err) { show('sourceResult', err.message); }
+    });
+    document.querySelectorAll('[data-import]').forEach(button => button.addEventListener('click', async () => {
+      try {
+        const baseKey = selectedBaseKey();
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/import/${button.dataset.import}`), { method: 'POST', body: '{}' });
+        show('sourceResult', data);
+        await openCard(baseKey);
+      } catch (err) {
+        show('sourceResult', err.message);
+      }
+    }));
+    byId('importSummaryBtn').addEventListener('click', async () => {
+      try { show('sourceResult', await requestJson(phase1Api(`/candidates/${encodeURIComponent(selectedBaseKey())}/import/summary`))); } catch (err) { show('sourceResult', err.message); }
+    });
+    document.querySelectorAll('[data-save-manual]').forEach(button => button.addEventListener('click', async () => {
+      try {
+        await saveManual(button.dataset.saveManual, {
+          text_content: byId(button.dataset.text).value,
+          comment: byId(button.dataset.comment).value,
+        }, 'interviewResult');
+      } catch (err) {
+        show('interviewResult', err.message);
+      }
+    }));
+    document.querySelectorAll('[data-upload]').forEach(button => button.addEventListener('click', async () => {
+      const section = button.dataset.upload;
+      const resultId = section.startsWith('calls_')
+        ? 'callsResult'
+        : section === 'phone_metrics'
+          ? 'phoneResult'
+          : section === 'final_test'
+            ? 'finalResult'
+            : section === 'interview'
+              ? 'interviewResult'
+              : 'genericResult';
+      try { await uploadFile(section, button.dataset.file, button.dataset.comment, resultId, button.dataset.type); } catch (err) { show(resultId, err.message); }
+    }));
+    byId('savePhoneBtn').addEventListener('click', async () => {
+      try {
+        await saveManual('phone_metrics', {
+          days: [
+            { day: 1, minutes: numberOrNull('phoneDay1Minutes'), calls_count: numberOrNull('phoneDay1Calls'), calls_over_2min_percent: numberOrNull('phoneDay1Pct') },
+            { day: 2, minutes: numberOrNull('phoneDay2Minutes'), calls_count: numberOrNull('phoneDay2Calls'), calls_over_2min_percent: numberOrNull('phoneDay2Pct') },
+            { day: 3, minutes: numberOrNull('phoneDay3Minutes'), calls_count: numberOrNull('phoneDay3Calls'), calls_over_2min_percent: numberOrNull('phoneDay3Pct') },
+          ],
+          comment: byId('phoneComment').value,
+        }, 'phoneResult');
+      } catch (err) {
+        show('phoneResult', err.message);
+      }
+    });
+    byId('saveOpsBtn').addEventListener('click', async () => {
+      const sections = [
+        ['ops_xsales', 'opsXsalesStatus', 'opsXsalesComment'],
+        ['ops_overdue_goals', 'opsOverdueStatus', 'opsOverdueComment'],
+        ['ops_statuses', 'opsStatusesStatus', 'opsStatusesComment'],
+        ['ops_comments', 'opsCommentsStatus', 'opsCommentsComment'],
+      ];
+      try {
+        const saved = [];
+        for (const [section, statusId, commentId] of sections) {
+          await saveManual(section, { status: byId(statusId).value, comment: byId(commentId).value }, 'opsResult');
+          saved.push(section);
+        }
+        show('opsResult', { ok: true, saved });
+      } catch (err) {
+        show('opsResult', err.message);
+      }
+    });
+    byId('uploadOpsFileBtn').addEventListener('click', async () => {
+      try { await uploadFile(byId('opsFileSection').value, 'opsFile', null, 'opsResult', 'evidence'); } catch (err) { show('opsResult', err.message); }
+    });
+    document.querySelectorAll('[data-call-save]').forEach(button => button.addEventListener('click', async () => {
+      try {
+        await saveManual(button.dataset.callSave, {
+          transcript: byId(button.dataset.text).value,
+          call_date: byId(button.dataset.date).value || null,
+          product: byId(button.dataset.product).value,
+          coach_comment: byId(button.dataset.comment).value,
+        }, 'callsResult');
+      } catch (err) {
+        show('callsResult', err.message);
+      }
+    }));
+    byId('saveFinalBtn').addEventListener('click', async () => {
+      try {
+        await saveManual('final_test', {
+          score: numberOrNull('finalScore'),
+          max_score: numberOrNull('finalMaxScore'),
+          percent: numberOrNull('finalPercent'),
+          weak_topics: byId('finalWeakTopics').value.split(',').map(value => value.trim()).filter(Boolean),
+          comment: byId('finalComment').value,
+        }, 'finalResult');
+      } catch (err) {
+        show('finalResult', err.message);
+      }
+    });
+    byId('uploadGenericBtn').addEventListener('click', async () => {
+      try { await uploadFile(byId('genericFileSection').value, 'genericFile', 'genericFileComment', 'genericResult', 'attachment'); } catch (err) { show('genericResult', err.message); }
+    });
+
+    const tourSteps = [
+      { target: '#topGuide', title: 'Что делает эта панель', text: 'Это рабочее место сборки выпуска новичка. Здесь не запускается AI и не выполняется запись в Google Sheets: панель только собирает ключи, импорты, ручные данные и файлы в серверной базе.' },
+      { target: '#toolbarGuide', title: 'Начните с выбора новичка', text: 'Введите ключ администратора, загрузите список, выберите новичка и откройте карточку. Если новичка ещё нет, создайте его в блоке “Создание кандидата”.' },
+      { target: '#learningGuide', title: 'Подробная инструкция всегда под рукой', text: 'Этот блок можно читать как чек-лист процесса: выбор новичка, ключи, source links, импорты, ручные материалы и проверка готовности.' },
+      { target: '#createGuide', title: 'Создание кандидата и ключей', text: 'Заполняются только фамилия, имя, сегмент и направление. Наставник, рекрутер и даты не вводятся руками. Продуктовые ключи создаются серверно и не записываются в старые таблицы.' },
+      { target: '#sourceGuide', title: 'Связи со старыми источниками', text: 'Source link связывает новый ключ новичка с legacy key в старой системе. Для бота учебки это критично: импорт идёт только по явно указанному legacy key, а не по team_id/team_name.' },
+      { target: '#cardGuide', title: 'Карточка и completeness', text: 'Карточка показывает основные данные, ключи, связи, импорты, файлы и готовность. Красные пункты в готовности — это то, что ещё надо дособрать перед анализом.' },
+      { target: '#interviewGuide', title: 'Собеседование', text: 'Сюда добавляется текст или TXT собеседования. Текст сохраняется как ручной ввод, TXT дополнительно сохраняется как файл с text_content.' },
+      { target: '#phoneGuide', title: 'Время на трубке', text: 'Здесь фиксируются минуты, количество звонков и процент звонков дольше двух минут за три дня. Скриншот или выгрузку можно прикрепить как подтверждение.' },
+      { target: '#opsGuide', title: 'Гигиена операционки', text: 'Отдельно проверяются XSales, просрочки, статусы и комментарии. Для каждого раздела можно сохранить статус, комментарий и файл-доказательство.' },
+      { target: '#callsGuide', title: 'Качество звонков', text: 'Звонки разделены на начало, середину и выпуск. Для каждого этапа можно вставить транскрибацию, дату, продукт, комментарий тренера или загрузить TXT.' },
+      { target: '#finalGuide', title: 'Выпускной тест', text: 'Сюда вносится балл, максимум, процент, темы ошибок и комментарий. Отчёт Teachbase или скриншот прикрепляется файлом.' },
+      { target: '#filesGuide', title: 'Универсальные файлы', text: 'Если файл не подходит к конкретному блоку, загрузите его здесь и выберите раздел. Все файлы сохраняются в папку data/uploads/phase1/<ключ новичка>/.' },
+    ];
+    let tourIndex = 0;
+    let tourActive = false;
+    let tourTarget = null;
+
+    function startTour() {
+      document.body.classList.add('tour-open');
+      tourActive = true;
+      tourIndex = 0;
+      byId('tourLayer').classList.add('show');
+      byId('tourLayer').setAttribute('aria-hidden', 'false');
+      renderTourStep();
+    }
+
+    function closeTour() {
+      document.body.classList.remove('tour-open');
+      tourActive = false;
+      byId('tourLayer').classList.remove('show');
+      byId('tourLayer').setAttribute('aria-hidden', 'true');
+      clearTourFocus();
+    }
+
+    function clearTourFocus() {
+      document.querySelectorAll('.tour-focus').forEach(el => el.classList.remove('tour-focus'));
+      tourTarget = null;
+    }
+
+    function renderTourStep() {
+      const step = tourSteps[tourIndex];
+      clearTourFocus();
+      byId('tourCounter').textContent = `Шаг ${tourIndex + 1} из ${tourSteps.length}`;
+      byId('tourTitle').textContent = step.title;
+      byId('tourText').textContent = step.text;
+      byId('tourPrev').disabled = tourIndex === 0;
+      byId('tourNext').textContent = tourIndex === tourSteps.length - 1 ? 'Завершить' : 'Дальше';
+      byId('tourDots').innerHTML = tourSteps.map((_, i) => `<span class="tour-dot${i === tourIndex ? ' active' : ''}"></span>`).join('');
+      const target = document.querySelector(step.target);
+      if (target) {
+        tourTarget = target;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          if (!tourActive || tourTarget !== target) return;
+          target.classList.add('tour-focus');
+          updateTourSpotlight();
+        }, 260);
+      } else {
+        updateTourSpotlight();
+      }
+    }
+
+    function updateTourSpotlight() {
+      const spot = byId('tourSpotlight');
+      if (!spot) return;
+      if (!tourActive || !tourTarget) {
+        spot.style.opacity = '0';
+        return;
+      }
+      const rect = tourTarget.getBoundingClientRect();
+      const pad = 10;
+      spot.style.opacity = '1';
+      spot.style.left = `${Math.max(8, rect.left - pad)}px`;
+      spot.style.top = `${Math.max(8, rect.top - pad)}px`;
+      spot.style.width = `${Math.min(window.innerWidth - 16, rect.width + pad * 2)}px`;
+      spot.style.height = `${Math.min(window.innerHeight - 16, rect.height + pad * 2)}px`;
+    }
+
+    function nextTourStep() {
+      if (tourIndex >= tourSteps.length - 1) {
+        closeTour();
+        return;
+      }
+      tourIndex += 1;
+      renderTourStep();
+    }
+
+    function prevTourStep() {
+      if (tourIndex <= 0) return;
+      tourIndex -= 1;
+      renderTourStep();
+    }
+
+    byId('startTourBtn').addEventListener('click', startTour);
+    byId('startTourBtn2').addEventListener('click', startTour);
+    byId('tourClose').addEventListener('click', closeTour);
+    byId('tourNext').addEventListener('click', nextTourStep);
+    byId('tourPrev').addEventListener('click', prevTourStep);
+    window.addEventListener('resize', updateTourSpotlight);
+    window.addEventListener('scroll', () => { if (tourActive) updateTourSpotlight(); }, { passive: true });
+    document.addEventListener('keydown', event => {
+      if (!tourActive) return;
+      if (event.key === 'Escape') closeTour();
+      if (event.key === 'ArrowRight') nextTourStep();
+      if (event.key === 'ArrowLeft') prevTourStep();
+    });
+
+    addProductRow();
+  </script>
+</body>
+</html>

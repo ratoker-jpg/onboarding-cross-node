@@ -1,0 +1,16 @@
+{
+  "name": "onboarding-cross-node-v3-cached",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Cached Node.js onboarding app synced with Google Sheets",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check sheets_client.js && node --check onboarding_core.js",
+    "sync:pull": "node server.js --pull-once",
+    "sync:push": "node server.js --push-once",
+    "phase1:init-db": "node scripts/init_phase1_db.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "latest"
+  }
+}

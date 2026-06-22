@@ -1,0 +1,7 @@
+[mcp_servers.onboarding_files]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/home/DenisErmakov/apps/onboarding_cross_node"]
+enabled = true
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+default_tools_approval_mode = "prompt"

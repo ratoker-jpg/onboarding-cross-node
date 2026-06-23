@@ -370,7 +370,7 @@
       <section class="tab-content" id="tab-scores">
         <div class="card">
           <h2>Оценка по этапам</h2>
-          <p class="subtle">Итоговые оценки из candidate_scores. Для обычных оценок: выше — лучше. Для риска: выше — хуже.</p>
+          <p class="subtle">Итоговые оценки. Для обычных оценок: выше — лучше. Для риска: выше — хуже.</p>
           <div class="scores-grid" id="scoresGrid"></div>
         </div>
       </section>
@@ -388,7 +388,7 @@
       <section class="tab-content" id="tab-interview">
         <div class="card">
           <h2>Собеседование</h2>
-          <p class="subtle">Оценки по собеседованию из candidate_scores + источники из manual_inputs.interview.</p>
+          <p class="subtle">Оценки по собеседованию из итоговых оценок и ручных заметок.</p>
           <div id="interviewContent"></div>
         </div>
       </section>
@@ -397,7 +397,7 @@
       <section class="tab-content" id="tab-training">
         <div class="card">
           <h2>Учебные агенты</h2>
-          <p class="subtle">Диалоги с ботом учебки. Это не реальные звонки — они не оцениваются по calls_automanual_binary_v1. Импортированные результаты показываются, если они есть в analysis_json / result_payload.</p>
+          <p class="subtle">Диалоги с ботом учебки. Это не реальные звонки — они не оцениваются по рубрике звонков. Импортированные результаты показываются, если они есть.</p>
           <div id="trainingContent"></div>
         </div>
       </section>
@@ -520,7 +520,7 @@
     }
 
     const SCORE_CARDS = [
-      { field: 'hard_score',         label: 'Hard skills',        note: 'Тестовый день, учебные агенты, звонки, выпускной тест' },
+      { field: 'hard_score',         label: 'Профессиональные навыки / продажи', note: 'Тестовый день, учебные агенты, звонки, выпускной тест' },
       { field: 'soft_score',         label: 'Софт-навыки',        note: 'Собеседование, учебные агенты, реальные звонки' },
       { field: 'learning_score',     label: 'Обучаемость',        note: 'Погружение, принятие ОС, динамика звонков, рефлексия' },
       { field: 'discipline_score',   label: 'Дисциплина',         note: 'Погружение, операционка, сроки, статусы' },
@@ -528,7 +528,7 @@
       { field: 'ops_score',          label: 'Операционка',        note: 'Трубка, XSALES, просрочки, статусы, комментарии' },
       { field: 'final_test_score',   label: 'Выпускной тест',     note: 'Балл / процент / критичные ошибки' },
       { field: 'risk_score',         label: 'Риск',               note: 'Красные флаги + слабые оценки (выше = хуже)', isRisk: true },
-      { field: 'overall_score',      label: 'Общий балл',         note: 'Агрегированный итог (hard/soft/learning/discipline/calls/final)' },
+      { field: 'overall_score',      label: 'Общий балл',         note: 'Агрегированный итог: профессиональные навыки, софт-навыки, обучаемость, дисциплина, звонки, выпускной тест' },
     ];
 
     const STATUS_RU = {
@@ -595,7 +595,7 @@
       heroEl.innerHTML = `
         <div class="hero-eyebrow">Отчёт по новичку · v1</div>
         <h1>${escapeHtml(c.full_name || 'Без ФИО')}</h1>
-        <div class="hero-sub">Read-only отчёт на основе данных из candidate_scores и completeness.</div>
+        <div class="hero-sub">Отчёт только для просмотра на основе итоговых оценок и готовности данных.</div>
         <div class="hero-grid">${cellsHtml}</div>
       `;
     }
@@ -833,7 +833,8 @@
           <div class="empty-state">
             <div class="es-icon">!</div>
             <div class="es-title">Codex-анализ звонков ещё не запущен</div>
-            <div class="es-sub">Экспортируйте bundle (scripts/export_candidate_analysis_bundle.js --type calls), отдайте Codex, импортируйте результат (scripts/import_analysis_result.js).</div>
+            <div class="es-sub">Экспортируйте пакет данных для анализа и передайте его Codex.</div>
+            <details style="margin-top:6px;"><summary style="cursor:pointer; font-size:12px; color:var(--muted);">Техническая команда</summary><pre style="margin-top:4px; font-size:11px;">node scripts/export_candidate_analysis_bundle.js --type calls\nnode scripts/import_analysis_result.js --file <result>.json</pre></details>
           </div>
         </div>`);
       }
@@ -1061,7 +1062,7 @@
         : '';
       html.push(`<div class="scores-grid" style="margin-bottom:14px;">
         ${renderScoreMiniCard('Софт-навыки', s.soft_score, 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : ''))}
-        ${renderScoreMiniCard('Hard skills / продажи', s.hard_score, 'Включая понимание сегмента и ролевую практику')}
+        ${renderScoreMiniCard('Профессиональные навыки / продажи', s.hard_score, 'Включая понимание сегмента и ролевую практику')}
         ${renderScoreMiniCard('Потенциал обучения', s.learning_score, 'Из гибкости + антихрупкости + проактивности')}
         ${renderScoreMiniCard('Риск', s.risk_score, 'Красные флаги + конфликт данных', true)}
       </div>`);
@@ -1079,7 +1080,8 @@
           <div class="empty-state">
             <div class="es-icon">!</div>
             <div class="es-title">Codex-анализ собеседования ещё не запущен</div>
-            <div class="es-sub">Экспортируйте bundle (scripts/export_candidate_analysis_bundle.js --type interview), отдайте Codex, импортируйте результат.</div>
+            <div class="es-sub">Экспортируйте пакет данных для анализа и передайте его Codex.</div>
+            <details style="margin-top:6px;"><summary style="cursor:pointer; font-size:12px; color:var(--muted);">Техническая команда</summary><pre style="margin-top:4px; font-size:11px;">node scripts/export_candidate_analysis_bundle.js --type interview\nnode scripts/import_analysis_result.js --file <result>.json</pre></details>
           </div>
         </div>`);
       }
@@ -1182,8 +1184,8 @@
         html.push(`<div class="card" style="margin-bottom:14px;">
           <h3>${escapeHtml(roleStr || d.role_id || 'Диалог')} <span style="font-size:13px; color:var(--muted); font-weight:400;">${escapeHtml(d.dialog_date || '—')}</span></h3>
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; margin-bottom:10px; font-size:13px;">
-            <div><b>Session key:</b> ${escapeHtml(d.session_key || '—')}</div>
-            <div><b>Role ID:</b> ${escapeHtml(d.role_id || '—')}</div>
+            <div><b>Ключ сессии:</b> ${escapeHtml(d.session_key || '—')}</div>
+            <div><b>ID роли:</b> ${escapeHtml(d.role_id || '—')}</div>
             <div><b>Продукт:</b> ${escapeHtml(product || '—')}</div>
             <div><b>Результат:</b> ${escapeHtml(d.result || '—')}</div>
           </div>`);
@@ -1191,12 +1193,14 @@
         // Imported analysis_json (Phase 3E1: show if present, don't say "Phase 3C")
         if (hasAnalysis) {
           html.push(`<div style="margin-top:10px;">
-            <h4 style="margin:0 0 6px; font-size:13px; color:var(--muted);">ИМПОРТИРОВАННАЯ АНАЛИТИКА (analysis_json)</h4>
+            <h4 style="margin:0 0 6px; font-size:13px; color:var(--muted);">Импортированная аналитика</h4>
+            <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Техническое поле: analysis_json</div>
             ${renderGenericJsonBlock(d.analysis_json)}
           </div>`);
         } else if (hasResultPayload) {
           html.push(`<div style="margin-top:10px;">
-            <h4 style="margin:0 0 6px; font-size:13px; color:var(--muted);">ИМПОРТИРОВАННЫЙ РЕЗУЛЬТАТ (result_payload)</h4>
+            <h4 style="margin:0 0 6px; font-size:13px; color:var(--muted);">Импортированный результат</h4>
+            <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Техническое поле: result_payload</div>
             ${renderGenericJsonBlock(d.result_payload)}
           </div>`);
         } else if (hasResult) {

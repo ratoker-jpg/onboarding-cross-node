@@ -1355,16 +1355,27 @@ function getViewerCandidateCard(baseKey) {
   const manualInputsRaw = repos.manualInputsRepo.listByCandidateId(candidate.id);
   const trainingDialogsRaw = repos.snapshotsRepo.listTrainingBotDialogsByCandidateId(candidate.id);
 
-  // Safe projection of manual inputs for viewer
-  const viewerManualInputs = manualInputsRaw.map(mapManualInputForViewer);
+  // Safe projection of manual inputs for viewer.
+  // mapManualInputForViewer returns null for sections outside the whitelist,
+  // so we filter those out — otherwise report-v1.html's
+  // `manualInputs.find(m => m.section === ...)` could hit a null entry.
+  const viewerManualInputs = manualInputsRaw
+    .map(mapManualInputForViewer)
+    .filter(Boolean);
 
-  // Normalized blocks derived from manual inputs
+  // Normalized blocks derived from manual inputs.
+  // buildInterviewSummary takes RAW manual inputs (not viewer-projected) so it
+  // can read full transcript text before truncation kicks in.
   const callStats = buildCallStats(viewerManualInputs);
   const opsSummary = buildOpsSummary(viewerManualInputs);
-  const interviewSummary = buildInterviewSummary(viewerManualInputs);
+  const interviewSummary = buildInterviewSummary(manualInputsRaw);
 
-  // Safe projection of training bot dialogs for viewer
-  const viewerTrainingDialogs = trainingDialogsRaw.map(mapTrainingDialogForViewer);
+  // Safe projection of training bot dialogs for viewer.
+  // mapTrainingDialogForViewer currently never returns null, but filter(Boolean)
+  // keeps the contract robust against future changes.
+  const viewerTrainingDialogs = trainingDialogsRaw
+    .map(mapTrainingDialogForViewer)
+    .filter(Boolean);
 
   return {
     candidate,
@@ -1505,8 +1516,6 @@ function buildCallStats(manualInputs) {
   let callsOver2min = 0;
   let callsOver10min = 0;
   let effectiveMinutes = 0;
-  let callsOver2minPercentSum = 0;
-  let daysWithPercent = 0;
 
   for (const d of days) {
     const minutes = Number(d.minutes) || 0;
@@ -1515,12 +1524,16 @@ function buildCallStats(manualInputs) {
     talkTime += minutes;
     callsTotal += callsCount;
     reachedCalls += callsCount; // no separate field; assume calls_count == reached
-    callsOver2min += Math.round((callsCount * (Number.isFinite(pct) ? pct : 0)) / 100);
     effectiveMinutes += minutes; // no separate field; use minutes as proxy
-    if (Number.isFinite(pct)) {
-      callsOver2minPercentSum += pct;
-      daysWithPercent += 1;
+
+    // Prefer explicit calls_over_2min count field when present; otherwise
+    // estimate from calls_count * percent / 100.
+    if (typeof d.calls_over_2min === 'number') {
+      callsOver2min += d.calls_over_2min;
+    } else if (callsCount > 0 && Number.isFinite(pct)) {
+      callsOver2min += Math.round((callsCount * pct) / 100);
     }
+
     if (typeof d.calls_over_10min === 'number') {
       callsOver10min += d.calls_over_10min;
     }
@@ -1530,8 +1543,12 @@ function buildCallStats(manualInputs) {
   out.calls_total = callsTotal || null;
   out.reached_calls = reachedCalls || null;
   out.calls_over_2min = callsOver2min || null;
-  out.calls_over_2min_percent = daysWithPercent
-    ? Math.round((callsOver2minPercentSum / daysWithPercent) * 10) / 10
+  // Weighted percent: total over-2min calls / total calls.
+  // This is NOT the average of daily percentages — that would give 50% for
+  // a day with 10 calls @ 100% plus a day with 90 calls @ 0%, when the real
+  // total is 10/100 = 10%.
+  out.calls_over_2min_percent = callsTotal
+    ? Math.round((callsOver2min / callsTotal) * 1000) / 10
     : null;
   out.calls_over_10min = callsOver10min || null;
   out.effective_minutes = effectiveMinutes || null;
@@ -1575,6 +1592,10 @@ function buildOpsSummary(manualInputs) {
 }
 
 function buildInterviewSummary(manualInputs) {
+  // NOTE: this function expects RAW manual inputs (from repo), not
+  // viewer-projected ones. The viewer projection truncates long strings to
+  // { preview, truncated, length } objects, which would make `length`
+  // incorrect here. Callers must pass `manualInputsRaw`.
   const interviewManual = manualInputs.find(m => m && m.section === 'interview');
   const transcriptManual = manualInputs.find(m => m && m.section === 'interview_transcript');
 
@@ -1586,17 +1607,35 @@ function buildInterviewSummary(manualInputs) {
     updated_at: null,
   };
 
+  // Extract full text from raw payload. Defensive: if payload is already a
+  // truncated preview object (string field replaced with { preview, length }),
+  // fall back to its `preview` field so we still return something useful.
+  const extractText = (manual) => {
+    if (!manual || !manual.payload) return '';
+    const p = manual.payload;
+    if (typeof p === 'string') return p;
+    if (typeof p === 'object') {
+      // Direct string fields
+      for (const key of ['text_content', 'transcript', 'text', 'comment']) {
+        if (typeof p[key] === 'string') return p[key];
+        // Maybe already truncated by viewer projection
+        if (p[key] && typeof p[key] === 'object' && typeof p[key].preview === 'string') {
+          return p[key].preview;
+        }
+      }
+    }
+    return '';
+  };
+
   // Prefer transcript section text; fallback to interview section text_content.
   let text = '';
   let updatedAt = null;
-  if (transcriptManual && transcriptManual.payload) {
-    const p = transcriptManual.payload;
-    text = typeof p === 'string' ? p : (p.text_content || p.transcript || p.text || '');
+  if (transcriptManual) {
+    text = extractText(transcriptManual);
     updatedAt = transcriptManual.updated_at || null;
   }
-  if (!text && interviewManual && interviewManual.payload) {
-    const p = interviewManual.payload;
-    text = typeof p === 'string' ? p : (p.text_content || p.transcript || p.text || '');
+  if (!text && interviewManual) {
+    text = extractText(interviewManual);
     updatedAt = updatedAt || interviewManual.updated_at || null;
   }
 
@@ -1608,6 +1647,8 @@ function buildInterviewSummary(manualInputs) {
       : full;
     out.updated_at = updatedAt;
   }
+  // Raw transcript text is NEVER included in `out` — only `preview` (capped)
+  // and `length` (full). Caller must not leak raw text via this summary.
   return out;
 }
 

@@ -41,14 +41,11 @@
     body {
       margin: 0;
       font-family: Manrope, system-ui, sans-serif;
-      background:
-        radial-gradient(circle at 8% 4%, rgba(127, 66, 225, 0.16), transparent 34%),
-        radial-gradient(circle at 86% 12%, rgba(203, 174, 255, 0.42), transparent 30%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 58%, #ffffff 100%);
+      background: linear-gradient(180deg, #f7f2ff 0%, #fbf9ff 46%, #ffffff 100%);
       color: var(--text);
       min-height: 100vh;
     }
-    .page { max-width: 1280px; margin: 0 auto; padding: 24px 18px 80px; }
+    .page { max-width: 1240px; margin: 0 auto; padding: 24px 18px 80px; }
 
     /* === Auth bar === */
     .auth-bar {
@@ -96,17 +93,17 @@
 
     /* === Hero === */
     .hero {
-      background: linear-gradient(135deg, #5a2fb8 0%, #7f42e1 50%, #9b6ce8 100%);
+      background: linear-gradient(135deg, #4b238f 0%, #7240d1 56%, #9a75ee 100%);
       color: #fff;
       border-radius: var(--radius-xl);
-      padding: 36px 38px;
-      box-shadow: 0 24px 60px rgba(90, 47, 184, 0.32);
-      margin-bottom: 24px;
+      padding: 34px 36px;
+      box-shadow: 0 22px 54px rgba(76, 39, 137, 0.26);
+      margin-bottom: 22px;
       position: relative; overflow: hidden;
     }
     .hero::before {
-      content: ''; position: absolute; top: -40%; right: -10%;
-      width: 60%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 60%);
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,0.09), transparent 42%);
       pointer-events: none;
     }
     .hero-eyebrow {
@@ -116,12 +113,12 @@
       text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px;
     }
     .hero h1 { margin: 0 0 8px; font-size: 34px; font-weight: 800; letter-spacing: -0.01em; }
-    .hero .hero-sub { font-size: 16px; opacity: 0.85; margin-bottom: 22px; }
+    .hero .hero-sub { font-size: 16px; opacity: 0.9; margin-bottom: 22px; max-width: 760px; line-height: 1.55; }
     .hero-grid {
-      display: grid; gap: 14px;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     }
-    .hero-cell { background: rgba(255,255,255,0.12); border-radius: var(--radius-sm); padding: 12px 14px; backdrop-filter: blur(4px); }
+    .hero-cell { background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.16); border-radius: var(--radius-sm); padding: 13px 14px; backdrop-filter: blur(4px); }
     .hero-cell .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
     .hero-cell .value { font-size: 17px; font-weight: 700; margin-top: 2px; }
     .hero-cell .pill {
@@ -156,9 +153,9 @@
 
     /* === Cards === */
     .card {
-      background: var(--panel); border: 1px solid var(--line);
+      background: var(--panel); border: 1px solid rgba(127, 66, 225, 0.16);
       border-radius: var(--radius-lg); padding: 24px;
-      box-shadow: var(--shadow); margin-bottom: 18px;
+      box-shadow: 0 14px 36px rgba(63, 35, 112, 0.09); margin-bottom: 18px;
     }
     .card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 800; }
     .card h3 { margin: 0 0 12px; font-size: 15px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -232,8 +229,8 @@
 
     /* === Empty state === */
     .empty-state {
-      padding: 40px 20px; text-align: center;
-      background: var(--panel-soft); border: 1px dashed var(--line-strong);
+      padding: 36px 22px; text-align: center;
+      background: #fbf9ff; border: 1px dashed var(--line-strong);
       border-radius: var(--radius-md); color: var(--muted);
     }
     .empty-state .es-icon {
@@ -327,34 +324,37 @@
 
     /* === Block card (training blocks & aggregate scores) === */
     .block-card {
-      background: var(--panel-soft); border: 1px solid var(--line);
-      border-radius: var(--radius-md); padding: 14px 16px;
+      background: #fff; border: 1px solid var(--line);
+      border-radius: var(--radius-md); padding: 18px 18px 16px;
+      box-shadow: 0 10px 24px rgba(63, 35, 112, 0.06);
     }
     .block-card .block-head {
-      display: flex; justify-content: space-between; align-items: baseline;
-      margin-bottom: 2px; gap: 8px;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 8px; gap: 14px;
     }
-    .block-card .block-name { font-size: 13px; font-weight: 700; color: var(--text); }
-    .block-card .block-score { font-size: 20px; font-weight: 800; }
+    .block-card .block-name { font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.35; }
+    .block-card .block-score { font-size: 26px; font-weight: 900; white-space: nowrap; line-height: 1; }
     .block-card .block-comment {
-      font-size: 12px; color: var(--muted);
-      margin-top: 6px; line-height: 1.5;
+      font-size: 14px; color: var(--text);
+      margin-top: 12px; line-height: 1.65;
     }
     .block-grid {
-      display: grid; gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
 
     /* === Stage card (codex analysis units) === */
     .stage-card {
-      background: var(--panel-soft); border: 1px solid var(--line);
-      border-radius: var(--radius-md); padding: 14px 16px;
+      background: #fff; border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: var(--radius-md); padding: 16px 18px;
+      box-shadow: 0 10px 24px rgba(63, 35, 112, 0.05);
     }
     .stage-card .stage-head {
       display: flex; justify-content: space-between; align-items: baseline;
       margin-bottom: 2px; gap: 8px;
     }
-    .stage-card .stage-name { font-size: 13px; font-weight: 700; }
+    .stage-card .stage-name { font-size: 14px; font-weight: 800; line-height: 1.35; }
     .stage-card .stage-score { font-size: 22px; font-weight: 800; }
     .stage-grid {
       display: grid; gap: 12px;
@@ -363,31 +363,33 @@
 
     /* === Chat bubbles === */
     .chat-wrap {
-      display: flex; flex-direction: column; gap: 8px;
-      margin-top: 10px; background: var(--panel-soft);
-      padding: 14px; border-radius: var(--radius-sm);
-      max-height: 520px; overflow: auto;
+      display: flex; flex-direction: column; gap: 14px;
+      margin-top: 12px; background: #f7f3ff;
+      padding: 18px; border-radius: var(--radius-md);
+      max-height: 560px; overflow: auto;
+      border: 1px solid var(--line);
     }
     .chat-bubble {
-      max-width: 80%; padding: 10px 14px;
-      border-radius: 14px; font-size: 13px; line-height: 1.5;
-      white-space: pre-wrap; word-wrap: break-word;
+      max-width: 76%; padding: 12px 15px;
+      border-radius: 18px; font-size: 14px; line-height: 1.65;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+      box-shadow: 0 8px 20px rgba(63, 35, 112, 0.06);
     }
     .chat-bubble.seller {
-      align-self: flex-end; background: var(--accent); color: #fff;
-      border-bottom-right-radius: 4px;
+      align-self: flex-end; background: #6f3bd0; color: #fff;
+      border-bottom-right-radius: 6px;
     }
     .chat-bubble.client {
       align-self: flex-start; background: #fff; color: var(--text);
-      border: 1px solid var(--line); border-bottom-left-radius: 4px;
+      border: 1px solid #e7ddfb; border-bottom-left-radius: 6px;
     }
     .chat-bubble.plain {
-      align-self: stretch; background: var(--panel); color: var(--text);
-      border: 1px dashed var(--line-strong); font-style: italic;
+      align-self: stretch; max-width: 100%; background: #fff; color: var(--muted);
+      border: 1px dashed var(--line-strong); font-style: normal;
     }
     .chat-speaker {
-      font-size: 10px; font-weight: 700; opacity: 0.75;
-      text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px;
+      font-size: 10px; font-weight: 800; opacity: 0.66;
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
     }
 
     /* === Source cards (overview) === */
@@ -477,6 +479,80 @@
       border-radius: 4px; border: 1px solid var(--line);
     }
 
+    /* === Report polish === */
+    .manager-note {
+      background: #fff;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      margin: 18px 0 20px;
+      color: rgba(255,255,255,0.94);
+      background: rgba(255,255,255,0.12);
+    }
+    .manager-note .mn-label { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.78; }
+    .manager-note .mn-text { margin-top: 6px; font-size: 16px; line-height: 1.55; font-weight: 650; }
+    .report-section-lead { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+    .report-section-lead h3 { margin-bottom: 4px; }
+    .soft-panel {
+      background: #fbf9ff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+    }
+    .test-day-card {
+      border: 1px solid rgba(127, 66, 225, 0.22);
+      background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
+      box-shadow: 0 18px 42px rgba(63, 35, 112, 0.12);
+    }
+    .test-day-card.is-primary { border-top: 5px solid var(--accent); }
+    .training-session-head {
+      display: flex; justify-content: space-between; gap: 14px; align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .training-session-title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0; }
+    .training-session-sub { color: var(--muted); font-size: 14px; margin-top: 4px; line-height: 1.5; }
+    .summary-pills { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .summary-pill {
+      display: inline-flex; flex-direction: column; gap: 1px;
+      min-width: 104px; padding: 9px 12px; border-radius: var(--radius-sm);
+      background: #fff; border: 1px solid var(--line);
+    }
+    .summary-pill .sp-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; }
+    .summary-pill .sp-value { font-size: 16px; font-weight: 900; color: var(--text); }
+    .summary-pill.ok { border-color: rgba(35, 130, 79, 0.22); background: #f4fbf7; }
+    .summary-pill.warn { border-color: rgba(180, 107, 0, 0.24); background: #fff8eb; }
+    .dialog-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 42px; padding: 10px 18px; border-radius: var(--radius-sm);
+      background: var(--accent); color: #fff; font-size: 14px; font-weight: 800;
+      cursor: pointer; width: fit-content;
+    }
+    details[open] > .dialog-toggle { background: var(--accent-hover); }
+    .dialog-card { background: #fff; border: 1px solid var(--line); box-shadow: none; }
+    .dialog-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; font-size: 13px; }
+    .call-stage-card { background: linear-gradient(180deg, #fff 0%, #fbf9ff 100%); }
+    .call-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .call-card {
+      background: #fff; border: 1px solid var(--line); border-radius: var(--radius-md);
+      padding: 14px 16px; box-shadow: 0 10px 24px rgba(63, 35, 112, 0.05);
+    }
+    .call-card .cc-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+    .call-card .cc-title { font-size: 15px; font-weight: 850; color: var(--text); }
+    .call-card .cc-meta { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .call-card .cc-comment { margin-top: 10px; font-size: 13px; line-height: 1.55; color: var(--text); }
+    .call-card .cc-preview { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .codex-analysis-card.interview-soft .stage-card { border-top-color: #7f42e1; }
+    .codex-analysis-card.interview-hard .stage-card { border-top-color: #2a5db0; }
+    .codex-analysis-card.interview-segment .stage-card { border-top-color: #23824f; }
+    .codex-meta-line { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .soft-warning {
+      background: #fff7e8; border: 1px solid #ffd99a; color: #8f5400;
+      border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 12px;
+      font-size: 13px; line-height: 1.5;
+    }
+    .soft-warning b { color: #6f3f00; }
+    .details-secondary { opacity: 0.9; }
+
     /* === Print === */
     @media print {
       .auth-bar, .tabs { display: none; }
@@ -491,6 +567,11 @@
       .card { padding: 18px; }
       .tab { padding: 8px 12px; font-size: 13px; }
       .scores-grid, .quick-slice, .lists-grid, .metrics-grid { grid-template-columns: 1fr; }
+      .training-session-head, .report-section-lead { flex-direction: column; }
+      .summary-pills { justify-content: flex-start; width: 100%; }
+      .summary-pill { flex: 1; min-width: 130px; }
+      .chat-bubble { max-width: 88%; }
+      .block-card .block-head, .stage-card .stage-head { align-items: flex-start; }
     }
   </style>
 </head>
@@ -722,9 +803,15 @@
 
     // Managerial score band — used for KPI cards, training blocks,
     // call stage cards and interview unit cards. Accepts 0..1 or 0..100.
-    function scoreBand(value) {
+    function scoreBand(value, isRisk = false) {
       if (value == null) return { color: '#73668f', bg: '#ece6f5', label: 'нет данных', level: 'none', percent: 0 };
       const v = value <= 1 ? value * 100 : value; // normalize 0-1 to 0-100
+      if (isRisk) {
+        if (v <= 25) return { color: '#23824f', bg: '#d8f3e3', label: 'низкий риск', level: 'low', percent: v };
+        if (v <= 55) return { color: '#2a5db0', bg: '#d6e4ff', label: 'средний риск', level: 'medium', percent: v };
+        if (v <= 75) return { color: '#b46b00', bg: '#fff1d6', label: 'высокий риск', level: 'high', percent: v };
+        return { color: '#d85c3a', bg: '#ffe0d4', label: 'критичный риск', level: 'critical', percent: v };
+      }
       if (v >= 85) return { color: '#23824f', bg: '#d8f3e3', label: 'сильный уровень', level: 'strong', percent: v };
       if (v >= 75) return { color: '#b46b00', bg: '#fff1d6', label: 'рабочий уровень', level: 'working', percent: v };
       if (v >= 65) return { color: '#d85c3a', bg: '#ffe0d4', label: 'риск, нужна отработка', level: 'risk', percent: v };
@@ -750,6 +837,14 @@
       BLOCK_5: 'Блок 5. Тест на сделку и завершение',
       BLOCK_6: 'Блок 6. Сегментная адаптация',
     };
+
+    function getTrainingPayloadValue(payload, key) {
+      if (!payload || typeof payload !== 'object') return undefined;
+      if (Object.prototype.hasOwnProperty.call(payload, key)) return payload[key];
+      const lower = key.toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(payload, lower)) return payload[lower];
+      return undefined;
+    }
 
     const SCORE_CARDS = [
       { field: 'hard_score',         label: 'Профессиональные навыки / продажи', note: 'Сейчас: анализ собеседования. Позже: тестовый день, звонки и выпускной тест.' },
@@ -866,9 +961,9 @@
 
     // Render a generic score-band card. Used for training blocks, aggregate
     // interview scores, and any other 0..1 / 0..100 score that needs the
-    // colored bar + label. opts: { comment, note }.
+    // colored bar + label. opts: { comment, note, isRisk }.
     function renderScoreBandCard(label, value, opts = {}) {
-      const band = scoreBand(value);
+      const band = scoreBand(value, Boolean(opts.isRisk));
       const valueDisplay = value == null ? '—' : escapeHtml(formatScoreValue(value));
       const commentHtml = opts.comment
         ? `<div class="block-comment">${escapeHtml(opts.comment)}</div>`
@@ -897,8 +992,8 @@
       for (let i = 1; i <= 6; i++) {
         const blockKey = `BLOCK_${i}`;
         const commentKey = `COMMENT_${i}`;
-        const blockVal = aggregatePayload[blockKey];
-        const commentVal = aggregatePayload[commentKey];
+        const blockVal = getTrainingPayloadValue(aggregatePayload, blockKey);
+        const commentVal = getTrainingPayloadValue(aggregatePayload, commentKey);
         const name = TRAINING_BLOCK_NAMES_RU[blockKey] || blockKey;
         let numericVal = null;
         if (typeof blockVal === 'number') {
@@ -1024,11 +1119,20 @@
           <div class="value">${cell.value != null ? cell.value : cell.pillHtml}</div>
         </div>
       `).join('');
+      const leadText = s.recommendation
+        ? s.recommendation
+        : status
+          ? `Текущий статус: ${statusLabelRu(status)}. Проверьте, какие источники уже учтены, и назначьте следующий шаг.`
+          : 'Оценка собирается из доступных источников. Проверьте готовность данных и запустите недостающие анализы.';
 
       heroEl.innerHTML = `
-        <div class="hero-eyebrow">Отчёт по новичку · v1</div>
+        <div class="hero-eyebrow">Управленческий отчёт · v1</div>
         <h1>${escapeHtml(c.full_name || 'Без ФИО')}</h1>
-        <div class="hero-sub">Отчёт только для просмотра на основе итоговых оценок и готовности данных.</div>
+        <div class="hero-sub">Новичок: ${escapeHtml(c.base_key || '—')} · ${escapeHtml(c.seller_segment || 'сегмент не указан')} · ${escapeHtml(c.direction || 'направление не указано')}</div>
+        <div class="manager-note">
+          <div class="mn-label">Главный вывод для тимлида</div>
+          <div class="mn-text">${escapeHtml(leadText)}</div>
+        </div>
         <div class="hero-grid">${cellsHtml}</div>
       `;
     }
@@ -1151,6 +1255,20 @@
         },
       ];
 
+      const notCounted = sources
+        .filter(src => !src.ok)
+        .map(src => `${src.title}: ${src.statusText}`);
+      const notCountedHtml = notCounted.length
+        ? `<div class="soft-panel" style="margin-top:14px;">
+            <h3 style="margin-bottom:6px;">Что пока не учтено</h3>
+            <p class="subtle" style="margin-bottom:10px;">Эти источники видны в отчёте как ожидающие данных или анализа. После расчёта они уточнят вывод и следующий шаг.</p>
+            <ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.65;">${notCounted.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+          </div>`
+        : `<div class="soft-panel" style="margin-top:14px;">
+            <h3 style="margin-bottom:6px;">Что пока не учтено</h3>
+            <div class="empty-list">Все ключевые источники в этой карточке загружены или рассчитаны.</div>
+          </div>`;
+
       byId('sourcesConsidered').innerHTML = `<div class="source-grid">
         ${sources.map(src => {
           const icon = src.ok ? '✓' : '—';
@@ -1165,7 +1283,7 @@
             <span class="sc-badge ${badgeCls}">${escapeHtml(src.statusText)}</span>
           </div>`;
         }).join('')}
-      </div>`;
+      </div>${notCountedHtml}`;
     }
 
     // "Следующий шаг для тимлида" — auto-derived from scores, status, and
@@ -1394,9 +1512,10 @@
           <h3>Анализ звонков по автомануалу</h3>
           <div class="empty-state">
             <div class="es-icon">!</div>
-            <div class="es-title">Codex-анализ звонков ещё не запущен</div>
+            <div class="es-title">Анализ звонков ещё не рассчитан</div>
             <div class="es-sub">Загрузите реальные звонки по этапам и передайте их на анализ в Codex.</div>
-            <details class="tech-details" style="margin-top:6px;"><summary>Технические данные</summary><pre>node scripts/export_candidate_analysis_bundle.js --type calls
+            <div style="margin-top:14px;">${baseKey ? renderCopyPromptButton(baseKey, 'calls', 'Скопировать промпт для Codex') : '<span class="status-badge unknown">Ключ новичка недоступен — промпт недоступен.</span>'}</div>
+            <details class="tech-details" style="margin-top:12px;"><summary>Технические данные</summary><pre>node scripts/export_candidate_analysis_bundle.js --type calls
 node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
           </div>
         </div>`);
@@ -1465,36 +1584,45 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
           <div class="subtle">Звонки по этому этапу пока не добавлены.</div>
         </div>`;
       }
-      const rows = calls.map((c, i) => {
+      const callCards = calls.map((c, i) => {
         const hasTranscript = Boolean(c.transcript && c.transcript.trim());
-        const preview = hasTranscript ? (c.transcript.slice(0, 80) + (c.transcript.length > 80 ? '…' : '')) : '—';
-        return `<tr>
-          <td>${i + 1}</td>
-          <td>${escapeHtml(c.call_date || '—')}</td>
-          <td>${escapeHtml(c.product || '—')}</td>
-          <td>${hasTranscript ? '<span class="status-badge ready">да</span>' : '<span class="status-badge unknown">нет</span>'}</td>
-          <td>${escapeHtml(c.coach_comment || '—')}</td>
-          <td>${escapeHtml(inputSourceLabelRu(c.source))}</td>
-          <td style="color:var(--muted);font-size:12px;">${escapeHtml(preview)}</td>
-        </tr>`;
+        const preview = hasTranscript ? (c.transcript.slice(0, 180) + (c.transcript.length > 180 ? '…' : '')) : 'Транскрипт не загружен.';
+        return `<div class="call-card">
+          <div class="cc-top">
+            <div>
+              <div class="cc-title">Звонок ${escapeHtml(i + 1)}</div>
+              <div class="cc-meta">${escapeHtml(c.call_date || 'дата не указана')} · ${escapeHtml(c.product || 'продукт не указан')}</div>
+            </div>
+            ${hasTranscript ? '<span class="status-badge ready">транскрипт есть</span>' : '<span class="status-badge unknown">нет транскрипта</span>'}
+          </div>
+          ${c.coach_comment ? `<div class="cc-comment">${escapeHtml(c.coach_comment)}</div>` : ''}
+          <div class="cc-preview">${escapeHtml(preview)}</div>
+          <details class="tech-details" style="margin-top:10px;">
+            <summary>Технические данные</summary>
+            <div class="tech-row">Источник: <code>${escapeHtml(inputSourceLabelRu(c.source))}</code></div>
+          </details>
+        </div>`;
       }).join('');
-      return `<div class="card" style="margin-bottom:14px;">
-        <h3>${escapeHtml(stageLabel)} <span class="status-badge ready" style="margin-left:8px;">${escapeHtml(calls.length)} зв.</span></h3>
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Дата</th><th>Продукт</th><th>Транскрипт</th><th>Комментарий</th><th>Источник</th><th>Фрагмент</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+      return `<div class="card call-stage-card" style="margin-bottom:14px;">
+        <div class="report-section-lead">
+          <div>
+            <h3>${escapeHtml(stageLabel)}</h3>
+            <p class="subtle" style="margin:0;">Реальные звонки этого этапа обучения.</p>
+          </div>
+          <span class="status-badge ready">${escapeHtml(calls.length)} зв.</span>
+        </div>
+        <div class="call-card-grid">${callCards}</div>
       </div>`;
     }
 
-    function renderCodexAnalysisBlock(title, analysis, expectedUnitIds) {
+    function renderCodexAnalysisBlock(title, analysis, expectedUnitIds, variantClass = '') {
       const rr = analysis.rubric_result || {};
       const units = rr.units || [];
       const confidence = rr.overall_confidence;
       const status = rr.overall_status;
       const isPartial = confidence === 'low' || status === 'partial' || status === 'not_enough_data';
       const warning = isPartial
-        ? `<div class="error-banner show" style="background:var(--warn-soft);color:var(--warn);margin-bottom:12px;">
+        ? `<div class="soft-warning">
             <b>Оценка частичная:</b> часть этапов не была оценена или данных недостаточно. Итоговый балл нельзя читать как полную оценку.
           </div>`
         : '';
@@ -1521,8 +1649,8 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         const confidenceBadge = u.confidence === 'low' ? `<span class="status-badge unknown" style="margin-left:6px; font-size:10px;">низкая уверенность</span>` : '';
         const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px; font-size:10px;">${escapeHtml(analysisStatusRu(u.status))}</span>` : '';
         const qd = Array.isArray(u.question_details) ? u.question_details : [];
-        const detailsHtml = qd.length ? `<details class="tech-details" style="margin-top:8px;">
-          <summary>Вопросы и обоснование (${escapeHtml(qd.length)})</summary>
+        const detailsHtml = qd.length ? `<details class="tech-details details-secondary" style="margin-top:10px;">
+          <summary>Evidence и детали (${escapeHtml(qd.length)})</summary>
           <div style="margin-top:8px;">
             ${qd.map(q => renderQuestionEvidence(q)).join('')}
           </div>
@@ -1551,20 +1679,20 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
           </div>`
         : '';
 
-      return `<div class="card">
-        <h3>${escapeHtml(title)}</h3>
-        <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
-          общий балл: <b>${rr.overall_score_percent == null ? '—' : escapeHtml(rr.overall_score_percent)}</b> ·
-          уверенность: <b>${escapeHtml(analysisConfidenceRu(confidence))}</b> ·
-          статус: <b>${escapeHtml(analysisStatusRu(status))}</b>
+      return `<div class="card codex-analysis-card ${escapeHtml(variantClass)}">
+        <div class="report-section-lead">
+          <div>
+            <h3>${escapeHtml(title)}</h3>
+            <div class="codex-meta-line">общий балл: <b>${rr.overall_score_percent == null ? '—' : escapeHtml(rr.overall_score_percent)}</b> · уверенность: <b>${escapeHtml(analysisConfidenceRu(confidence))}</b> · статус: <b>${escapeHtml(analysisStatusRu(status))}</b></div>
+          </div>
         </div>
         ${warning}
         ${metadataHtml}
-        <details class="tech-details">
+        <details class="tech-details details-secondary">
           <summary>Технические данные анализа</summary>
           <div class="tech-row">Рубрика: <code>${escapeHtml(rr.rubric_id || '—')}</code> v${escapeHtml(rr.rubric_version || '—')}</div>
         </details>
-        <div class="stage-grid" style="margin-top:10px;">${unitsHtml}</div>
+        <div class="stage-grid" style="margin-top:12px;">${unitsHtml}</div>
         ${listsHtml}
       </div>`;
     }
@@ -1673,7 +1801,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
           ${renderScoreBandCard('Софт-навыки', s.soft_score, { note: 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : '') })}
           ${renderScoreBandCard('Профессиональные навыки / продажи', s.hard_score, { note: 'Включая понимание сегмента и ролевую практику' })}
           ${renderScoreBandCard('Потенциал обучения', s.learning_score, { note: 'Из гибкости + антихрупкости + проактивности' })}
-          ${renderScoreBandCard('Риск', s.risk_score, { note: 'Красные флаги + конфликт данных' })}
+          ${renderScoreBandCard('Риск', s.risk_score, { note: 'Красные флаги + конфликт данных', isRisk: true })}
         </div>
       </div>`);
 
@@ -1683,7 +1811,9 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         const softUnits = ['soft_motivation', 'soft_responsibility', 'soft_communication', 'soft_emotional_intelligence', 'soft_flexibility', 'soft_proactivity', 'soft_antifragility', 'soft_client_approach'];
         const hardUnits = ['hard_b2b_experience', 'hard_sales_tech', 'hard_roleplay', 'hard_digital'];
         const segmentUnits = ['segment_understanding'];
-        html.push(renderCodexAnalysisBlock('Детализация по блокам собеседования', latestInterview, [...softUnits, ...hardUnits, ...segmentUnits]));
+        html.push(renderCodexAnalysisBlock('Soft-навыки', latestInterview, softUnits, 'interview-soft'));
+        html.push(renderCodexAnalysisBlock('Hard-навыки и продажи', latestInterview, hardUnits, 'interview-hard'));
+        html.push(renderCodexAnalysisBlock('Понимание сегмента', latestInterview, segmentUnits, 'interview-segment'));
       } else {
         html.push(`<div class="card">
           <h3>Детализация по блокам собеседования</h3>
@@ -1795,8 +1925,8 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         return { ...g, aggregatePayload };
       });
 
-      const successfulTrainings = groupAggregates.filter(g => g.aggregatePayload && g.aggregatePayload.SUCCESSFUL === true).length;
-      const failedTrainings = groupAggregates.filter(g => g.aggregatePayload && g.aggregatePayload.FAILED === true).length;
+      const successfulTrainings = groupAggregates.filter(g => getTrainingPayloadValue(g.aggregatePayload, 'SUCCESSFUL') === true).length;
+      const failedTrainings = groupAggregates.filter(g => getTrainingPayloadValue(g.aggregatePayload, 'FAILED') === true).length;
 
       const html = [];
 
@@ -1848,17 +1978,24 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         const groupDialogs = group.dialogs;
         const groupTotal = groupDialogs.length;
         const aggregatePayload = group.aggregatePayload;
-        const successfulYesNo = aggregatePayload && aggregatePayload.SUCCESSFUL === true ? 'да' : 'нет';
-        const failedYesNo = aggregatePayload && aggregatePayload.FAILED === true ? 'да' : 'нет';
-        const successfulCls = aggregatePayload && aggregatePayload.SUCCESSFUL === true ? 'ok' : 'muted';
-        const failedCls = aggregatePayload && aggregatePayload.FAILED === true ? 'warn' : 'muted';
+        const isSuccessful = getTrainingPayloadValue(aggregatePayload, 'SUCCESSFUL') === true;
+        const isFailed = getTrainingPayloadValue(aggregatePayload, 'FAILED') === true;
+        const successfulYesNo = isSuccessful ? 'да' : 'нет';
+        const failedYesNo = isFailed ? 'да' : 'нет';
+        const successfulCls = isSuccessful ? 'ok' : 'muted';
+        const failedCls = isFailed ? 'warn' : 'muted';
 
-        html.push(`<div class="card" style="margin-bottom:14px;">
-          <h3>${escapeHtml(trainingName)}</h3>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px; font-size:13px; align-items:center;">
-            <div><b>Всего диалогов:</b> ${escapeHtml(groupTotal)}</div>
-            <div><b>Успешно:</b> <span class="sc-badge ${successfulCls}">${escapeHtml(successfulYesNo)}</span></div>
-            <div><b>Провалено:</b> <span class="sc-badge ${failedCls}">${escapeHtml(failedYesNo)}</span></div>
+        html.push(`<div class="card test-day-card ${idx === 0 ? 'is-primary' : ''}" style="margin-bottom:16px;">
+          <div class="training-session-head">
+            <div>
+              <h3 class="training-session-title">${escapeHtml(trainingName)}</h3>
+              <div class="training-session-sub">${idx === 0 ? 'Главный срез учебного дня: смотрим качество прохождения блоков и комментарии по каждому этапу.' : 'Дополнительная тренировка: смотрим динамику и отдельные учебные диалоги.'}</div>
+            </div>
+            <div class="summary-pills">
+              <div class="summary-pill"><span class="sp-label">Диалогов</span><span class="sp-value">${escapeHtml(groupTotal)}</span></div>
+              <div class="summary-pill ${successfulCls}"><span class="sp-label">Успешно</span><span class="sp-value">${escapeHtml(successfulYesNo)}</span></div>
+              <div class="summary-pill ${failedCls}"><span class="sp-label">Провалено</span><span class="sp-value">${escapeHtml(failedYesNo)}</span></div>
+            </div>
           </div>
           <details class="tech-details">
             <summary>Технические данные сессии</summary>
@@ -1867,7 +2004,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
 
         // 6 training block cards (BLOCK_1..BLOCK_6 + COMMENT_1..6)
         if (aggregatePayload) {
-          html.push(`<h4 style="margin:14px 0 8px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;">Блоки учебного диалога</h4>`);
+          html.push(`<h4 style="margin:18px 0 10px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; font-weight:800;">Блоки оценки</h4>`);
           html.push(renderTrainingBlocks(aggregatePayload));
 
           // Collapsible aggregate raw payload (technical view)
@@ -1879,12 +2016,17 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
             <summary>Технические данные: агрегированный результат</summary>
             ${payloadRows}
           </details>`);
+        } else {
+          html.push(`<div class="soft-panel" style="margin-top:14px;">
+            <h4 style="margin:0 0 6px; font-size:14px; font-weight:850;">Оценки по блокам пока нет</h4>
+            <div style="font-size:14px; color:var(--muted); line-height:1.55;">Диалоги загружены, но итоговая оценка учебного дня не импортирована. Это не ошибка отчёта.</div>
+          </div>`);
         }
 
         // "Посмотреть диалоги" — expandable list of individual dialog cards.
-        html.push(`<details style="margin-top:14px;">
-          <summary style="cursor:pointer; font-size:13px; color:var(--accent); font-weight:600;">Посмотреть диалоги (${escapeHtml(groupTotal)})</summary>
-          <div style="margin-top:12px;">${groupDialogs.map(d => renderTrainingDialogCard(d)).join('')}</div>
+        html.push(`<details style="margin-top:16px;">
+          <summary class="dialog-toggle">Посмотреть диалоги (${escapeHtml(groupTotal)})</summary>
+          <div style="margin-top:14px;">${groupDialogs.map(d => renderTrainingDialogCard(d)).join('')}</div>
         </details>`);
 
         html.push(`</div>`);
@@ -1906,9 +2048,9 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
       const hasAnalysis = Boolean(d.analysis_json);
       const hasResult = Boolean(d.result);
 
-      html.push(`<div class="card" style="margin-bottom:12px; background:var(--panel-soft);">
-        <h4 style="margin:0 0 8px; font-size:14px;">${escapeHtml(roleStr || 'Диалог')}</h4>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:8px; margin-bottom:10px; font-size:13px;">
+      html.push(`<div class="card dialog-card" style="margin-bottom:12px;">
+        <h4 style="margin:0 0 8px; font-size:15px; font-weight:850;">${escapeHtml(roleStr || 'Диалог')}</h4>
+        <div class="dialog-meta">
           <div><b>Дата:</b> ${escapeHtml(d.dialog_date || '—')}</div>
           <div><b>Результат:</b> ${escapeHtml(d.result || '—')}</div>
           <div><b>Продукт:</b> ${escapeHtml(product || '—')}</div>
@@ -1935,8 +2077,8 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
       const transcriptBody = hasTranscript
         ? `<div class="chat-wrap">${renderTranscriptBubbles(transcriptPreview)}</div>${transcriptTruncated ? `<div class="score-note" style="color:var(--warn); margin-top:6px;">Диалог обрезан для просмотра в отчёте. Показано ${escapeHtml(transcriptPreview.length)} из ${escapeHtml(transcriptLength)} символов.</div>` : ''}`
         : `<div class="chat-bubble plain">Транскрипт не загружен.</div>`;
-      html.push(`<details style="margin-top:10px;">
-        <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Транскрипт диалога</summary>
+      html.push(`<details style="margin-top:12px;">
+        <summary style="cursor:pointer; font-size:13px; color:var(--accent); font-weight:700;">Транскрипт диалога</summary>
         ${transcriptBody}
       </details>`);
 

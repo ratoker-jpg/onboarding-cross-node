@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard новичков — просмотр</title>
+  <title>Дашборд новичков — просмотр</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -141,13 +141,13 @@
 <body>
   <div class="page">
     <section class="hero">
-      <h1>Dashboard новичков</h1>
-      <p>Read-only просмотр. Для редактирования оценок используйте админку.</p>
+      <h1>Дашборд новичков</h1>
+      <p>Просмотр без редактирования. Для изменения оценок используйте админку.</p>
       <div class="auth-row">
         <label>Ключ просмотра
-          <input id="viewerKey" type="password" placeholder="Введите VIEWER_KEY" />
+          <input id="viewerKey" type="password" placeholder="Введите ключ просмотра" />
         </label>
-        <button id="openDashboardBtn" type="button">Открыть dashboard</button>
+        <button id="openDashboardBtn" type="button">Открыть дашборд</button>
       </div>
       <div id="errorBanner" class="error-banner"></div>
     </section>
@@ -198,15 +198,16 @@
               <th>Сегмент</th>
               <th>Статус</th>
               <th>Риск</th>
-              <th>Hard</th>
-              <th>Soft</th>
-              <th>Learning</th>
-              <th>Discipline</th>
-              <th>Calls</th>
-              <th>Ops</th>
-              <th>Final</th>
-              <th>Overall</th>
+              <th>Проф. навыки</th>
+              <th>Софт-навыки</th>
+              <th>Обучаемость</th>
+              <th>Дисциплина</th>
+              <th>Звонки</th>
+              <th>Операционка</th>
+              <th>Тест</th>
+              <th>Общий</th>
               <th>Готовность</th>
+              <th>Отчёт</th>
             </tr>
           </thead>
           <tbody id="candidatesTbody"></tbody>
@@ -282,15 +283,15 @@
       unknown: '—',
     };
     const SCORE_FIELDS = [
-      ['hard_score', 'Hard'],
-      ['soft_score', 'Soft'],
-      ['learning_score', 'Learning'],
-      ['discipline_score', 'Discipline'],
-      ['call_quality_score', 'Calls'],
-      ['ops_score', 'Ops'],
-      ['final_test_score', 'Final'],
-      ['risk_score', 'Risk'],
-      ['overall_score', 'Overall'],
+      ['hard_score', 'Проф. навыки'],
+      ['soft_score', 'Софт-навыки'],
+      ['learning_score', 'Обучаемость'],
+      ['discipline_score', 'Дисциплина'],
+      ['call_quality_score', 'Звонки'],
+      ['ops_score', 'Операционка'],
+      ['final_test_score', 'Тест'],
+      ['risk_score', 'Риск'],
+      ['overall_score', 'Общий'],
     ];
 
     function fmtScore(scores, field) {
@@ -322,9 +323,9 @@
         { label: 'Доработка', value: (summary.by_status || {}).needs_practice || 0, kind: 'danger' },
         { label: 'Не рекомендованы', value: (summary.by_status || {}).not_recommended || 0, kind: 'danger' },
         { label: 'Высокий риск', value: ((summary.by_risk || {}).high || 0) + ((summary.by_risk || {}).critical || 0), kind: 'danger' },
-        { label: 'Ср. Hard', value: (summary.avg_scores || {}).hard_score == null ? '—' : (summary.avg_scores || {}).hard_score },
-        { label: 'Ср. Soft', value: (summary.avg_scores || {}).soft_score == null ? '—' : (summary.avg_scores || {}).soft_score },
-        { label: 'Ср. Overall', value: (summary.avg_scores || {}).overall_score == null ? '—' : (summary.avg_scores || {}).overall_score },
+        { label: 'Ср. Проф. навыки', value: (summary.avg_scores || {}).hard_score == null ? '—' : (summary.avg_scores || {}).hard_score },
+        { label: 'Ср. Софт-навыки', value: (summary.avg_scores || {}).soft_score == null ? '—' : (summary.avg_scores || {}).soft_score },
+        { label: 'Ср. Общий', value: (summary.avg_scores || {}).overall_score == null ? '—' : (summary.avg_scores || {}).overall_score },
       ];
       byId('summaryGrid').innerHTML = cards.map(c => `
         <div class="summary-card">
@@ -338,12 +339,15 @@
     function renderCandidates(rows) {
       const tbody = byId('candidatesTbody');
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="14" class="empty-state">Нет новичков по фильтрам</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" class="empty-state">Нет новичков по фильтрам</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map(row => {
         const s = row.scores || {};
         const comp = row.completeness_summary || {};
+        const reportUrl = isScopedPage
+          ? `/onboarding_cross/report-v1.html?base_key=${encodeURIComponent(row.base_key)}`
+          : `/report-v1.html?base_key=${encodeURIComponent(row.base_key)}`;
         return `<tr data-base-key="${escapeHtml(row.base_key)}">
           <td>${escapeHtml(row.full_name || '—')}</td>
           <td>${escapeHtml(row.base_key)}</td>
@@ -359,6 +363,7 @@
           <td>${fmtScore(s, 'final_test_score')}</td>
           <td>${fmtScore(s, 'overall_score')}</td>
           <td>${escapeHtml(comp.completed_count || 0)}/${escapeHtml(comp.total_count || 0)}</td>
+          <td><a href="${escapeHtml(reportUrl)}" target="_blank" style="font-size:12px; color:var(--accent); text-decoration:none;">Открыть отчёт</a></td>
         </tr>`;
       }).join('');
       tbody.querySelectorAll('tr[data-base-key]').forEach(tr => {

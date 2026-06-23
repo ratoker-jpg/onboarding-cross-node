@@ -355,12 +355,13 @@
     </section>
 
     <section class="toolbar" id="toolbarGuide">
-      <label>Ключ администратора<input id="adminKey" type="password" placeholder="Введите ADMIN_KEY" /></label>
+      <label>Ключ администратора<input id="adminKey" type="password" placeholder="Введите ключ администратора" /></label>
       <label>Новичок
         <select id="candidateSelect"><option value="">Загрузите список</option></select>
       </label>
       <button id="loadCandidatesBtn" type="button">Загрузить список</button>
-      <button id="openCardBtn" type="button" class="secondary">Открыть карточку</button>
+      <button id="openCardBtn" type="button" class="secondary">Загрузить карточку в админке</button>
+      <button id="openReportBtn" type="button" class="secondary">Открыть отчёт</button>
       <button id="healthBtn" type="button" class="secondary">Проверить сервер</button>
     </section>
 
@@ -1003,10 +1004,27 @@
       try { show('candidateBlock', await requestJson(phase1Api('/health'))); } catch (err) { show('candidateBlock', err.message); }
     });
     byId('loadCandidatesBtn').addEventListener('click', async () => {
-      try { show('candidateBlock', await loadCandidates()); } catch (err) { show('candidateBlock', err.message); }
+      if (!adminKey()) { show('candidateBlock', 'Введите ключ администратора'); return; }
+      try {
+        const data = await loadCandidates();
+        show('candidateBlock', `Список загружен: ${data.candidates.length} новичков`);
+      } catch (err) {
+        const msg = err.message || '';
+        if (msg.includes('unauthorized')) show('candidateBlock', 'Неверный ключ администратора. Проверьте значение в настройках сервера.');
+        else if (msg.includes('disabled')) show('candidateBlock', 'Админка отключена на сервере. Обратитесь к администратору.');
+        else show('candidateBlock', `Ошибка загрузки списка: ${msg}`);
+      }
     });
     byId('openCardBtn').addEventListener('click', async () => {
       try { show('candidateBlock', await openCard()); } catch (err) { show('candidateBlock', err.message); }
+    });
+    byId('openReportBtn').addEventListener('click', () => {
+      const baseKey = selectedBaseKey();
+      if (!baseKey) { show('candidateBlock', 'Выберите новичка из списка'); return; }
+      const reportUrl = isScopedPage
+        ? `/onboarding_cross/report-v1.html?base_key=${encodeURIComponent(baseKey)}`
+        : `/report-v1.html?base_key=${encodeURIComponent(baseKey)}`;
+      window.open(reportUrl, '_blank');
     });
     byId('candidateSelect').addEventListener('change', event => syncBaseKey(event.target.value));
     byId('createCandidateBtn').addEventListener('click', async () => {

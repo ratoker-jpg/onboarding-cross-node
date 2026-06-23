@@ -1,0 +1,264 @@
+{
+  "rubric_id": "calls_automanual_binary_v1",
+  "rubric_version": "1.0.0",
+  "fixed_at": "2026-06-23",
+  "source_docs": [
+    "docs/15_CALLS_AUTOMANUAL_BINARY_RUBRIC.md",
+    "docs/16_BINARY_RUBRIC_FIXUP_NOTES.md"
+  ],
+  "evaluation_unit": "stage",
+  "stage_label": "stage = sales stage (contact/needs/presentation/objections/close)",
+  "allowed_answers": ["yes", "no", "not_applicable", "not_enough_data", "conflict"],
+  "answer_semantics": {
+    "yes": "action/condition explicitly performed; weight contributes to numerator and denominator",
+    "no": "action was required but not performed; weight contributes to denominator only",
+    "not_applicable": "question does not apply to this call; weight excluded from numerator and denominator",
+    "not_enough_data": "transcript does not allow to verify the question; weight excluded from numerator and denominator, lowers confidence",
+    "conflict": "data contradict; weight excluded from denominator, adds risk flag"
+  },
+  "answer_groups": {
+    "contributes_to_numerator": ["yes"],
+    "contributes_to_denominator_only": ["no"],
+    "excluded_from_calculation": ["not_applicable", "not_enough_data", "conflict"],
+    "raises_risk_flag": ["conflict"],
+    "lowers_confidence": ["not_enough_data"]
+  },
+  "score_formula": {
+    "stage_score": "sum(yes weights) / sum(applicable weights) where applicable = answers in {yes, no}",
+    "overall_call_score": "contact*0.15 + needs*0.30 + presentation*0.25 + objections*0.15 + close*0.15"
+  },
+  "stage_weights": {
+    "contact": 0.15,
+    "needs": 0.30,
+    "presentation": 0.25,
+    "objections": 0.15,
+    "close": 0.15
+  },
+  "stages": [
+    {
+      "stage_id": "contact",
+      "stage_name": "Установление контакта",
+      "stage_weight": 0.15,
+      "questions": [
+        { "question_id": "contact_01", "text": "Уточнил ли оператор, удобно ли клиенту разговаривать?", "weight": 0.15, "how_to_check": "Засчитывать yes, если оператор спросил про удобство разговора и дал клиенту возможность ответить" },
+        { "question_id": "contact_02", "text": "Поздоровался ли оператор?", "weight": 0.10, "how_to_check": "Засчитывать любое корректное приветствие" },
+        { "question_id": "contact_03", "text": "Представился ли оператор, назвав своё имя?", "weight": 0.15, "how_to_check": "Засчитывать, если оператор назвал своё имя; только 'это банк' без имени = no" },
+        { "question_id": "contact_04", "text": "Сообщил ли оператор, что звонит из Банка Точка?", "weight": 0.25, "how_to_check": "Засчитывать, если клиенту понятно, что звонок от Банка Точка / Точки" },
+        { "question_id": "contact_05", "text": "Сообщил ли оператор причину звонка?", "weight": 0.35, "how_to_check": "Причина должна объяснять, зачем оператор звонит именно сейчас / по какому поводу / с какой пользой для клиента" }
+      ]
+    },
+    {
+      "stage_id": "needs",
+      "stage_name": "Выявление потребности",
+      "stage_weight": 0.30,
+      "questions": [
+        { "question_id": "needs_01", "text": "Спросил ли оператор, каким бизнесом занимается клиент?", "weight": 0.20, "how_to_check": "Засчитывать, если оператор выяснил сферу, формат работы, клиентов, процессы или подтвердил уже известный бизнес-контекст" },
+        { "question_id": "needs_02", "text": "Спросил ли оператор клиента, с какими проблемами и трудностями он сталкивается в бизнесе?", "weight": 0.30, "how_to_check": "Под проблемами считать сложности, препятствия, неудобства, неэффективность, ручной труд, риски, кассовые разрывы, задержки, потери времени" },
+        { "question_id": "needs_03", "text": "Уточнил ли оператор, как часто клиент сталкивается с проблемами и трудностями в бизнесе?", "weight": 0.15, "how_to_check": "Засчитывать, если есть уточнение регулярности: разово, часто, каждый месяц, периодически, постоянно" },
+        { "question_id": "needs_04", "text": "Уточнил ли оператор у клиента, как он решает проблемы и трудности в бизнесе?", "weight": 0.20, "how_to_check": "Засчитывать, если оператор выяснил текущий способ решения, альтернативу, ручной процесс или текущего поставщика/банк" },
+        { "question_id": "needs_05", "text": "Уточнил ли оператор у клиента, сколько ресурсов он тратит на решение проблем и трудностей в бизнесе?", "weight": 0.15, "how_to_check": "Ресурсы = деньги, время, сотрудники, нервы, операционные действия, потери, комиссии, просрочки" }
+      ]
+    },
+    {
+      "stage_id": "presentation",
+      "stage_name": "Презентация продукта",
+      "stage_weight": 0.25,
+      "questions": [
+        { "question_id": "presentation_01", "text": "Презентовал ли оператор какие-либо продукты банка?", "weight": 0.20, "how_to_check": "Использовать словарь продуктов Точки. Засчитывать только действующие/продаваемые продукты" },
+        { "question_id": "presentation_02", "text": "Спрашивал ли оператор мнение клиента хотя бы об одном представленном продукте банка?", "weight": 0.20, "how_to_check": "Использовать словарь продуктов Точки. Засчитывать, если оператор проверил реакцию клиента: актуально, интересно, что думаете, подходит ли" },
+        { "question_id": "presentation_03", "text": "Подкрепил ли оператор выгоду от презентованных продуктов банка конкретными расчётами?", "weight": 0.25, "how_to_check": "Засчитывать расчёт, сравнение, экономию, стоимость, срок, цифру, пример с деньгами" },
+        { "question_id": "presentation_04", "text": "Презентовал ли оператор продукты банка, сославшись на озвученную клиентом проблему?", "weight": 0.35, "how_to_check": "Сначала найти озвученную проблему клиента, потом проверить, что продукт связан с этой проблемой. Если нет выявленной проблемы, вопрос = no" }
+      ]
+    },
+    {
+      "stage_id": "objections",
+      "stage_name": "Работа с возражениями",
+      "stage_weight": 0.15,
+      "stage_applicability_rule": "Этап применим только если клиент реально выразил возражение, сомнение, отказ, перенос, неактуальность, недоверие, сравнение с конкурентом или ограничение. Если возражений не было → objections_stage_status = not_applicable (вес этапа перераспределяется пропорционально между применимыми этапами).",
+      "questions": [
+        { "question_id": "objections_01", "text": "Пытался ли оператор снять возражения клиента по представленным продуктам банка?", "weight": 0.35, "how_to_check": "Засчитывать, если оператор уточнил причину и ответил по сути, а не просто продолжил презентацию" },
+        { "question_id": "objections_02", "text": "Уточнил ли оператор, остались ли у клиента сомнения после ответа на его возражения по представленным продуктам банка?", "weight": 0.25, "how_to_check": "Засчитывать сам факт вопроса о снятии сомнения, а не результат согласия клиента" },
+        { "question_id": "objections_03", "text": "Приводил ли оператор примеры или сравнения, иллюстрирующие использование или выгоду представленных продуктов банка?", "weight": 0.20, "how_to_check": "Засчитывать любое сравнение, кейс, метафору, опыт клиента, пример из жизни или работы банка" },
+        { "question_id": "objections_04", "text": "Сравнивал ли оператор предложенные продукты или условия по ним с предложениями конкурентов?", "weight": 0.20, "how_to_check": "Под конкурентами понимать другие банки, платёжные системы, онлайн-сервисы и любые организации, предлагающие аналогичные продукты/услуги" },
+        {
+          "question_id": "objections_05",
+          "text": "Высказывал ли клиент возражения по поводу релевантности использования представленных продуктов банка?",
+          "weight": 0.0,
+          "metadata": true,
+          "metadata_field": "relevance_objection_present",
+          "metadata_answers": ["yes", "no", "not_enough_data"],
+          "how_to_check": "Фильтрующий вопрос про наличие типа возражения у клиента. Не качество оператора. Если клиент сказал 'дорого', 'не нужно', 'не пользуюсь', 'нам это не подходит', 'не вижу смысла', 'уже есть в другом банке' — это yes.",
+          "note": "Согласно docs/16_BINARY_RUBRIC_FIXUP_NOTES.md §4, objections_05 НЕ участвует в weighted score блока objections. Это metadata-поле relevance_objection_present. Если yes, последующие под-вопросы objections (которые завязаны на релевантность) оцениваются; если no, такие под-вопросы → not_applicable."
+        }
+      ],
+      "objections_05_normalization": {
+        "weights_without_objections_05": {
+          "objections_01": 0.35,
+          "objections_02": 0.25,
+          "objections_03": 0.20,
+          "objections_04": 0.20
+        },
+        "sum": 1.00,
+        "note": "Сумма весов objections_01..04 = 1.00. objections_05 excluded from weighted score per fixup §4."
+      }
+    },
+    {
+      "stage_id": "close",
+      "stage_name": "Тест на сделку и завершение звонка",
+      "stage_weight": 0.15,
+      "questions": [
+        { "question_id": "close_01", "text": "Предложил ли оператор клиенту совершить действия, необходимые для приобретения продукта?", "weight": 0.30, "how_to_check": "Засчитывать действия: подать заявку, оформить продукт, подключить продукт, перейти к оплате, подтвердить согласие" },
+        { "question_id": "close_02", "text": "Договорился ли оператор с клиентом о конкретном следующем шаге с указанием даты или срока?", "weight": 0.30, "how_to_check": "Следующий шаг = повторный звонок, отправка коммерческого предложения, подключение продукта в срок, встреча, заявка. Нужна конкретика по сроку/действию" },
+        { "question_id": "close_03", "text": "Предлагал ли оператор клиенту списать денежные средства с его счёта?", "weight": 0.20, "how_to_check": "Фильтрующий вопрос. Имеет смысл только если продукт/сценарий допускает списание денег со счёта" },
+        { "question_id": "close_04", "text": "Согласился ли клиент на списание денежных средств с его счёта?", "weight": 0.20, "how_to_check": "Имеет смысл только при close_03=yes. Засчитывать любые формы подтверждения: 'да', 'угу', 'ага', 'согласен', 'давайте' и подобные. Формальная юридическая формулировка не требуется" }
+      ]
+    }
+  ],
+  "critical_errors": [
+    {
+      "code": "dangerous_promises",
+      "description": "Оператор пообещал клиенту то, чего нельзя обещать",
+      "score_cap_percent": 50
+    },
+    {
+      "code": "product_not_sellable",
+      "description": "Оператор презентовал продукт, который не продаётся / неактивен в словаре продуктов",
+      "stage_cap": { "presentation": 0 }
+    },
+    {
+      "code": "presentation_without_needs",
+      "description": "Оператор презентовал продукт без выявления потребности",
+      "score_cap_percent": 70
+    },
+    {
+      "code": "no_needs_discovery",
+      "description": "Не было выявления потребности вообще",
+      "score_cap_percent": 65
+    },
+    {
+      "code": "no_close_or_next_step",
+      "description": "Нет завершения или следующего шага",
+      "score_cap_percent": 80
+    },
+    {
+      "code": "agreed_but_not_fixed",
+      "description": "Клиент согласился, но оператор не зафиксировал действие",
+      "score_cap_percent": 75
+    },
+    {
+      "code": "pressure_instead_of_handling",
+      "description": "Оператор давил на клиента или спорил вместо обработки возражения",
+      "score_cap_percent": 70
+    },
+    {
+      "code": "distorted_product_terms",
+      "description": "Оператор исказил условия продукта",
+      "score_cap_percent": 60
+    }
+  ],
+  "source_dependencies": {
+    "call_transcript": {
+      "required_for_stages": ["contact", "needs", "presentation", "objections", "close"],
+      "required_for_questions": []
+    },
+    "base_manual": {
+      "required_for_stages": [],
+      "required_for_questions": [],
+      "used_as": "source of final questions and instructions for the model"
+    },
+    "segment_manual": {
+      "required_for_stages": [],
+      "required_for_questions": [],
+      "used_as": "second-layer evaluation under client segment"
+    },
+    "product_dictionary": {
+      "required_for_stages": ["presentation"],
+      "required_for_questions": ["presentation_01", "presentation_02", "presentation_03", "presentation_04"],
+      "rule": "Product is counted only if it is found in dictionary and has selling/active status"
+    },
+    "client_card_or_role": {
+      "required_for_stages": ["close"],
+      "required_for_questions": ["close_03", "close_04"],
+      "used_as": "target action, objections, business type, segment context"
+    },
+    "expert_markup": {
+      "required_for_stages": [],
+      "required_for_questions": [],
+      "used_as": "if question comment says 'смотреть на экспертной разметке', model must use this source. If unavailable → not_enough_data"
+    }
+  },
+  "fallback_rules": {
+    "no_call_transcript": "all stages → not_enough_data",
+    "no_product_dictionary": "presentation_01..04 → not_enough_data",
+    "no_client_card_for_close": "close_03, close_04 → not_enough_data",
+    "no_expert_markup_when_required": "affected question → not_enough_data"
+  },
+  "confidence_rules": {
+    "stage_confidence_low_threshold": 0.50,
+    "stage_confidence_low_meaning": "if more than 50% of stage weight has answer not_enough_data, stage_confidence = low",
+    "call_confidence_low": "if any stage has confidence=low, call_confidence = low"
+  },
+  "candidate_scores_mapping": {
+    "call_quality_score": {
+      "source": "overall_call_score",
+      "formula": "weighted sum of stage_scores by stage_weights, * 100, rounded. If objections stage is not_applicable, redistribute its weight proportionally among applicable stages."
+    },
+    "risk_score_adjustment": {
+      "source": "critical_errors + conflict answers",
+      "formula": "if any critical_error triggers score_cap, raise risk_score proportionally. Each conflict answer → +10 to risk_score (max 50). Critical errors → +15 each (max 50)."
+    },
+    "soft_score": {
+      "source": "external",
+      "formula": "comes from interview_binary_v1 rubric, not this rubric"
+    },
+    "hard_score": {
+      "source": "external",
+      "formula": "comes from interview_binary_v1 rubric, not this rubric"
+    },
+    "learning_score": {
+      "source": "external",
+      "formula": "manual or interview rubric, not this rubric"
+    },
+    "discipline_score": {
+      "source": "external",
+      "formula": "manual input, not this rubric"
+    },
+    "ops_score": {
+      "source": "external",
+      "formula": "manual input, not this rubric"
+    },
+    "final_test_score": {
+      "source": "external",
+      "formula": "manual input, not this rubric"
+    }
+  },
+  "evidence_schema": {
+    "required_fields": ["evidence", "quote", "source", "source_ref"],
+    "field_semantics": {
+      "evidence": "short free-text justification of the answer",
+      "quote": "short verbatim quote from transcript; empty string if not available",
+      "source": "one of: call_transcript, base_manual, segment_manual, product_dictionary, client_card_or_role, expert_markup",
+      "source_ref": "timecode/line number/fragment id, empty string if not available; never invented"
+    },
+    "rule": "answer=yes requires non-empty evidence and non-empty quote from transcript; answer=no requires evidence; answer=not_applicable may have empty evidence; answer=not_enough_data requires comment about missing data; answer=conflict requires evidence describing the conflict"
+  },
+  "interpretation_percent_zones": {
+    "0-20": "этап провален",
+    "21-40": "сильная просадка",
+    "41-60": "частично выполнено, качество нестабильное",
+    "61-75": "рабочий минимум",
+    "76-89": "хороший уровень",
+    "90-100": "этап выполнен полностью или почти полностью"
+  },
+  "model_prohibitions": [
+    "засчитывать продукт без проверки по словарю продуктов Точки",
+    "засчитывать презентацию, если оператор просто перечислил продукты без связи с клиентом",
+    "считать 'вам актуально?' полноценным выявлением потребности",
+    "штрафовать блок возражений, если клиент не возражал",
+    "ставить yes без цитаты/смыслового evidence из транскрибации",
+    "придумывать продуктовые условия, если их нет в словаре/мануале",
+    "игнорировать комментарии из базового мануала",
+    "игнорировать сегментный мануал, если сегмент известен",
+    "смешивать оценку звонков с оценкой собеседования"
+  ]
+}

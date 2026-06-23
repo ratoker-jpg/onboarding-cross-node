@@ -1,0 +1,329 @@
+{
+  "rubric_id": "interview_binary_v1",
+  "rubric_version": "1.0.0",
+  "fixed_at": "2026-06-23",
+  "source_docs": [
+    "docs/14_INTERVIEW_HARD_SOFT_BINARY_RUBRIC.md",
+    "docs/16_BINARY_RUBRIC_FIXUP_NOTES.md"
+  ],
+  "evaluation_unit": "block",
+  "stage_label": "stage = group of competency blocks",
+  "allowed_answers": ["yes", "no", "not_checked", "conflict"],
+  "answer_semantics": {
+    "yes": "skill confirmed by evidence; weight contributes to numerator and denominator",
+    "no": "skill explicitly tested and not shown; weight contributes to denominator only",
+    "not_checked": "topic was not tested; weight excluded from numerator and denominator",
+    "conflict": "sources contradict; weight excluded from denominator, adds risk flag"
+  },
+  "answer_groups": {
+    "contributes_to_numerator": ["yes"],
+    "contributes_to_denominator_only": ["no"],
+    "excluded_from_calculation": ["not_checked", "conflict"],
+    "raises_risk_flag": ["conflict"],
+    "lowers_confidence": ["not_checked"]
+  },
+  "score_formula": {
+    "block_score": "sum(yes weights) / sum(applicable weights)",
+    "applicable_weights": "weights of questions with answer in {yes, no}",
+    "stage_score": "weighted average of block_score by block_weights",
+    "overall_score": "soft*0.50 + hard*0.35 + segment*0.15"
+  },
+  "stage_weights": {
+    "soft": 0.50,
+    "hard": 0.35,
+    "segment": 0.15
+  },
+  "blocks": [
+    {
+      "block_id": "soft_motivation",
+      "block_name": "Мотивация",
+      "stage": "soft",
+      "block_weight": 0.15,
+      "questions": [
+        { "question_id": "soft_motivation_01", "text": "Проявляет ли кандидат желание работать в активных телефонных продажах?", "weight": 0.35, "how_to_check": "Ищем прямые ответы про звонки, продажи, работу с клиентами, готовность к активному контакту" },
+        { "question_id": "soft_motivation_02", "text": "Понимает ли кандидат, что роль включает звонки, отказы и повторяющиеся действия?", "weight": 0.25, "how_to_check": "Засчитываем, если кандидат сам говорит о рутине, отказах, необходимости держать темп" },
+        { "question_id": "soft_motivation_03", "text": "Может ли кандидат объяснить, почему эта роль ему подходит?", "weight": 0.25, "how_to_check": "Засчитываем не общую фразу 'хочу развиваться', а связку опыта/интереса/сильных сторон с ролью" },
+        { "question_id": "soft_motivation_04", "text": "Есть ли у кандидата реалистичные ожидания от нагрузки и результата?", "weight": 0.15, "how_to_check": "Засчитываем, если нет ожидания быстрых лёгких продаж без отказов и контроля" }
+      ]
+    },
+    {
+      "block_id": "soft_responsibility",
+      "block_name": "Ответственность",
+      "stage": "soft",
+      "block_weight": 0.15,
+      "questions": [
+        { "question_id": "soft_responsibility_01", "text": "Приводит ли кандидат пример самостоятельного решения в рабочей/учебной ситуации?", "weight": 0.30, "how_to_check": "Нужен конкретный пример: ситуация → решение → результат" },
+        { "question_id": "soft_responsibility_02", "text": "Осознаёт ли кандидат последствия своих решений для клиента, команды или результата?", "weight": 0.25, "how_to_check": "Засчитываем, если говорит не только 'я сделал', а объясняет влияние на других" },
+        { "question_id": "soft_responsibility_03", "text": "Признаёт ли кандидат свой вклад в ошибки и результат?", "weight": 0.25, "how_to_check": "Засчитываем, если не перекладывает всё на внешние обстоятельства" },
+        { "question_id": "soft_responsibility_04", "text": "Предлагает ли кандидат, как исправить ситуацию после ошибки?", "weight": 0.20, "how_to_check": "Нужен конкретный следующий шаг, а не 'больше так не буду'" }
+      ]
+    },
+    {
+      "block_id": "soft_communication",
+      "block_name": "Эффективная коммуникация",
+      "stage": "soft",
+      "block_weight": 0.20,
+      "questions": [
+        { "question_id": "soft_communication_01", "text": "Отвечает ли кандидат структурно и по сути вопроса?", "weight": 0.25, "how_to_check": "Ответ не должен разваливаться на длинные несвязанные рассуждения" },
+        { "question_id": "soft_communication_02", "text": "Уточняет ли кандидат вопрос, если вводных недостаточно?", "weight": 0.25, "how_to_check": "Засчитываем, если кандидат не угадывает, а уточняет контекст" },
+        { "question_id": "soft_communication_03", "text": "Строит ли кандидат диалог, а не монолог?", "weight": 0.25, "how_to_check": "Есть контакт с интервьюером: паузы, уточнения, реакция на вопрос" },
+        { "question_id": "soft_communication_04", "text": "Может ли кандидат говорить простым языком клиента без лишней сложности?", "weight": 0.25, "how_to_check": "Засчитываем, если объясняет без канцелярита, жаргона и перегруза" }
+      ]
+    },
+    {
+      "block_id": "soft_emotional_intelligence",
+      "block_name": "Эмоциональный интеллект",
+      "stage": "soft",
+      "block_weight": 0.10,
+      "questions": [
+        { "question_id": "soft_emotional_intelligence_01", "text": "Распознаёт ли кандидат эмоции свои и собеседника?", "weight": 0.30, "how_to_check": "Засчитываем, если кандидат может объяснить состояние клиента/собеседника и свою реакцию" },
+        { "question_id": "soft_emotional_intelligence_02", "text": "Сохраняет ли кандидат спокойствие при сложных вопросах?", "weight": 0.30, "how_to_check": "Смотрим реакцию на давление, уточнения, несогласие" },
+        { "question_id": "soft_emotional_intelligence_03", "text": "Может ли кандидат подстроить тон общения под ситуацию?", "weight": 0.25, "how_to_check": "Засчитываем, если меняет подход, а не давит одним стилем" },
+        { "question_id": "soft_emotional_intelligence_04", "text": "Не обесценивает ли кандидат клиента, собеседника или прошлый опыт?", "weight": 0.15, "how_to_check": "Ответ yes, если обесценивания нет и кандидат говорит корректно" }
+      ]
+    },
+    {
+      "block_id": "soft_flexibility",
+      "block_name": "Гибкость",
+      "stage": "soft",
+      "block_weight": 0.10,
+      "questions": [
+        { "question_id": "soft_flexibility_01", "text": "Адаптируется ли кандидат к новым вводным в ходе собеседования или ролёвки?", "weight": 0.35, "how_to_check": "Засчитываем, если меняет действия после изменения условий" },
+        { "question_id": "soft_flexibility_02", "text": "Принимает ли кандидат обратную связь без защиты и спора?", "weight": 0.30, "how_to_check": "Важно не просто согласиться, а понять суть замечания" },
+        { "question_id": "soft_flexibility_03", "text": "Может ли кандидат изменить решение, если понял, что оно слабое?", "weight": 0.20, "how_to_check": "Засчитываем, если корректирует подход, а не держится за старую версию" },
+        { "question_id": "soft_flexibility_04", "text": "Сохраняет ли кандидат фокус на цели после изменения вводных?", "weight": 0.15, "how_to_check": "Не теряет цель разговора/задачи после новой информации" }
+      ]
+    },
+    {
+      "block_id": "soft_proactivity",
+      "block_name": "Проактивность",
+      "stage": "soft",
+      "block_weight": 0.10,
+      "questions": [
+        { "question_id": "soft_proactivity_01", "text": "Видит ли кандидат узкие места в процессе или клиентской ситуации?", "weight": 0.30, "how_to_check": "Засчитываем, если сам называет проблему/рисковое место" },
+        { "question_id": "soft_proactivity_02", "text": "Предлагает ли кандидат конкретные действия, а не только описывает проблему?", "weight": 0.30, "how_to_check": "Нужен шаг: что сделать, кому, когда, зачем" },
+        { "question_id": "soft_proactivity_03", "text": "Проявляет ли кандидат инициативу без прямой инструкции?", "weight": 0.25, "how_to_check": "Засчитываем, если кандидат сам предлагает улучшение/следующий шаг" },
+        { "question_id": "soft_proactivity_04", "text": "Думает ли кандидат об улучшении клиентского опыта или процесса?", "weight": 0.15, "how_to_check": "Засчитываем, если мыслит шире своей операции" }
+      ]
+    },
+    {
+      "block_id": "soft_antifragility",
+      "block_name": "Антихрупкость",
+      "stage": "soft",
+      "block_weight": 0.10,
+      "questions": [
+        { "question_id": "soft_antifragility_01", "text": "Выдерживает ли кандидат давление, сложные вопросы или возражения?", "weight": 0.35, "how_to_check": "Смотрим стрессовые вопросы, ролёвку, несогласие интервьюера" },
+        { "question_id": "soft_antifragility_02", "text": "Не уходит ли кандидат в защиту, оправдания или спор?", "weight": 0.25, "how_to_check": "Ответ yes, если защитной реакции нет" },
+        { "question_id": "soft_antifragility_03", "text": "Может ли кандидат продолжить после ошибки или неудачного ответа?", "weight": 0.25, "how_to_check": "Засчитываем, если не 'сыпется' после ошибки" },
+        { "question_id": "soft_antifragility_04", "text": "Использует ли кандидат обратную связь для улучшения ответа?", "weight": 0.15, "how_to_check": "Засчитываем, если после ОС ответ/действие стало лучше" }
+      ]
+    },
+    {
+      "block_id": "soft_client_approach",
+      "block_name": "Подход к клиенту",
+      "stage": "soft",
+      "block_weight": 0.10,
+      "questions": [
+        { "question_id": "soft_client_approach_01", "text": "Интересуется ли кандидат бизнесом клиента, а не только продуктом?", "weight": 0.25, "how_to_check": "В ролёвке/ответах есть вопросы о бизнесе, процессах, целях клиента" },
+        { "question_id": "soft_client_approach_02", "text": "Видит ли кандидат потребность или боль клиента до презентации решения?", "weight": 0.30, "how_to_check": "Не прыгает сразу в продукт без выявления" },
+        { "question_id": "soft_client_approach_03", "text": "Мыслит ли кандидат как партнёр, а не как исполнитель скрипта?", "weight": 0.25, "how_to_check": "Предлагает решение под ситуацию клиента, а не 'зачитывает список'" },
+        { "question_id": "soft_client_approach_04", "text": "Учитывает ли кандидат долгосрочные отношения с клиентом?", "weight": 0.20, "how_to_check": "Не давит ради быстрой сделки любой ценой" }
+      ]
+    },
+    {
+      "block_id": "hard_b2b_experience",
+      "block_name": "Опыт B2B / активных продаж",
+      "stage": "hard",
+      "block_weight": 0.25,
+      "questions": [
+        { "question_id": "hard_b2b_01", "text": "Есть ли у кандидата релевантный опыт B2B или активных телефонных продаж?", "weight": 0.30, "how_to_check": "Засчитываем B2B, финтех, банки для бизнеса, телеком, SaaS, услуги для бизнеса" },
+        { "question_id": "hard_b2b_02", "text": "Понимает ли кандидат разницу между B2B и B2C продажами?", "weight": 0.20, "how_to_check": "Должен говорить про ЛПР, бизнес-процесс, экономику клиента, длиннее цикл сделки" },
+        { "question_id": "hard_b2b_03", "text": "Умеет ли кандидат работать с холодной/тёплой базой без превращения в спамера?", "weight": 0.25, "how_to_check": "Ищем логику подготовки, сегментации, повода для контакта, повторного касания" },
+        { "question_id": "hard_b2b_04", "text": "Понимает ли кандидат длинный цикл сделки, ЛПР и повторные касания?", "weight": 0.25, "how_to_check": "Засчитываем, если кандидат не ждёт закрытия в один контакт во всех случаях" }
+      ]
+    },
+    {
+      "block_id": "hard_sales_tech",
+      "block_name": "Технология продаж",
+      "stage": "hard",
+      "block_weight": 0.35,
+      "questions": [
+        { "question_id": "hard_sales_tech_01", "text": "Называет ли кандидат базовые этапы продажи?", "weight": 0.20, "how_to_check": "Контакт → выявление → презентация → возражения → следующий шаг/закрытие" },
+        { "question_id": "hard_sales_tech_02", "text": "Понимает ли кандидат, зачем сначала выявлять потребность?", "weight": 0.30, "how_to_check": "Должен объяснить, что без потребности презентация превращается в список продуктов" },
+        { "question_id": "hard_sales_tech_03", "text": "Умеет ли кандидат связывать презентацию продукта с болью клиента?", "weight": 0.25, "how_to_check": "Проверять по ответам и ролёвке" },
+        { "question_id": "hard_sales_tech_04", "text": "Понимает ли кандидат, как работать с возражениями?", "weight": 0.15, "how_to_check": "Уточняет причину, не спорит, не давит, проверяет снятие сомнения" },
+        { "question_id": "hard_sales_tech_05", "text": "Фиксирует ли кандидат следующий шаг или закрытие?", "weight": 0.10, "how_to_check": "Есть конкретика: что, кто, когда делает" }
+      ]
+    },
+    {
+      "block_id": "hard_roleplay",
+      "block_name": "Ролёвка",
+      "stage": "hard",
+      "block_weight": 0.25,
+      "questions": [
+        { "question_id": "hard_roleplay_01", "text": "Начал ли кандидат диалог понятно и корректно?", "weight": 0.15, "how_to_check": "Есть приветствие, представление, причина контакта" },
+        { "question_id": "hard_roleplay_02", "text": "Задал ли кандидат вопросы по бизнесу и потребности клиента?", "weight": 0.25, "how_to_check": "Не менее одного вопроса про бизнес и одного про задачу/боль" },
+        { "question_id": "hard_roleplay_03", "text": "Предложил ли кандидат решение под выявленную потребность?", "weight": 0.25, "how_to_check": "Решение должно быть связано с ответами клиента. Если используется продукт Точки, проверять через словарь продуктов" },
+        { "question_id": "hard_roleplay_04", "text": "Обработал ли кандидат возражение без спора и давления?", "weight": 0.20, "how_to_check": "Уточнил причину, ответил по сути, проверил реакцию" },
+        { "question_id": "hard_roleplay_05", "text": "Зафиксировал ли кандидат следующий шаг?", "weight": 0.15, "how_to_check": "Договорился о действии, сроке или решении" }
+      ]
+    },
+    {
+      "block_id": "hard_digital",
+      "block_name": "Цифровая грамотность / работа с базой",
+      "stage": "hard",
+      "block_weight": 0.15,
+      "questions": [
+        { "question_id": "hard_digital_01", "text": "Уверенно ли кандидат работает с CRM, телефонией или мессенджерами?", "weight": 0.35, "how_to_check": "Засчитываем по опыту и примерам использования инструментов" },
+        { "question_id": "hard_digital_02", "text": "Понимает ли кандидат важность фиксации заметок, статусов и задач?", "weight": 0.25, "how_to_check": "Ищем понимание дисциплины базы и истории контактов" },
+        { "question_id": "hard_digital_03", "text": "Использует ли кандидат клиентский контекст перед контактом?", "weight": 0.25, "how_to_check": "Засчитываем, если кандидат готовится по карточке/истории/сегменту" },
+        { "question_id": "hard_digital_04", "text": "Нет ли явных цифровых рисков: 'не люблю CRM', 'не веду заметки', 'держу всё в голове'?", "weight": 0.15, "how_to_check": "Ответ yes, если таких рисков нет" }
+      ]
+    },
+    {
+      "block_id": "segment_understanding",
+      "block_name": "Сегментное понимание",
+      "stage": "segment",
+      "block_weight": 1.00,
+      "questions": [
+        { "question_id": "segment_understanding_01", "text": "Понимает ли кандидат, как устроен бизнес сегмента?", "weight": 0.30, "how_to_check": "Нужны процессы, роли, деньги, документы, цикл сделки" },
+        { "question_id": "segment_understanding_02", "text": "Называет ли кандидат типовые боли сегмента?", "weight": 0.30, "how_to_check": "Боли должны быть бизнесовыми, не общими 'дорого/неудобно'" },
+        { "question_id": "segment_understanding_03", "text": "Может ли кандидат связать боли сегмента с продуктами банка?", "weight": 0.25, "how_to_check": "Использовать словарь продуктов Точки и учитывать продаваемый статус продукта" },
+        { "question_id": "segment_understanding_04", "text": "Использует ли кандидат сегментный язык без пустого жаргона?", "weight": 0.15, "how_to_check": "Термины должны быть уместны и объяснены по смыслу" }
+      ],
+      "segment_specific_context": {
+        "Грузоперевозки": {
+          "expected_keywords": ["ТТН", "АТИ", "рейсы", "водители", "топливо", "топливные карты", "оплата от юрлиц", "кассовые разрывы", "документы", "задержки оплат", "регулярные перевозки", "поиск клиентов"],
+          "min_for_understanding_01_yes": "кандидат объясняет не менее 2 процессов сегмента и хотя бы 1 денежную/документную боль"
+        },
+        "Стройка": {
+          "expected_keywords": ["тендеры", "КС-2", "КС-3", "закупка материалов", "подрядчики", "генподрядчики", "СРО", "закрывающие документы", "долгие оплаты", "кассовые разрывы", "сдача объекта"],
+          "min_for_understanding_01_yes": "кандидат объясняет цикл строительного проекта или документооборот/оплаты, а не просто говорит 'стройка'"
+        },
+        "Селлеры": {
+          "expected_keywords": ["маркетплейсы", "Wildberries", "Ozon", "поставки", "комиссии", "оборотка", "реклама", "остатки", "логистика", "сезонность", "выкупы", "карточки товаров", "активные продажи"],
+          "min_for_understanding_01_yes": "кандидат объясняет, как селлер зарабатывает и где у него возникают деньги/операционные сложности"
+        }
+      }
+    }
+  ],
+  "source_dependencies": {
+    "interview_transcript": {
+      "required_for_blocks": ["soft_motivation", "soft_responsibility", "soft_communication", "soft_emotional_intelligence", "soft_flexibility", "soft_proactivity", "soft_antifragility", "soft_client_approach", "hard_b2b_experience", "hard_sales_tech", "hard_digital"],
+      "required_for_questions": []
+    },
+    "hr_notes": {
+      "required_for_blocks": [],
+      "required_for_questions": [],
+      "used_as": "supplementary evidence for soft blocks"
+    },
+    "teamlead_notes": {
+      "required_for_blocks": ["hard_b2b_experience", "hard_sales_tech"],
+      "required_for_questions": [],
+      "used_as": "supplementary evidence for hard blocks"
+    },
+    "roleplay_transcript": {
+      "required_for_blocks": ["hard_roleplay"],
+      "required_for_questions": ["hard_roleplay_01", "hard_roleplay_02", "hard_roleplay_03", "hard_roleplay_04", "hard_roleplay_05"],
+      "used_as": "primary source for roleplay block"
+    },
+    "interview_question_bank": {
+      "required_for_blocks": [],
+      "required_for_questions": [],
+      "used_as": "verifies which topics were actually tested"
+    },
+    "segment_manual": {
+      "required_for_blocks": ["segment_understanding"],
+      "required_for_questions": ["segment_understanding_01", "segment_understanding_02", "segment_understanding_03", "segment_understanding_04"]
+    },
+    "product_dictionary": {
+      "required_for_blocks": ["hard_roleplay", "segment_understanding"],
+      "required_for_questions": ["hard_roleplay_03", "segment_understanding_03"]
+    }
+  },
+  "fallback_rules": {
+    "no_interview_transcript": "all soft and hard blocks → not_checked",
+    "no_roleplay_transcript": "hard_roleplay block → not_checked",
+    "no_segment_manual": "segment_understanding block → not_checked",
+    "no_product_dictionary_for_roleplay": "hard_roleplay_03 → not_enough_data (not yes, not no)",
+    "no_product_dictionary_for_segment": "segment_understanding_03 → not_enough_data"
+  },
+  "confidence_rules": {
+    "block_confidence_low_threshold": 0.50,
+    "block_confidence_low_meaning": "if more than 50% of block weight has answer not_checked, block_confidence = low",
+    "stage_confidence_low": "if any block in stage has confidence=low, stage_confidence = low"
+  },
+  "candidate_scores_mapping": {
+    "soft_score": {
+      "source": "soft stage",
+      "formula": "weighted sum of soft block_scores by block_weight, * 100, rounded"
+    },
+    "hard_score": {
+      "source": "hard stage",
+      "formula": "weighted sum of hard block_scores (hard_b2b_experience + hard_sales_tech + hard_roleplay + hard_digital) by block_weight, * 100, rounded"
+    },
+    "learning_score": {
+      "source": "derived",
+      "formula": "weighted avg of soft_flexibility (feedback acceptance) + soft_antifragility + soft_proactivity block_scores, * 100, rounded. If all three are null → null."
+    },
+    "risk_score": {
+      "source": "derived",
+      "formula": "0..100 derived from conflict count + red flags count. Each conflict → +15 (max 60). Each red flag → +10 (max 40). Capped at 100."
+    },
+    "call_quality_score": {
+      "source": "external",
+      "formula": "comes from calls_automanual_binary_v1 rubric, not this rubric"
+    },
+    "ops_score": {
+      "source": "external",
+      "formula": "manual input, not this rubric"
+    },
+    "final_test_score": {
+      "source": "external",
+      "formula": "manual input, not this rubric"
+    },
+    "overall_score": {
+      "source": "derived",
+      "formula": "computed by candidate_scores service from hard/soft/learning/discipline/call_quality/final_test, NOT by this rubric"
+    }
+  },
+  "evidence_schema": {
+    "required_fields": ["evidence", "quote", "source", "source_ref"],
+    "field_semantics": {
+      "evidence": "short free-text justification of the answer",
+      "quote": "short verbatim quote from transcript or notes; empty string if not available",
+      "source": "one of: interview_transcript, hr_notes, teamlead_notes, roleplay_transcript, segment_manual, product_dictionary, interview_question_bank",
+      "source_ref": "timecode/line number/fragment id, empty string if not available; never invented"
+    },
+    "rule": "answer=yes requires non-empty evidence; answer=no requires evidence if topic was tested; answer=not_checked may have empty evidence; answer=conflict requires evidence describing the conflict"
+  },
+  "interpretation_percent_zones": {
+    "0-20": "критичный провал блока",
+    "21-40": "слабый уровень",
+    "41-60": "частично проявлено, нестабильно",
+    "61-75": "рабочий минимум",
+    "76-89": "сильный уровень",
+    "90-100": "отлично"
+  },
+  "red_flag_definitions": [
+    "кандидат не хочет звонить / активные продажи ему не подходят",
+    "хочет 'просто консультировать' без ответственности за результат",
+    "ожидает быстрый доход без рутины и отказов",
+    "обвиняет только клиентов, руководителей, систему, рынок",
+    "не может назвать свой вклад в результат",
+    "не делает выводов из ошибок",
+    "избегает самостоятельных решений",
+    "не отвечает на заданный вопрос / перебивает",
+    "раздражается на уточнения / спорит ради спора",
+    "обесценивает клиента / прошлый опыт",
+    "не замечает эмоциональное состояние собеседника"
+  ],
+  "model_prohibitions": [
+    "ставить yes без evidence",
+    "ставить no, если тема не проверялась (use not_checked)",
+    "засчитывать продукт без проверки по словарю продуктов",
+    "засчитывать сегментное понимание по одному жаргонному слову",
+    "делать вывод 'кандидат слабый' без указания конкретных неподтверждённых вопросов",
+    "смешивать оценку собеседования с оценкой реальных звонков"
+  ]
+}

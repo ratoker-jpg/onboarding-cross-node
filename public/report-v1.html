@@ -728,7 +728,17 @@
       if (v >= 85) return { color: '#23824f', bg: '#d8f3e3', label: 'сильный уровень', level: 'strong', percent: v };
       if (v >= 75) return { color: '#b46b00', bg: '#fff1d6', label: 'рабочий уровень', level: 'working', percent: v };
       if (v >= 65) return { color: '#d85c3a', bg: '#ffe0d4', label: 'риск, нужна отработка', level: 'risk', percent: v };
-      return { color: '#d85c3a', bg: '#fbd0c4', label: 'слабый уровень', level: 'weak', percent: v };
+      return { color: '#d63838', bg: '#ffe3e3', label: 'слабый уровень', level: 'weak', percent: v };
+    }
+
+    function formatScoreValue(value) {
+      if (value == null) return '—';
+      const n = Number(value);
+      if (!Number.isFinite(n)) return String(value);
+      if (n >= 0 && n <= 1) {
+        return `${n.toFixed(2).replace('.', ',')}/1`;
+      }
+      return `${Math.round(n * 10) / 10}`.replace('.', ',');
     }
 
     // Russian names for training result_payload BLOCK_1..6 keys.
@@ -859,7 +869,7 @@
     // colored bar + label. opts: { comment, note }.
     function renderScoreBandCard(label, value, opts = {}) {
       const band = scoreBand(value);
-      const valueDisplay = value == null ? '—' : escapeHtml(band.percent);
+      const valueDisplay = value == null ? '—' : escapeHtml(formatScoreValue(value));
       const commentHtml = opts.comment
         ? `<div class="block-comment">${escapeHtml(opts.comment)}</div>`
         : '';
@@ -906,7 +916,7 @@
       const band = scoreBand(b.value);
       const valueDisplay = b.value == null
         ? (b.raw == null ? '—' : escapeHtml(String(b.raw)))
-        : escapeHtml(band.percent);
+        : escapeHtml(formatScoreValue(b.value));
       return `<div class="block-card">
         <div class="block-head">
           <span class="block-name">${escapeHtml(b.name)}</span>
@@ -930,6 +940,8 @@
       }
       const sellerPrefixes = ['Продавец:', 'Оператор:', 'Менеджер:'];
       const clientPrefixes = ['Клиент:'];
+      // [Говорящий 1] and [Говорящий 3] = seller; [Говорящий 2] and [Говорящий 4] = client
+      const speakerTagRe = /^\[Говорящий\s+(\d+)\]\s*(.*)$/i;
       const turns = [];
       let cur = null;
 
@@ -939,8 +951,19 @@
         if (!line.trim()) continue;
         let matched = null;
         let body = line;
-        for (const p of sellerPrefixes) {
-          if (line.startsWith(p)) { matched = 'seller'; body = line.slice(p.length).trim(); break; }
+
+        // Check [Говорящий N] format first
+        const tagMatch = line.match(speakerTagRe);
+        if (tagMatch) {
+          const num = parseInt(tagMatch[1], 10);
+          matched = (num === 1 || num === 3) ? 'seller' : 'client';
+          body = tagMatch[2].trim();
+        }
+
+        if (!matched) {
+          for (const p of sellerPrefixes) {
+            if (line.startsWith(p)) { matched = 'seller'; body = line.slice(p.length).trim(); break; }
+          }
         }
         if (!matched) {
           for (const p of clientPrefixes) {
@@ -1494,7 +1517,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         if (!u) return '';
         const score = u.score_percent;
         const band = scoreBand(score);
-        const valueDisplay = score == null ? '—' : escapeHtml(band.percent);
+        const valueDisplay = score == null ? '—' : escapeHtml(formatScoreValue(score));
         const confidenceBadge = u.confidence === 'low' ? `<span class="status-badge unknown" style="margin-left:6px; font-size:10px;">низкая уверенность</span>` : '';
         const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px; font-size:10px;">${escapeHtml(analysisStatusRu(u.status))}</span>` : '';
         const qd = Array.isArray(u.question_details) ? u.question_details : [];

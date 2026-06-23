@@ -520,9 +520,9 @@
     }
 
     const SCORE_CARDS = [
-      { field: 'hard_score',         label: 'Профессиональные навыки / продажи', note: 'Тестовый день, учебные агенты, звонки, выпускной тест' },
-      { field: 'soft_score',         label: 'Софт-навыки',        note: 'Собеседование, учебные агенты, реальные звонки' },
-      { field: 'learning_score',     label: 'Обучаемость',        note: 'Погружение, принятие ОС, динамика звонков, рефлексия' },
+      { field: 'hard_score',         label: 'Профессиональные навыки / продажи', note: 'Сейчас: анализ собеседования. Позже: тестовый день, звонки и выпускной тест.' },
+      { field: 'soft_score',         label: 'Софт-навыки',        note: 'Сейчас: анализ собеседования. Позже: учебные агенты и реальные звонки.' },
+      { field: 'learning_score',     label: 'Обучаемость',        note: 'Сейчас: ручная или импортированная оценка. Позже: погружение, динамика и рефлексия.' },
       { field: 'discipline_score',   label: 'Дисциплина',         note: 'Погружение, операционка, сроки, статусы' },
       { field: 'call_quality_score', label: 'Качество звонков',   note: 'Реальные звонки начала, середины и выпуска + анализ по автомануалу' },
       { field: 'ops_score',          label: 'Операционка',        note: 'Трубка, XSALES, просрочки, статусы, комментарии' },
@@ -1271,10 +1271,21 @@
       }
 
       const totalDialogs = dialogs.length;
-      const countSuccessful = (arr) => arr.filter(d => d && d.result_payload && d.result_payload.SUCCESSFUL === true).length;
-      const countFailed = (arr) => arr.filter(d => d && d.result_payload && d.result_payload.FAILED === true).length;
-      const successful = countSuccessful(dialogs);
-      const failed = countFailed(dialogs);
+      const uniqueRoleIds = new Set(dialogs.map(d => d.role_id).filter(Boolean)).size;
+
+      // Precompute aggregatePayload per group (the first non-null result_payload
+      // in the group). SUCCESSFUL/FAILED are counted per training session, not
+      // per dialog, so a duplicated result_payload across dialogs in the same
+      // session is not double-counted.
+      const groupAggregates = groups.map(g => {
+        const aggregatePayload = g.dialogs
+          .map(d => d.result_payload)
+          .find(p => p && typeof p === 'object' && Object.keys(p).length > 0) || null;
+        return { ...g, aggregatePayload };
+      });
+
+      const successfulTrainings = groupAggregates.filter(g => g.aggregatePayload && g.aggregatePayload.SUCCESSFUL === true).length;
+      const failedTrainings = groupAggregates.filter(g => g.aggregatePayload && g.aggregatePayload.FAILED === true).length;
 
       const html = [];
 
@@ -1283,55 +1294,58 @@
         <h3>Сводка по учебным диалогам</h3>
         <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
           <div class="qs-cell">
-            <div class="qs-label">Всего диалогов</div>
+            <div class="qs-label">Всего учебных диалогов</div>
             <div class="qs-value">${escapeHtml(totalDialogs)}</div>
           </div>
           <div class="qs-cell">
-            <div class="qs-label">Успешных</div>
-            <div class="qs-value">${escapeHtml(successful)}</div>
+            <div class="qs-label">Всего ролей</div>
+            <div class="qs-value">${escapeHtml(uniqueRoleIds)}</div>
           </div>
           <div class="qs-cell">
-            <div class="qs-label">Провалено</div>
-            <div class="qs-value">${escapeHtml(failed)}</div>
-          </div>
-          <div class="qs-cell">
-            <div class="qs-label">Тренировок</div>
+            <div class="qs-label">Всего тренировок</div>
             <div class="qs-value">${escapeHtml(groups.length)}</div>
+          </div>
+          <div class="qs-cell">
+            <div class="qs-label">Успешных тренировок</div>
+            <div class="qs-value">${escapeHtml(successfulTrainings)}</div>
+          </div>
+          <div class="qs-cell">
+            <div class="qs-label">Проваленных тренировок</div>
+            <div class="qs-value">${escapeHtml(failedTrainings)}</div>
           </div>
         </div>
         <div class="subtle" style="margin-top:8px;">Это учебные диалоги из бота учебки. Они не являются реальными звонками и не оцениваются по <code>calls_automanual_binary_v1</code> и не влияют на <code>call_quality_score</code>.</div>
       </div>`);
 
       // Phase 3E2: training agents don't have a Codex analysis yet
-      // (no training_agent_analysis_v1 rubric). Show an info block with a
-      // disabled button so the user understands the state.
+      // (no training_agent_analysis_v1 rubric). Show an info block with an
+      // active button that copies a draft prompt so the user can run a draft
+      // analysis manually in Codex.
+      const trainingCodexDraftPrompt = 'Это учебные агенты, не реальные звонки.\nНе использовать calls_automanual_binary_v1 как анализ реальных звонков.\nНужен отдельный будущий анализ training_agent_analysis_v1.\nЕсли pipeline/rubric ещё не реализованы — не импортировать результат в БД, а подготовить черновой JSON/отчёт по этапам: установление контакта, выявление потребности, презентация, возражения, закрытие, сегментная оценка.';
+      const trainingCodexDraftLabel = 'Скопировать черновик промпта для Codex';
       html.push(`<div class="card" style="margin-bottom:14px;">
         <h3>Анализ по нашему мануалу</h3>
         <div style="padding:14px; background:var(--panel-soft); border-radius:8px;">
           <div style="font-size:14px; margin-bottom:10px;">Импортирован результат из учебного бота. Отдельный анализ по нашему мануалу ещё не рассчитан.</div>
-          <button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" disabled title="Рубрика training_agent_analysis_v1 в разработке">Скопировать промпт для Codex (скоро)</button>
+          <button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" onclick="copyTextToClipboard(${escapeHtml(JSON.stringify(trainingCodexDraftPrompt))}); this.textContent='Скопировано!'; setTimeout(()=>{this.textContent='${escapeHtml(trainingCodexDraftLabel)}'},2000);">${escapeHtml(trainingCodexDraftLabel)}</button>
         </div>
       </div>`);
 
       // Per-group training cards
-      groups.forEach((group, idx) => {
+      groupAggregates.forEach((group, idx) => {
         const trainingName = idx === 0 ? 'Тестовый день' : `Тренировка ${idx + 1}`;
         const groupDialogs = group.dialogs;
         const groupTotal = groupDialogs.length;
-        const groupSuccessful = countSuccessful(groupDialogs);
-        const groupFailed = countFailed(groupDialogs);
-
-        // Aggregate result_payload — pick the first non-empty payload in the group.
-        const aggregatePayload = groupDialogs
-          .map(d => d.result_payload)
-          .find(p => p && typeof p === 'object' && Object.keys(p).length > 0);
+        const aggregatePayload = group.aggregatePayload;
+        const successfulYesNo = aggregatePayload && aggregatePayload.SUCCESSFUL === true ? 'да' : 'нет';
+        const failedYesNo = aggregatePayload && aggregatePayload.FAILED === true ? 'да' : 'нет';
 
         html.push(`<div class="card" style="margin-bottom:14px;">
           <h3>${escapeHtml(trainingName)} <span style="font-size:12px; color:var(--muted); font-weight:400; margin-left:8px;">Ключ сессии: <code>${escapeHtml(group.key || '—')}</code></span></h3>
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:12px; font-size:13px;">
             <div><b>Всего диалогов:</b> ${escapeHtml(groupTotal)}</div>
-            <div><b>Успешных:</b> ${escapeHtml(groupSuccessful)}</div>
-            <div><b>Провалено:</b> ${escapeHtml(groupFailed)}</div>
+            <div><b>Успешно:</b> ${escapeHtml(successfulYesNo)}</div>
+            <div><b>Провалено:</b> ${escapeHtml(failedYesNo)}</div>
           </div>`);
 
         // Aggregate result_payload block — use TRAINING_RESULT_FIELDS_RU for labels.
@@ -1408,6 +1422,22 @@
       // Role portrait from d.role_portrait
       html.push(renderRolePortraitBlock(d.role_portrait));
 
+      // Transcript preview (collapsible). transcript_preview may be null when
+      // the transcript wasn't loaded for this dialog; show a fallback message
+      // in that case. When transcript_truncated is true, the preview is only
+      // a slice of the full transcript_length characters.
+      const transcriptPreview = d.transcript_preview;
+      const transcriptTruncated = Boolean(d.transcript_truncated);
+      const transcriptLength = Number(d.transcript_length) || 0;
+      const hasTranscript = transcriptPreview != null && transcriptPreview !== '';
+      const transcriptBody = hasTranscript
+        ? `<pre style="white-space:pre-wrap; font-size:13px; line-height:1.5; max-height:500px; overflow:auto; background:var(--panel-soft); padding:12px; border-radius:8px; margin-top:8px;">${escapeHtml(transcriptPreview)}</pre>${transcriptTruncated ? `<div class="score-note" style="color:var(--warn,#b46b00);">Диалог обрезан для просмотра в отчёте. Показано ${escapeHtml(transcriptPreview.length)} из ${escapeHtml(transcriptLength)} символов.</div>` : ''}`
+        : `<div style="margin-top:8px; padding:10px 14px; background:var(--panel); border-radius:8px; font-size:13px; color:var(--muted);">Транскрипт не загружен.</div>`;
+      html.push(`<details style="margin-top:10px;">
+        <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Транскрипт диалога</summary>
+        ${transcriptBody}
+      </details>`);
+
       // Imported analysis_json / result_payload / result text fallback
       if (hasAnalysis) {
         html.push(`<div style="margin-top:10px;">
@@ -1449,7 +1479,7 @@
         { key: 'full_name',            label: 'ФИО' },
         { key: 'position',             label: 'Должность' },
         { key: 'tax_system',           label: 'СНО' },
-        { key: 'previous_interactions',label: 'Прошлые взаимодействия' },
+        { key: 'previous_interactions',label: 'Прошлые взаимодействия с клиентом' },
         { key: 'client_info',          label: 'Информация о клиенте' },
         { key: 'business_type',        label: 'Род деятельности' },
         { key: 'business_experience',  label: 'Опыт ведения бизнеса', privateNote: true },
@@ -1469,7 +1499,7 @@
         const note = f.privateNote && !isEmpty(v)
           ? ` <span style="color:var(--muted); font-size:11px;">(Служебная информация: кандидат её не видел.)</span>`
           : '';
-        return `<tr><th style="width:40%;">${escapeHtml(f.label)} <span style="color:var(--muted); font-size:11px;">(<code>${escapeHtml(f.key)}</code>)</span></th><td>${escapeHtml(vStr)}${note}</td></tr>`;
+        return `<tr><th style="width:40%;">${escapeHtml(f.label)}</th><td>${escapeHtml(vStr)}${note}</td></tr>`;
       }).join('');
       return `<details style="margin-top:10px;">
         <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Портрет роли</summary>
@@ -1512,8 +1542,8 @@
 
       // Scores headline
       html.push(`<div class="scores-grid" style="margin-bottom:14px;">
-        ${renderScoreMiniCard('Ops score', s.ops_score, 'Трубка, XSALES, просрочки, статусы, комментарии')}
-        ${renderScoreMiniCard('Discipline score', s.discipline_score, 'Погружение, операционка, сроки, статусы')}
+        ${renderScoreMiniCard('Оценка операционки', s.ops_score, 'Трубка, XSALES, просрочки, статусы, комментарии')}
+        ${renderScoreMiniCard('Дисциплина', s.discipline_score, 'Погружение, операционка, сроки, статусы')}
       </div>`);
 
       // Ops sections — prefer ops_summary (Phase 3D1), fallback to manual_inputs

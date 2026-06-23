@@ -1483,10 +1483,15 @@ function mapManualInputForViewer(raw) {
 
 function mapTrainingDialogForViewer(raw) {
   if (!raw) return null;
-  // Phase 3E2: include full role portrait fields + result_payload so the
-  // report can render training results and role portraits without needing
-  // a separate API call. transcript_text is still omitted (too large).
+  // Phase 3E2 fixup: include transcript_preview (capped at 30000 chars) so
+  // the report can show the dialog text under "Посмотреть диалоги".
   const rolePayload = raw.role_payload || null;
+  const TRANSCRIPT_LIMIT = 30000;
+  const fullTranscript = typeof raw.transcript_text === 'string' ? raw.transcript_text : '';
+  const transcriptTruncated = fullTranscript.length > TRANSCRIPT_LIMIT;
+  const transcriptPreview = transcriptTruncated
+    ? fullTranscript.slice(0, TRANSCRIPT_LIMIT)
+    : fullTranscript;
   return {
     session_key: raw.training_key || null,
     dialog_date: raw.dialog_date || null,
@@ -1497,6 +1502,10 @@ function mapTrainingDialogForViewer(raw) {
     result: raw.result || null,
     analysis_json: raw.analysis_json || null,
     result_payload: raw.result_payload || null,
+    // Phase 3E2 fixup: transcript preview for report visibility
+    transcript_preview: transcriptPreview || null,
+    transcript_truncated: transcriptTruncated,
+    transcript_length: fullTranscript.length,
     // Phase 3E2: role portrait fields from the dialog row
     role_portrait: {
       role_id: raw.role_id || null,

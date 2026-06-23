@@ -1155,6 +1155,8 @@
     }
 
     function init() {
+      initTabs();
+
       // Restore viewer key from sessionStorage
       const savedKey = loadViewerKey();
       if (savedKey) byId('viewerKey').value = savedKey;

@@ -1,8 +1,12 @@
 const {
   addKeysToCandidate,
+  appendCallToManualInput,
   assertEnabled,
+  buildImportSummary,
+  checkImportSourceLink,
   createCandidateWithKeys,
   getCandidateCard,
+  getCandidateIntakeView,
   getCandidateScores,
   getCandidateScoresHistory,
   getCompleteness,
@@ -20,6 +24,7 @@ const {
   recalculateCandidateScores,
   saveAiProfile,
   saveCandidateFile,
+  saveCandidateFileWithManualInput,
   saveCandidateScores,
   saveManualInput,
   upsertSourceLink,
@@ -226,6 +231,36 @@ function createPhase1Routes(options) {
       if (scoresHistoryMatch && req.method === 'GET') {
         const history = getCandidateScoresHistory(scoresHistoryMatch[1]);
         return safeSendJson(res, 200, { ok: true, history });
+      }
+
+      // Phase 3D2: import source-link pre-check
+      const importCheckMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/import-check\/([^/]+)$/);
+      if (importCheckMatch && req.method === 'GET') {
+        const check = checkImportSourceLink(importCheckMatch[1], importCheckMatch[2]);
+        return safeSendJson(res, 200, { ok: true, ...check });
+      }
+
+      // Phase 3D2: append a call item to manual_inputs[calls_*].calls[]
+      const callAppendMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/calls\/(calls_start|calls_middle|calls_final)$/);
+      if (callAppendMatch && req.method === 'POST') {
+        const payload = await readJsonBody(req);
+        const result = appendCallToManualInput(callAppendMatch[1], callAppendMatch[2], payload || {}, adminKey);
+        return safeSendJson(res, 200, { ok: true, ...result });
+      }
+
+      // Phase 3D2: upload file + upsert linked manual_input in one operation
+      const filesWithManualMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/files-with-manual$/);
+      if (filesWithManualMatch && req.method === 'POST') {
+        const payload = await readJsonBody(req);
+        const result = saveCandidateFileWithManualInput(filesWithManualMatch[1], payload || {}, adminKey);
+        return safeSendJson(res, 200, { ok: true, ...result });
+      }
+
+      // Phase 3D2: unified intake view (manual_inputs + files grouped by section)
+      const intakeViewMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/intake-view$/);
+      if (intakeViewMatch && req.method === 'GET') {
+        const view = getCandidateIntakeView(intakeViewMatch[1]);
+        return safeSendJson(res, 200, { ok: true, ...view });
       }
 
       if (cleanUrl === '/api/dashboard/phase1/mvp' && req.method === 'GET') {

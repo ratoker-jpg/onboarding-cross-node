@@ -447,6 +447,16 @@
       <article class="card" id="sourceGuide">
         <h2>Связи с источниками и импорты</h2>
         <p class="subtle">Импорты читают старые источники по явно заданным ключам. Бот учебки не импортирует всю команду.</p>
+        <div class="source-hints" style="background: var(--panel-soft); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;">
+          <h3 style="margin: 0 0 8px; font-size: 13px;">Какие связи нужны для импортов</h3>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--muted);">
+            <li><b>Тестовый день</b> → source_code=<code>web_mvp</code>, legacy_key=старый ключ кандидата</li>
+            <li><b>Погружение</b> → source_code=<code>onboarding_route</code>, legacy_key=старый ключ кандидата</li>
+            <li><b>Бот учебки</b> → source_code=<code>bot_training</code>, legacy_key=старый ключ кандидата</li>
+            <li><b>Вопросы собеседования</b> → source_code=<code>crosses_selection</code></li>
+            <li><b>Вопросы автомануала</b> → source_code=<code>automanual</code></li>
+          </ul>
+        </div>
         <div class="fields-4">
           <label>Ключ новичка<input id="sourceBaseKey" type="text" placeholder="GTRAIN01" /></label>
           <label>Источник
@@ -474,6 +484,7 @@
           <button data-import="all" type="button">Импортировать всё</button>
           <button id="importSummaryBtn" type="button" class="secondary">Сводка импортов</button>
         </div>
+        <div id="importHumanResult" style="margin-top: 12px;"></div>
         <h3>Результат</h3>
         <pre id="sourceResult" class="result"></pre>
       </article>
@@ -483,26 +494,42 @@
         <div id="cardSummary" class="subtle">Выберите новичка и откройте карточку.</div>
         <h3>Готовность данных</h3>
         <div id="completeness" class="status-list"></div>
+        <h3>Что сохранено (manual inputs + файлы по разделам)</h3>
+        <div id="intakeView"></div>
         <div class="block-grid">
           <div class="mini-panel"><h3>Основное</h3><pre id="candidateBlock" class="result"></pre></div>
           <div class="mini-panel"><h3>Ключи</h3><pre id="keysBlock" class="result"></pre></div>
           <div class="mini-panel"><h3>Связи с источниками</h3><pre id="sourceLinksBlock" class="result"></pre></div>
           <div class="mini-panel"><h3>Импорты</h3><pre id="importsBlock" class="result"></pre></div>
-          <div class="mini-panel"><h3>Файлы</h3><pre id="filesBlock" class="result"></pre></div>
+          <div class="mini-panel"><h3>Файлы (raw JSON)</h3><pre id="filesBlock" class="result"></pre></div>
           <div class="mini-panel"><h3>AI-портрет, только отображение</h3><pre id="aiBlock" class="result"></pre></div>
         </div>
       </article>
 
       <article class="card wide" id="interviewGuide">
         <h2>Собеседование</h2>
-        <div class="fields">
-          <label>Текст собеседования<textarea id="interviewText" placeholder="Вставьте транскрибацию или загрузите TXT"></textarea></label>
-          <label>Комментарий<textarea id="interviewComment"></textarea></label>
-        </div>
-        <label>TXT-файл<input id="interviewFile" type="file" accept=".txt,text/plain" /></label>
-        <div class="row-actions">
-          <button data-save-manual="interview" data-text="interviewText" data-comment="interviewComment" type="button">Сохранить текст</button>
-          <button data-upload="interview" data-file="interviewFile" data-comment="interviewComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+        <p class="subtle">Транскрибация и заметки сохраняются отдельно. TXT-загрузка сохраняет файл + обновляет transcript, не затирая заметки.</p>
+        <div class="block-grid">
+          <div class="mini-panel">
+            <h3>Транскрибация собеседования</h3>
+            <label>Вставьте текст транскрибации<textarea id="interviewText" placeholder="Вставьте транскрибацию или загрузите TXT ниже"></textarea></label>
+            <label>TXT-файл транскрибации<input id="interviewFile" type="file" accept=".txt,text/plain" /></label>
+            <label>Комментарий к транскрибации<textarea id="interviewTranscriptComment" placeholder="Необязательно"></textarea></label>
+            <div class="row-actions">
+              <button id="saveInterviewTranscriptBtn" type="button">Сохранить транскрибацию</button>
+              <button id="uploadInterviewTxtBtn" type="button" class="secondary">Загрузить TXT → transcript</button>
+            </div>
+          </div>
+          <div class="mini-panel">
+            <h3>Заметки HR / тимлида</h3>
+            <label>Заметки HR<textarea id="interviewHrNotes" placeholder="Наблюдения HR по ответам кандидата"></textarea></label>
+            <label>Заметки тимлида<textarea id="interviewTeamleadNotes" placeholder="Hard/sales fit наблюдения тимлида"></textarea></label>
+            <label>Общий комментарий<textarea id="interviewComment" placeholder="Общий комментарий"></textarea></label>
+            <div class="row-actions">
+              <button id="saveInterviewNotesBtn" type="button">Сохранить заметки</button>
+            </div>
+            <p class="subtle" style="margin-top:8px;">Заметки сохраняются в section <code>interview</code> и не затирают transcript.</p>
+          </div>
         </div>
         <h3>Результат</h3>
         <pre id="interviewResult" class="result"></pre>
@@ -557,39 +584,43 @@
 
       <article class="card wide" id="callsGuide">
         <h2>Качество звонков</h2>
+        <p class="subtle">Каждое сохранение / TXT-загрузка добавляет новый звонок в <code>calls[]</code> этапа, не затирая предыдущие. Дата и продукт сохраняются вместе с транскрипцией.</p>
         <div class="block-grid">
-          <div class="mini-panel">
+          <div class="mini-panel" data-call-stage="calls_start">
             <h3>Звонки начала</h3>
-            <div class="fields"><label>Дата<input id="callsStartDate" type="date" /></label><label>Продукт<input id="callsStartProduct" /></label></div>
-            <label>Транскрибация<textarea id="callsStartText"></textarea></label>
-            <label>Комментарий<textarea id="callsStartComment"></textarea></label>
-            <label>TXT-файл<input id="callsStartFile" type="file" accept=".txt,text/plain" /></label>
+            <div class="fields"><label>Дата<input id="callsStartDate" type="date" /></label><label>Продукт / контекст<input id="callsStartProduct" placeholder="ОБ, ЭДО, фонды..." /></label></div>
+            <label>Транскрибация (paste)<textarea id="callsStartText"></textarea></label>
+            <label>Комментарий тренера<textarea id="callsStartComment"></textarea></label>
+            <label>TXT-файл (альтернатива paste)<input id="callsStartFile" type="file" accept=".txt,text/plain" /></label>
             <div class="row-actions">
-              <button data-call-save="calls_start" data-text="callsStartText" data-date="callsStartDate" data-product="callsStartProduct" data-comment="callsStartComment" type="button">Сохранить</button>
-              <button data-upload="calls_start" data-file="callsStartFile" data-comment="callsStartComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+              <button data-call-save="calls_start" data-text="callsStartText" data-date="callsStartDate" data-product="callsStartProduct" data-comment="callsStartComment" type="button">Добавить звонок (paste)</button>
+              <button data-call-upload="calls_start" data-file="callsStartFile" data-date="callsStartDate" data-product="callsStartProduct" data-comment="callsStartComment" type="button" class="secondary">Добавить звонок (TXT)</button>
             </div>
+            <div class="calls-list" data-calls-list="calls_start"></div>
           </div>
-          <div class="mini-panel">
+          <div class="mini-panel" data-call-stage="calls_middle">
             <h3>Звонки середины</h3>
-            <div class="fields"><label>Дата<input id="callsMiddleDate" type="date" /></label><label>Продукт<input id="callsMiddleProduct" /></label></div>
-            <label>Транскрибация<textarea id="callsMiddleText"></textarea></label>
-            <label>Комментарий<textarea id="callsMiddleComment"></textarea></label>
-            <label>TXT-файл<input id="callsMiddleFile" type="file" accept=".txt,text/plain" /></label>
+            <div class="fields"><label>Дата<input id="callsMiddleDate" type="date" /></label><label>Продукт / контекст<input id="callsMiddleProduct" placeholder="ОБ, ЭДО, фонды..." /></label></div>
+            <label>Транскрибация (paste)<textarea id="callsMiddleText"></textarea></label>
+            <label>Комментарий тренера<textarea id="callsMiddleComment"></textarea></label>
+            <label>TXT-файл (альтернатива paste)<input id="callsMiddleFile" type="file" accept=".txt,text/plain" /></label>
             <div class="row-actions">
-              <button data-call-save="calls_middle" data-text="callsMiddleText" data-date="callsMiddleDate" data-product="callsMiddleProduct" data-comment="callsMiddleComment" type="button">Сохранить</button>
-              <button data-upload="calls_middle" data-file="callsMiddleFile" data-comment="callsMiddleComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+              <button data-call-save="calls_middle" data-text="callsMiddleText" data-date="callsMiddleDate" data-product="callsMiddleProduct" data-comment="callsMiddleComment" type="button">Добавить звонок (paste)</button>
+              <button data-call-upload="calls_middle" data-file="callsMiddleFile" data-date="callsMiddleDate" data-product="callsMiddleProduct" data-comment="callsMiddleComment" type="button" class="secondary">Добавить звонок (TXT)</button>
             </div>
+            <div class="calls-list" data-calls-list="calls_middle"></div>
           </div>
-          <div class="mini-panel">
+          <div class="mini-panel" data-call-stage="calls_final">
             <h3>Звонки выпуска</h3>
-            <div class="fields"><label>Дата<input id="callsFinalDate" type="date" /></label><label>Продукт<input id="callsFinalProduct" /></label></div>
-            <label>Транскрибация<textarea id="callsFinalText"></textarea></label>
-            <label>Комментарий<textarea id="callsFinalComment"></textarea></label>
-            <label>TXT-файл<input id="callsFinalFile" type="file" accept=".txt,text/plain" /></label>
+            <div class="fields"><label>Дата<input id="callsFinalDate" type="date" /></label><label>Продукт / контекст<input id="callsFinalProduct" placeholder="ОБ, ЭДО, фонды..." /></label></div>
+            <label>Транскрибация (paste)<textarea id="callsFinalText"></textarea></label>
+            <label>Комментарий тренера<textarea id="callsFinalComment"></textarea></label>
+            <label>TXT-файл (альтернатива paste)<input id="callsFinalFile" type="file" accept=".txt,text/plain" /></label>
             <div class="row-actions">
-              <button data-call-save="calls_final" data-text="callsFinalText" data-date="callsFinalDate" data-product="callsFinalProduct" data-comment="callsFinalComment" type="button">Сохранить</button>
-              <button data-upload="calls_final" data-file="callsFinalFile" data-comment="callsFinalComment" data-type="transcript" type="button" class="secondary">Загрузить TXT</button>
+              <button data-call-save="calls_final" data-text="callsFinalText" data-date="callsFinalDate" data-product="callsFinalProduct" data-comment="callsFinalComment" type="button">Добавить звонок (paste)</button>
+              <button data-call-upload="calls_final" data-file="callsFinalFile" data-date="callsFinalDate" data-product="callsFinalProduct" data-comment="callsFinalComment" type="button" class="secondary">Добавить звонок (TXT)</button>
             </div>
+            <div class="calls-list" data-calls-list="calls_final"></div>
           </div>
         </div>
         <h3>Результат</h3>
@@ -687,6 +718,14 @@
   <script>
     const byId = id => document.getElementById(id);
     const json = value => JSON.stringify(value, null, 2);
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
     const adminKey = () => byId('adminKey').value.trim();
     const selectedBaseKey = () => byId('candidateSelect').value || byId('sourceBaseKey').value.trim();
     const isScopedPage = window.location.pathname === '/onboarding_cross' || window.location.pathname.startsWith('/onboarding_cross/');
@@ -807,11 +846,11 @@
     function renderCard(card) {
       const candidate = card.candidate || {};
       const completeness = card.completeness || { items: [] };
-      byId('cardSummary').innerHTML = `<span class="pill">${candidate.full_name || 'Без ФИО'}</span> <span class="pill">${candidate.base_key || ''}</span> <span class="pill">Готовность: ${completeness.completed_count || 0}/${completeness.total_count || 0}</span>`;
+      byId('cardSummary').innerHTML = `<span class="pill">${escapeHtml(candidate.full_name || 'Без ФИО')}</span> <span class="pill">${escapeHtml(candidate.base_key || '')}</span> <span class="pill">Готовность: ${completeness.completed_count || 0}/${completeness.total_count || 0}</span>`;
       byId('completeness').innerHTML = (completeness.items || []).map(item => {
         const sourceLabel = sourceLabels[item.source] || item.source || 'источник не указан';
         const statusLabel = statusLabels[item.status] || item.status;
-        return `<div class="status-item"><span>${item.title}<br><small>${sourceLabel}</small></span><span class="status-${item.status}">${statusLabel}</span></div>`;
+        return `<div class="status-item"><span>${escapeHtml(item.title)}<br><small>${escapeHtml(sourceLabel)}</small></span><span class="status-${escapeHtml(item.status)}">${escapeHtml(statusLabel)}</span></div>`;
       }).join('');
       show('candidateBlock', candidate);
       show('keysBlock', card.keys || []);
@@ -819,6 +858,78 @@
       show('importsBlock', card.import_summary || []);
       show('filesBlock', card.files || []);
       show('aiBlock', card.ai_profile || { status: 'Профиль пока не заполнен' });
+
+      // Phase 3D2: render intake view (manual_inputs + files grouped by section)
+      renderIntakeView(card);
+      // Phase 3D2: render calls lists in the calls block
+      renderCallsLists(card);
+    }
+
+    function renderIntakeView(card) {
+      const manualInputs = card.manual_inputs || [];
+      const files = card.files || [];
+      const sections = {};
+      const ensure = (s) => { if (!sections[s]) sections[s] = { section: s, manual: null, files: [] }; return sections[s]; };
+      for (const m of manualInputs) {
+        const s = ensure(m.section);
+        const p = m.payload || {};
+        s.manual = {
+          section: m.section,
+          updated_at: m.updated_at,
+          has_transcript: Boolean(p.text_content || p.transcript || (Array.isArray(p.calls) && p.calls.some(c => c.transcript))),
+          has_calls: Array.isArray(p.calls) ? p.calls.length : 0,
+          has_status: Boolean(p.status),
+          comment: p.comment || '',
+        };
+      }
+      for (const f of files) {
+        const s = ensure(f.section);
+        s.files.push({ id: f.id, original_name: f.original_name, mime_type: f.mime_type, size_bytes: f.size_bytes, has_text_content: Boolean(f.text_content), comment: f.comment || '' });
+      }
+      const list = Object.values(sections).sort((a, b) => a.section.localeCompare(b.section));
+      const el = byId('intakeView');
+      if (!list.length) {
+        el.innerHTML = '<div class="subtle" style="padding: 12px;">Пока ничего не сохранено. Загрузите транскрибацию, заметки или файлы выше.</div>';
+        return;
+      }
+      el.innerHTML = `<div class="completeness-list">` + list.map(s => {
+        const parts = [];
+        if (s.manual) {
+          parts.push(`manual: обновлено ${escapeHtml(s.manual.updated_at || '—')}`);
+          if (s.manual.has_calls) parts.push(`звонков: ${s.manual.has_calls}`);
+          else if (s.manual.has_transcript) parts.push('есть transcript');
+          if (s.manual.has_status) parts.push('есть status');
+          if (s.manual.comment) parts.push(`комментарий: ${escapeHtml(s.manual.comment.slice(0, 50))}`);
+        }
+        const fileParts = s.files.map(f => `${escapeHtml(f.original_name || 'file')} (${escapeHtml(f.size_bytes || 0)} bytes${f.has_text_content ? ', text' : ''})`);
+        return `<div class="status-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+          <span><b>${escapeHtml(s.section)}</b></span>
+          ${parts.length ? `<span style="font-size: 13px;">${parts.join(' · ')}</span>` : ''}
+          ${fileParts.length ? `<span style="font-size: 13px;">Файлы: ${fileParts.join(', ')}</span>` : ''}
+        </div>`;
+      }).join('') + `</div>`;
+    }
+
+    function renderCallsLists(card) {
+      const manualInputs = card.manual_inputs || [];
+      ['calls_start', 'calls_middle', 'calls_final'].forEach(stage => {
+        const container = document.querySelector(`[data-calls-list="${stage}"]`);
+        if (!container) return;
+        const m = manualInputs.find(x => x.section === stage);
+        const calls = m && m.payload && Array.isArray(m.payload.calls) ? m.payload.calls : [];
+        if (!calls.length) {
+          container.innerHTML = '<div class="subtle" style="font-size: 13px; padding: 6px 0;">Сохранённых звонков пока нет.</div>';
+          return;
+        }
+        container.innerHTML = '<div style="font-size: 13px; margin-top: 8px;"><b>Сохранённые звонки:</b></div>' + calls.map((c, i) => {
+          const preview = (c.transcript || '').slice(0, 60) + ((c.transcript || '').length > 60 ? '…' : '');
+          return `<div style="font-size: 12px; padding: 6px 8px; margin-top: 4px; background: var(--panel-soft); border-radius: 8px;">
+            <b>#${i + 1}</b> · ${escapeHtml(c.call_date || '—')} · ${escapeHtml(c.product || '—')} · ${escapeHtml(c.source || 'paste')}<br>
+            <span style="color: var(--muted);">${escapeHtml(preview) || '<i>пустой транскрипт</i>'}</span>
+            ${c.coach_comment ? `<br><span style="color: var(--muted);">комментарий: ${escapeHtml(c.coach_comment.slice(0, 50))}</span>` : ''}
+          </div>`;
+        }).join('');
+      });
     }
 
     async function openCard(baseKey = selectedBaseKey()) {
@@ -941,41 +1052,181 @@
       try { show('sourceResult', await requestJson(phase1Api(`/candidates/${encodeURIComponent(selectedBaseKey())}/source-links`))); } catch (err) { show('sourceResult', err.message); }
     });
     document.querySelectorAll('[data-import]').forEach(button => button.addEventListener('click', async () => {
+      const baseKey = selectedBaseKey();
+      const importType = button.dataset.import;
+      const humanResult = byId('importHumanResult');
       try {
-        const baseKey = selectedBaseKey();
-        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/import/${button.dataset.import}`), { method: 'POST', body: '{}' });
+        // Pre-check: source link present?
+        const check = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/import-check/${importType}`));
+        if (!check.has_link) {
+          humanResult.innerHTML = `<div style="background: var(--danger-soft, #ffe0d4); color: var(--danger, #d85c3a); padding: 12px 16px; border-radius: 12px; margin-bottom: 10px;">
+            <b>${escapeHtml(check.message)}</b><br>
+            <span style="font-size: 13px;">${escapeHtml(check.required_legacy_key_hint || '')}</span>
+          </div>`;
+          show('sourceResult', check);
+          return;
+        }
+        // Run import
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/import/${importType}`), { method: 'POST', body: '{}' });
+        // Human-readable summary
+        const summary = data.summary || (data.import_run && data.import_run.status ? buildImportSummaryLocal(importType, data) : null);
+        if (summary) {
+          humanResult.innerHTML = `<div style="background: var(--ok-soft, #d8f3e3); color: var(--ok, #23824f); padding: 12px 16px; border-radius: 12px; margin-bottom: 10px;">
+            <b>${escapeHtml(summary.headline)}</b>
+            ${summary.lines && summary.lines.length > 1 ? `<ul style="margin: 6px 0 0; padding-left: 20px; font-size: 13px;">${summary.lines.slice(1).map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul>` : ''}
+          </div>
+          <details><summary style="cursor: pointer; font-size: 13px; color: var(--muted);">Raw JSON</summary><pre style="margin-top: 8px;">${escapeHtml(JSON.stringify(data, null, 2))}</pre></details>`;
+        } else {
+          humanResult.innerHTML = '';
+        }
         show('sourceResult', data);
         await openCard(baseKey);
       } catch (err) {
+        humanResult.innerHTML = `<div style="background: var(--danger-soft, #ffe0d4); color: var(--danger, #d85c3a); padding: 12px 16px; border-radius: 12px; margin-bottom: 10px;"><b>Ошибка импорта:</b> ${escapeHtml(err.message)}</div>`;
         show('sourceResult', err.message);
       }
     }));
+    function buildImportSummaryLocal(importType, data) {
+      const labels = { 'test-day': 'Импорт тестового дня', 'immersion': 'Импорт погружения', 'training-bot': 'Импорт бота учебки', 'interview-questions': 'Вопросы собеседования', 'manual-questions': 'Вопросы автомануала', 'all': 'Импортировать всё' };
+      const label = labels[importType] || importType;
+      const run = data.import_run || {};
+      const status = run.status || 'unknown';
+      const rowsRead = run.rows_read || 0;
+      const rowsSaved = run.rows_saved || 0;
+      const source = run.source_code || (data.source || '');
+      let headline;
+      if (status === 'no_matching_rows' || (status === 'success' && rowsRead === 0)) headline = `${label}: данных не найдено`;
+      else if (status === 'success') headline = `${label}: готово (прочитано ${rowsRead}, сохранено ${rowsSaved})`;
+      else if (status === 'success_with_warnings') headline = `${label}: готово с предупреждениями (прочитано ${rowsRead}, сохранено ${rowsSaved})`;
+      else if (status === 'failed') headline = `${label}: ошибка`;
+      else headline = `${label}: ${status}`;
+      const lines = [headline];
+      if (source) lines.push(`Источник: ${source}`);
+      if (data.warnings && data.warnings.length) lines.push(`Предупреждения: ${data.warnings.join('; ')}`);
+      if (data.error_text) lines.push(`Ошибка: ${data.error_text}`);
+      return { headline, lines };
+    }
     byId('importSummaryBtn').addEventListener('click', async () => {
       try { show('sourceResult', await requestJson(phase1Api(`/candidates/${encodeURIComponent(selectedBaseKey())}/import/summary`))); } catch (err) { show('sourceResult', err.message); }
     });
-    document.querySelectorAll('[data-save-manual]').forEach(button => button.addEventListener('click', async () => {
+
+    // === Phase 3D2: interview transcript + notes (split) ===
+    byId('saveInterviewTranscriptBtn').addEventListener('click', async () => {
       try {
-        await saveManual(button.dataset.saveManual, {
-          text_content: byId(button.dataset.text).value,
-          comment: byId(button.dataset.comment).value,
+        const baseKey = selectedBaseKey();
+        await saveManual('interview_transcript', {
+          text_content: byId('interviewText').value,
+          source: 'paste',
+          comment: byId('interviewTranscriptComment').value,
         }, 'interviewResult');
       } catch (err) {
         show('interviewResult', err.message);
       }
+    });
+    byId('saveInterviewNotesBtn').addEventListener('click', async () => {
+      try {
+        const baseKey = selectedBaseKey();
+        await saveManual('interview', {
+          hr_notes: byId('interviewHrNotes').value,
+          teamlead_notes: byId('interviewTeamleadNotes').value,
+          comment: byId('interviewComment').value,
+        }, 'interviewResult');
+      } catch (err) {
+        show('interviewResult', err.message);
+      }
+    });
+    byId('uploadInterviewTxtBtn').addEventListener('click', async () => {
+      const baseKey = selectedBaseKey();
+      const input = byId('interviewFile');
+      if (!input.files || !input.files[0]) {
+        show('interviewResult', 'Выберите TXT-файл транскрибации');
+        return;
+      }
+      try {
+        const file = input.files[0];
+        const dataUrl = await fileToDataUrl(file);
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/files-with-manual`), {
+          method: 'POST',
+          body: JSON.stringify({
+            section: 'interview',
+            file_type: 'transcript',
+            original_name: file.name,
+            mime_type: file.type || 'text/plain',
+            size_bytes: file.size,
+            content_base64: dataUrl,
+            comment: byId('interviewTranscriptComment').value,
+            manual_section: 'interview_transcript',
+            manual_mode: 'replace_text',
+          }),
+        });
+        show('interviewResult', data);
+        await openCard(baseKey);
+      } catch (err) {
+        show('interviewResult', err.message);
+      }
+    });
+
+    // === Phase 3D2: calls append (paste + TXT) ===
+    document.querySelectorAll('[data-call-save]').forEach(button => button.addEventListener('click', async () => {
+      const baseKey = selectedBaseKey();
+      const stage = button.dataset.callSave;
+      try {
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/calls/${stage}`), {
+          method: 'POST',
+          body: JSON.stringify({
+            transcript: byId(button.dataset.text).value,
+            call_date: byId(button.dataset.date).value || null,
+            product: byId(button.dataset.product).value,
+            coach_comment: byId(button.dataset.comment).value,
+            source: 'paste',
+          }),
+        });
+        show('callsResult', data);
+        // Clear the paste textarea so user can add another call
+        byId(button.dataset.text).value = '';
+        await openCard(baseKey);
+      } catch (err) {
+        show('callsResult', err.message);
+      }
     }));
-    document.querySelectorAll('[data-upload]').forEach(button => button.addEventListener('click', async () => {
-      const section = button.dataset.upload;
-      const resultId = section.startsWith('calls_')
-        ? 'callsResult'
-        : section === 'phone_metrics'
-          ? 'phoneResult'
-          : section === 'final_test'
-            ? 'finalResult'
-            : section === 'interview'
-              ? 'interviewResult'
-              : 'genericResult';
-      try { await uploadFile(section, button.dataset.file, button.dataset.comment, resultId, button.dataset.type); } catch (err) { show(resultId, err.message); }
+    document.querySelectorAll('[data-call-upload]').forEach(button => button.addEventListener('click', async () => {
+      const baseKey = selectedBaseKey();
+      const stage = button.dataset.callUpload;
+      const fileInputId = button.dataset.file;
+      const input = byId(fileInputId);
+      if (!input.files || !input.files[0]) {
+        show('callsResult', 'Выберите TXT-файл звонка');
+        return;
+      }
+      try {
+        const file = input.files[0];
+        const dataUrl = await fileToDataUrl(file);
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/files-with-manual`), {
+          method: 'POST',
+          body: JSON.stringify({
+            section: stage,
+            file_type: 'transcript',
+            original_name: file.name,
+            mime_type: file.type || 'text/plain',
+            size_bytes: file.size,
+            content_base64: dataUrl,
+            comment: byId(button.dataset.comment).value,
+            manual_section: stage,
+            manual_mode: 'append_call',
+            call_date: byId(button.dataset.date).value || null,
+            call_product: byId(button.dataset.product).value,
+            call_coach_comment: byId(button.dataset.comment).value,
+          }),
+        });
+        show('callsResult', data);
+        // Clear the file input so user can add another call
+        input.value = '';
+        await openCard(baseKey);
+      } catch (err) {
+        show('callsResult', err.message);
+      }
     }));
+    // === Phase 3D2: phone metrics (unchanged logic, help-text added in HTML) ===
     byId('savePhoneBtn').addEventListener('click', async () => {
       try {
         await saveManual('phone_metrics', {

@@ -1406,7 +1406,6 @@
       const roleStr = [roleClient, roleBusiness].filter(Boolean).join(' / ');
       const product = d.product || d.role_title || '';
       const hasAnalysis = Boolean(d.analysis_json);
-      const hasResultPayload = Boolean(d.result_payload && typeof d.result_payload === 'object' && Object.keys(d.result_payload).length);
       const hasResult = Boolean(d.result);
 
       html.push(`<div class="card" style="margin-bottom:12px; background:var(--panel-soft);">
@@ -1438,26 +1437,20 @@
         ${transcriptBody}
       </details>`);
 
-      // Imported analysis_json / result_payload / result text fallback
+      // Individual dialog analytics/result.
+      // Phase 3E2 fixup: do NOT show result_payload here — it's the
+      // aggregate training result already shown on the training card.
+      // Only show analysis_json (individual dialog analytics) or result
+      // (individual dialog result). If neither, show nothing — the
+      // aggregate training result is already visible above.
       if (hasAnalysis) {
         html.push(`<div style="margin-top:10px;">
-          <h5 style="margin:0 0 6px; font-size:13px; color:var(--muted);">Импортированная аналитика</h5>
-          <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Техническое поле: <code>analysis_json</code></div>
+          <h5 style="margin:0 0 6px; font-size:13px; color:var(--muted);">Индивидуальная аналитика диалога</h5>
           ${renderGenericJsonBlock(d.analysis_json)}
-        </div>`);
-      } else if (hasResultPayload) {
-        html.push(`<div style="margin-top:10px;">
-          <h5 style="margin:0 0 6px; font-size:13px; color:var(--muted);">Импортированный результат</h5>
-          <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Техническое поле: <code>result_payload</code></div>
-          ${renderGenericJsonBlock(d.result_payload)}
         </div>`);
       } else if (hasResult) {
         html.push(`<div style="margin-top:10px; padding:10px 14px; background:var(--panel); border-radius:8px; font-size:13px;">
-          <b>Результат:</b> ${escapeHtml(d.result)}
-        </div>`);
-      } else {
-        html.push(`<div style="margin-top:10px; padding:10px 14px; background:var(--panel); border-radius:8px; font-size:13px; color:var(--muted);">
-          Результат не импортирован
+          <b>Результат диалога:</b> ${escapeHtml(d.result)}
         </div>`);
       }
 

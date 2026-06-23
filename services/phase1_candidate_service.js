@@ -1652,11 +1652,387 @@ function buildInterviewSummary(manualInputs) {
   return out;
 }
 
+// ============================================================
+// Phase 3D2: admin intake UX/data fix
+// ============================================================
+
+// Map admin "import" button → required source_code (for pre-check diagnostics)
+const IMPORT_REQUIRED_SOURCE = {
+  'test-day': 'web_mvp',
+  'immersion': 'onboarding_route',
+  'training-bot': 'bot_training',
+  'interview-questions': 'crosses_selection',
+  'manual-questions': 'automanual',
+  'all': null, // 'all' checks each sub-import; treated separately
+};
+
+const IMPORT_LABEL_RU = {
+  'test-day': 'Импорт тестового дня',
+  'immersion': 'Импорт погружения',
+  'training-bot': 'Импорт бота учебки',
+  'interview-questions': 'Вопросы собеседования',
+  'manual-questions': 'Вопросы автомануала',
+  'all': 'Импортировать всё',
+};
+
+/**
+ * Pre-check: does the candidate have the source link required for this import?
+ * Returns { ok, has_link, source_code, required_legacy_key_hint, message }.
+ * Does NOT throw — caller (admin UI) uses this to render a friendly hint
+ * before the user clicks import.
+ *
+ * For importType='all', checks the three real candidate-level sources:
+ * web_mvp, onboarding_route, bot_training. Returns ok=false with a `missing`
+ * array if any are absent. interview-questions / manual-questions are NOT
+ * checked inside 'all' because importAll does not require them.
+ */
+function checkImportSourceLink(baseKey, importType) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+
+  if (importType === 'all') {
+    const subChecks = ['test-day', 'immersion', 'training-bot'].map(t => {
+      const requiredSource = IMPORT_REQUIRED_SOURCE[t];
+      return { import_type: t, source_code: requiredSource };
+    });
+    const links = repos.sourceLinksRepo.listByCandidateId(candidate.id);
+    const missing = [];
+    const foundLinks = [];
+    for (const sc of subChecks) {
+      const link = links.find(l => l.source_code === sc.source_code);
+      if (!link) {
+        missing.push({
+          import_type: sc.import_type,
+          source_code: sc.source_code,
+          message: `Нет связи ${sc.source_code} для этого новичка.`,
+          required_legacy_key_hint: `Сначала сохраните source link: ${sc.source_code} → legacy key (старый ключ кандидата).`,
+        });
+      } else {
+        foundLinks.push({
+          import_type: sc.import_type,
+          source_code: sc.source_code,
+          legacy_key: link.legacy_key || null,
+        });
+      }
+    }
+    if (missing.length > 0) {
+      return {
+        ok: false,
+        import_type: 'all',
+        has_link: false,
+        missing,
+        message: `Не хватает связей для импорта: ${missing.map(m => m.source_code).join(', ')}`,
+      };
+    }
+    return {
+      ok: true,
+      import_type: 'all',
+      has_link: true,
+      links: foundLinks,
+      message: 'Все необходимые связи найдены (web_mvp, onboarding_route, bot_training).',
+    };
+  }
+
+  const requiredSource = IMPORT_REQUIRED_SOURCE[importType];
+  if (!requiredSource) {
+    return {
+      ok: true,
+      import_type: importType,
+      has_link: true,
+      source_code: null,
+      message: 'Этот импорт не требует явной source link.',
+    };
+  }
+  const links = repos.sourceLinksRepo.listByCandidateId(candidate.id);
+  const link = links.find(l => l.source_code === requiredSource);
+  if (!link) {
+    return {
+      ok: false,
+      import_type: importType,
+      has_link: false,
+      source_code: requiredSource,
+      required_legacy_key_hint: `Сначала сохраните source link: ${requiredSource} → legacy key (старый ключ кандидата).`,
+      message: `Нет связи ${requiredSource} для этого новичка.`,
+    };
+  }
+  return {
+    ok: true,
+    import_type: importType,
+    has_link: true,
+    source_code: requiredSource,
+    legacy_key: link.legacy_key || null,
+    message: `Связь ${requiredSource} найдена (legacy_key: ${link.legacy_key || '—'}).`,
+  };
+}
+
+/**
+ * Build a human-readable summary from an import result.
+ * The import service returns { ok, status, source, rows_read, rows_saved, warnings, ... }.
+ * We turn that into a short Russian line + keep the raw payload for details.
+ */
+function buildImportSummary(importType, result) {
+  const label = IMPORT_LABEL_RU[importType] || importType;
+  const status = result && result.status ? result.status : 'unknown';
+  const rowsRead = result && typeof result.rows_read === 'number' ? result.rows_read : 0;
+  const rowsSaved = result && typeof result.rows_saved === 'number' ? result.rows_saved : 0;
+  const source = result && result.source ? result.source : '';
+  const warnings = result && Array.isArray(result.warnings) ? result.warnings : [];
+
+  let headline;
+  if (status === 'no_matching_rows' || (status === 'success' && rowsRead === 0)) {
+    headline = `${label}: данных не найдено`;
+  } else if (status === 'success') {
+    headline = `${label}: готово (прочитано ${rowsRead}, сохранено ${rowsSaved})`;
+  } else if (status === 'success_with_warnings') {
+    headline = `${label}: готово с предупреждениями (прочитано ${rowsRead}, сохранено ${rowsSaved})`;
+  } else if (status === 'failed') {
+    headline = `${label}: ошибка`;
+  } else {
+    headline = `${label}: ${status}`;
+  }
+
+  const lines = [headline];
+  if (source) lines.push(`Источник: ${source}`);
+  if (warnings.length) lines.push(`Предупреждения: ${warnings.length === 1 ? warnings[0] : warnings.join('; ')}`);
+  return {
+    headline,
+    lines,
+    raw: result,
+  };
+}
+
+/**
+ * Append a single call item to manual_inputs[section].calls[].
+ * section is calls_start | calls_middle | calls_final.
+ * If the existing payload is in the legacy single-call shape (has `transcript`
+ * at top level), it is migrated to the new `calls[]` shape first, then the
+ * new item is appended.
+ *
+ * The call item must be a plain object with at least `transcript` (string).
+ * Optional: call_date, product, coach_comment, source, file_id, created_at.
+ */
+function appendCallToManualInput(baseKey, section, callItem, adminKey) {
+  if (!['calls_start', 'calls_middle', 'calls_final'].includes(section)) {
+    throw createError('INVALID_MANUAL_INPUT_SECTION', 'invalid_manual_input_section');
+  }
+  // Guard: do not append a call with empty transcript
+  if (!String(callItem.transcript || '').trim()) {
+    throw createError('EMPTY_CALL_TRANSCRIPT', 'empty_call_transcript');
+  }
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+  const now = nowIso();
+
+  // Read existing manual_input for this section (if any)
+  const existing = repos.manualInputsRepo.listByCandidateId(candidate.id)
+    .find(m => m.section === section);
+  let calls = [];
+  if (existing && existing.payload) {
+    const p = existing.payload;
+    if (Array.isArray(p.calls)) {
+      calls = [...p.calls];
+    } else if (p.transcript || p.call_date || p.product || p.coach_comment) {
+      // Legacy single-call shape → migrate
+      calls = [{
+        call_date: p.call_date || null,
+        product: p.product || null,
+        transcript: p.transcript || '',
+        coach_comment: p.coach_comment || '',
+        source: 'paste',
+        file_id: null,
+        created_at: existing.updated_at || existing.created_at || now,
+      }];
+    }
+  }
+
+  // Build new item with sane defaults
+  const newItem = {
+    call_date: callItem.call_date || null,
+    product: callItem.product || null,
+    transcript: callItem.transcript || '',
+    coach_comment: callItem.coach_comment || '',
+    source: callItem.source || 'paste',
+    file_id: callItem.file_id || null,
+    created_at: callItem.created_at || now,
+  };
+  calls.push(newItem);
+
+  const payload = { calls, comment: existing && existing.payload && existing.payload.comment ? existing.payload.comment : '' };
+  const upserted = repos.manualInputsRepo.upsert({
+    candidate_id: candidate.id,
+    base_key: baseKey,
+    section,
+    payload_json: JSON.stringify(payload),
+    created_at: existing ? existing.created_at : now,
+    updated_at: now,
+  });
+  appendAuditLog(db, adminKey, 'phase1_call_appended', 'candidate', candidate.id, baseKey, { section, call_index: calls.length - 1 });
+  return { manual_input: upserted, calls_count: calls.length, calls };
+}
+
+/**
+ * Upload a file AND upsert a linked manual_input in one operation.
+ * Used for:
+ *   - interview TXT upload → file in candidate_files (section=interview) +
+ *     text_content in manual_inputs (section=interview_transcript).
+ *   - calls TXT upload → file in candidate_files (section=calls_*) +
+ *     append transcript to manual_inputs (section=calls_*) calls[].
+ *
+ * payload.manual_section specifies which manual_input section to upsert.
+ * payload.manual_mode = 'replace_text' | 'append_call' | 'none'.
+ * payload.call_metadata = { call_date, product, coach_comment } for append_call mode.
+ */
+function saveCandidateFileWithManualInput(baseKey, payload, adminKey) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+  const section = String(payload.section || '').trim();
+  if (!ALLOWED_FILE_SECTIONS.has(section)) {
+    throw createError('INVALID_FILE_SECTION', 'invalid_file_section');
+  }
+  const manualSection = String(payload.manual_section || '').trim();
+  const manualMode = String(payload.manual_mode || 'none').trim();
+  if (manualMode !== 'none' && !ALLOWED_MANUAL_SECTIONS.has(manualSection)) {
+    throw createError('INVALID_MANUAL_INPUT_SECTION', 'invalid_manual_input_section');
+  }
+  if (manualMode === 'append_call' && !['calls_start', 'calls_middle', 'calls_final'].includes(manualSection)) {
+    throw createError('INVALID_MANUAL_INPUT_SECTION', 'append_call requires calls_start/middle/final');
+  }
+
+  // 1. Save the file (reuses saveCandidateFile logic but inline so we keep
+  //    the file_id for the manual_input link).
+  const file = saveCandidateFile(baseKey, payload, adminKey);
+
+  // 2. Read text_content from the saved file
+  const textContent = file.text_content || '';
+
+  // 3. Upsert manual_input according to mode
+  let manualInput = null;
+  let callsCount = null;
+  if (manualMode === 'replace_text' && manualSection) {
+    // interview_transcript: replace text_content, preserve other fields.
+    // Allow empty text_content here — the file itself is evidence, and the
+    // user may upload a binary file (image, audio) without extractable text.
+    const existingManual = repos.manualInputsRepo.listByCandidateId(candidate.id)
+      .find(m => m.section === manualSection);
+    const existingPayload = existingManual && existingManual.payload ? existingManual.payload : {};
+    const newPayload = {
+      ...existingPayload,
+      text_content: textContent,
+      source: 'txt_upload',
+      file_id: file.id,
+      comment: payload.comment != null ? payload.comment : (existingPayload.comment || ''),
+    };
+    const now = nowIso();
+    manualInput = repos.manualInputsRepo.upsert({
+      candidate_id: candidate.id,
+      base_key: baseKey,
+      section: manualSection,
+      payload_json: JSON.stringify(newPayload),
+      created_at: existingManual ? existingManual.created_at : now,
+      updated_at: now,
+    });
+    appendAuditLog(db, adminKey, 'phase1_manual_input_saved', 'candidate', candidate.id, baseKey, { section: manualSection, source: 'txt_upload' });
+  } else if (manualMode === 'append_call' && manualSection) {
+    // Guard: do not append a call with empty transcript (no extractable text)
+    if (!textContent.trim()) {
+      // File is still saved (above), but no call is appended.
+      return {
+        file,
+        manual_input: null,
+        manual_section: null,
+        calls_count: null,
+        warning: 'Файл сохранён, но текст пустой — звонок не добавлен. Для бинарных файлов используйте обычный файловый upload без append_call.',
+      };
+    }
+    const callItem = {
+      call_date: payload.call_date || null,
+      product: payload.call_product || null,
+      transcript: textContent,
+      coach_comment: payload.call_coach_comment || '',
+      source: 'txt_upload',
+      file_id: file.id,
+    };
+    const result = appendCallToManualInput(baseKey, manualSection, callItem, adminKey);
+    manualInput = result.manual_input;
+    callsCount = result.calls_count;
+  }
+
+  return {
+    file,
+    manual_input: manualInput,
+    manual_section: manualMode !== 'none' ? manualSection : null,
+    calls_count: callsCount,
+  };
+}
+
+/**
+ * Get a unified view of manual_inputs + files for a candidate, grouped by section.
+ * Used by admin card to render a clear "what's saved" picture instead of two
+ * disconnected raw JSON blocks.
+ */
+function getCandidateIntakeView(baseKey) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+  const manualInputs = repos.manualInputsRepo.listByCandidateId(candidate.id);
+  const files = repos.candidateFilesRepo.listByCandidateId(candidate.id);
+
+  // Group by section
+  const sections = {};
+  const ensure = (section) => {
+    if (!sections[section]) {
+      sections[section] = { section, manual: null, files: [] };
+    }
+    return sections[section];
+  };
+
+  for (const m of manualInputs) {
+    const s = ensure(m.section);
+    const p = m.payload || {};
+    s.manual = {
+      section: m.section,
+      updated_at: m.updated_at,
+      has_transcript: Boolean(p.text_content || p.transcript || (Array.isArray(p.calls) && p.calls.some(c => c.transcript))),
+      has_calls: Array.isArray(p.calls) ? p.calls.length : 0,
+      has_status: Boolean(p.status),
+      comment: p.comment || '',
+      payload_size: JSON.stringify(p).length,
+    };
+  }
+  for (const f of files) {
+    const s = ensure(f.section);
+    s.files.push({
+      id: f.id,
+      section: f.section,
+      original_name: f.original_name,
+      mime_type: f.mime_type,
+      size_bytes: f.size_bytes,
+      has_text_content: Boolean(f.text_content),
+      comment: f.comment || '',
+      created_at: f.created_at,
+    });
+  }
+
+  return {
+    base_key: baseKey,
+    sections: Object.values(sections).sort((a, b) => a.section.localeCompare(b.section)),
+    total_manual_inputs: manualInputs.length,
+    total_files: files.length,
+  };
+}
+
 module.exports = {
   addKeysToCandidate,
+  appendCallToManualInput,
   assertEnabled,
+  buildImportSummary,
+  checkImportSourceLink,
   createCandidateWithKeys,
   getCandidateCard,
+  getCandidateIntakeView,
   getCompleteness,
   getDashboardMvp,
   getImportSummary,
@@ -1671,6 +2047,7 @@ module.exports = {
   listSourceLinks,
   saveAiProfile,
   saveCandidateFile,
+  saveCandidateFileWithManualInput,
   saveCandidateScores,
   getCandidateScores,
   recalculateCandidateScores,
@@ -1681,4 +2058,7 @@ module.exports = {
   getViewerHealth,
   saveManualInput,
   upsertSourceLink,
+  // Phase 3D2 constants exposed for routes
+  IMPORT_REQUIRED_SOURCE,
+  IMPORT_LABEL_RU,
 };

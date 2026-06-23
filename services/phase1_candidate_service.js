@@ -12,6 +12,8 @@ const { createSourceLinksRepo } = require('../repositories/phase1_source_links_r
 const { createImportRunsRepo } = require('../repositories/phase1_import_runs_repo');
 const { createQuestionBanksRepo } = require('../repositories/phase1_question_banks_repo');
 const { createSnapshotsRepo } = require('../repositories/phase1_snapshots_repo');
+const { createCandidateScoresRepo } = require('../repositories/phase1_candidate_scores_repo');
+const { createAnalysisRunsRepo } = require('../repositories/phase1_analysis_runs_repo');
 const { buildNextBaseKey, normalizeKeyInput } = require('./phase1_key_service');
 const {
   buildDedupKey,
@@ -113,6 +115,8 @@ function buildRepos(db) {
     importRunsRepo: createImportRunsRepo(db),
     questionBanksRepo: createQuestionBanksRepo(db),
     snapshotsRepo: createSnapshotsRepo(db),
+    candidateScoresRepo: createCandidateScoresRepo(db),
+    analysisRunsRepo: createAnalysisRunsRepo(db),
   };
 }
 
@@ -864,6 +868,471 @@ function getImportSummary(baseKey) {
   return repos.importRunsRepo.listByBaseKey(baseKey);
 }
 
+// ============================================================
+// Phase 3B-min: manual candidate scores + read-only viewer
+// ============================================================
+
+const SCORE_FIELDS = [
+  'hard_score',
+  'soft_score',
+  'learning_score',
+  'discipline_score',
+  'call_quality_score',
+  'ops_score',
+  'final_test_score',
+  'risk_score',
+];
+
+const SCORE_WEIGHTS = {
+  hard_score: 0.25,
+  soft_score: 0.15,
+  learning_score: 0.15,
+  discipline_score: 0.15,
+  call_quality_score: 0.20,
+  final_test_score: 0.10,
+};
+
+const STATUS_RANK = {
+  insufficient_data: 0,
+  needs_practice: 1,
+  ready_with_control: 2,
+  ready: 3,
+};
+
+const STATUS_LABEL_RU = {
+  ready: 'готов к выпуску',
+  ready_with_control: 'готов с контролем',
+  needs_practice: 'нужна доработка',
+  not_recommended: 'не рекомендован',
+  insufficient_data: 'недостаточно данных',
+};
+
+const RISK_LEVEL_LABEL_RU = {
+  low: 'низкий',
+  medium: 'средний',
+  high: 'высокий',
+  critical: 'критичный',
+};
+
+function clampScore(value) {
+  if (value == null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  if (num < 0) return 0;
+  if (num > 100) return 100;
+  return num;
+}
+
+function normalizeScoreInput(payload) {
+  const out = {};
+  for (const field of SCORE_FIELDS) {
+    if (payload[field] === undefined || payload[field] === null || payload[field] === '') {
+      out[field] = null;
+      continue;
+    }
+    const num = Number(payload[field]);
+    if (!Number.isFinite(num)) {
+      const error = new Error(`invalid_score:${field}`);
+      error.code = 'INVALID_SCORE_VALUE';
+      error.field = field;
+      throw error;
+    }
+    if (num < 0 || num > 100) {
+      const error = new Error(`score_out_of_range:${field}`);
+      error.code = 'INVALID_SCORE_RANGE';
+      error.field = field;
+      throw error;
+    }
+    out[field] = num;
+  }
+  return out;
+}
+
+function riskLevelFromScore(riskScore) {
+  if (riskScore == null) return null;
+  if (riskScore <= 25) return 'low';
+  if (riskScore <= 55) return 'medium';
+  if (riskScore <= 75) return 'high';
+  return 'critical';
+}
+
+function computeOverallScore(scores) {
+  let total = 0;
+  let weightSum = 0;
+  for (const [field, weight] of Object.entries(SCORE_WEIGHTS)) {
+    const value = scores[field];
+    if (value != null) {
+      total += value * weight;
+      weightSum += weight;
+    }
+  }
+  if (weightSum === 0) return null;
+  return Math.round(total / weightSum);
+}
+
+function detectHasCallsData(candidate, repos) {
+  const completeness = buildCompleteness(candidate, repos);
+  const callsItems = (completeness.items || []).filter(item =>
+    item.code === 'calls_start' || item.code === 'calls_middle' || item.code === 'calls_final'
+  );
+  return callsItems.some(item => item.status === 'ready');
+}
+
+function applyStatusLimiters(proposedStatus, scores, hasCallsData) {
+  let status = proposedStatus || 'insufficient_data';
+  const rank = STATUS_RANK[status] != null ? STATUS_RANK[status] : 0;
+
+  // Ограничители из 11_EVALUATION_RUBRICS_BY_STAGE_V1.md §12
+  // Порядок: от самых жёстких (needs_practice) к мягким (ready_with_control)
+  if (scores.hard_score == null || scores.soft_score == null) {
+    return 'insufficient_data';
+  }
+  if (scores.hard_score != null && scores.hard_score < 50) {
+    if (rank > STATUS_RANK.needs_practice) return 'needs_practice';
+  }
+  if (scores.discipline_score != null && scores.discipline_score < 50) {
+    if (rank > STATUS_RANK.ready_with_control) return 'ready_with_control';
+  }
+  if (scores.risk_score != null && scores.risk_score >= 76) {
+    if (rank > STATUS_RANK.ready_with_control) return 'ready_with_control';
+  }
+  if (!hasCallsData) {
+    if (rank > STATUS_RANK.ready_with_control) return 'ready_with_control';
+  }
+  return status;
+}
+
+function buildScoreBreakdown(scores, riskLevel, finalStatus, overallScore) {
+  const breakdown = {};
+  for (const field of SCORE_FIELDS) {
+    const value = scores[field];
+    let level = null;
+    if (value != null) {
+      if (field === 'risk_score') {
+        level = riskLevelFromScore(value);
+      } else if (value <= 20) level = 'critical_fail';
+      else if (value <= 40) level = 'weak';
+      else if (value <= 60) level = 'basic_unstable';
+      else if (value <= 75) level = 'working_minimum';
+      else if (value <= 89) level = 'strong';
+      else level = 'excellent';
+    }
+    breakdown[field] = { value, level };
+  }
+  breakdown.overall_score = { value: overallScore };
+  breakdown.risk_level = { value: riskLevel };
+  breakdown.final_status = { value: finalStatus };
+  return breakdown;
+}
+
+function normalizeStringList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+  return String(value).split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+}
+
+function saveCandidateScores(baseKey, payload, adminKey) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+  const scores = normalizeScoreInput(payload || {});
+  const now = nowIso();
+
+  // overall_score считаем на сервере, не доверяем клиенту
+  const overallScore = computeOverallScore(scores);
+  const riskLevel = riskLevelFromScore(scores.risk_score);
+  const hasCallsData = detectHasCallsData(candidate, repos);
+
+  // final_status из запроса — это рекомендация тренера, но сервер применяет ограничители
+  const requestedStatus = String(payload.final_status || '').trim() || null;
+  const finalStatus = applyStatusLimiters(requestedStatus, scores, hasCallsData);
+
+  const recommendation = payload.recommendation ? String(payload.recommendation).trim() : null;
+  const strengths = normalizeStringList(payload.strengths);
+  const growthZones = normalizeStringList(payload.growth_zones);
+  const redFlags = normalizeStringList(payload.red_flags);
+  const coachRecommendations = normalizeStringList(payload.coach_recommendations);
+
+  const inputPayload = {
+    requested_scores: scores,
+    requested_final_status: requestedStatus,
+    recommendation,
+    strengths,
+    growth_zones: growthZones,
+    red_flags: redFlags,
+    coach_recommendations: coachRecommendations,
+  };
+
+  const analysisRun = repos.analysisRunsRepo.create({
+    candidate_id: candidate.id,
+    base_key: baseKey,
+    analysis_type: 'overall',
+    source: 'manual',
+    status: 'running',
+    input_payload_json: JSON.stringify(inputPayload),
+    output_payload_json: null,
+    error_text: null,
+    created_at: now,
+    finished_at: null,
+  });
+
+  const outputPayload = {
+    scores,
+    overall_score: overallScore,
+    risk_level: riskLevel,
+    final_status: finalStatus,
+    has_calls_data: hasCallsData,
+    recommendation,
+    strengths,
+    growth_zones: growthZones,
+    red_flags: redFlags,
+    coach_recommendations: coachRecommendations,
+  };
+
+  const breakdown = buildScoreBreakdown(scores, riskLevel, finalStatus, overallScore);
+
+  const saved = repos.candidateScoresRepo.upsert({
+    candidate_id: candidate.id,
+    base_key: baseKey,
+    hard_score: scores.hard_score,
+    soft_score: scores.soft_score,
+    learning_score: scores.learning_score,
+    discipline_score: scores.discipline_score,
+    call_quality_score: scores.call_quality_score,
+    ops_score: scores.ops_score,
+    final_test_score: scores.final_test_score,
+    risk_score: scores.risk_score,
+    overall_score: overallScore,
+    risk_level: riskLevel,
+    final_status: finalStatus,
+    recommendation,
+    source: 'manual',
+    analysis_run_id: analysisRun.id,
+    score_breakdown_json: JSON.stringify(breakdown),
+    strengths_json: JSON.stringify(strengths),
+    growth_zones_json: JSON.stringify(growthZones),
+    red_flags_json: JSON.stringify(redFlags),
+    coach_recommendations_json: JSON.stringify(coachRecommendations),
+    has_calls_data: hasCallsData ? 1 : 0,
+    created_at: now,
+    updated_at: now,
+  });
+
+  repos.analysisRunsRepo.update({
+    id: analysisRun.id,
+    status: 'success',
+    output_payload_json: JSON.stringify(outputPayload),
+    error_text: null,
+    finished_at: now,
+  });
+
+  appendAuditLog(db, adminKey, 'phase1_candidate_scores_saved', 'candidate', candidate.id, baseKey, {
+    overall_score: overallScore,
+    final_status: finalStatus,
+    risk_level: riskLevel,
+  });
+
+  return saved;
+}
+
+function getCandidateScores(baseKey) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+  return repos.candidateScoresRepo.getByCandidateId(candidate.id);
+}
+
+function recalculateCandidateScores(baseKey, adminKey) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+  const existing = repos.candidateScoresRepo.getByCandidateId(candidate.id);
+  if (!existing) {
+    const error = new Error('scores_not_found');
+    error.code = 'SCORES_NOT_FOUND';
+    throw error;
+  }
+  const now = nowIso();
+  const scores = {};
+  for (const field of SCORE_FIELDS) scores[field] = existing[field];
+
+  const overallScore = computeOverallScore(scores);
+  const riskLevel = riskLevelFromScore(scores.risk_score);
+  const hasCallsData = detectHasCallsData(candidate, repos);
+  const finalStatus = applyStatusLimiters(existing.final_status, scores, hasCallsData);
+
+  const breakdown = buildScoreBreakdown(scores, riskLevel, finalStatus, overallScore);
+
+  const analysisRun = repos.analysisRunsRepo.create({
+    candidate_id: candidate.id,
+    base_key: baseKey,
+    analysis_type: 'overall',
+    source: 'mixed',
+    status: 'success',
+    input_payload_json: JSON.stringify({ recalculate: true, from_scores_id: existing.id }),
+    output_payload_json: JSON.stringify({
+      overall_score: overallScore,
+      risk_level: riskLevel,
+      final_status: finalStatus,
+      has_calls_data: hasCallsData,
+    }),
+    error_text: null,
+    created_at: now,
+    finished_at: now,
+  });
+
+  const updated = repos.candidateScoresRepo.upsert({
+    candidate_id: candidate.id,
+    base_key: baseKey,
+    hard_score: existing.hard_score,
+    soft_score: existing.soft_score,
+    learning_score: existing.learning_score,
+    discipline_score: existing.discipline_score,
+    call_quality_score: existing.call_quality_score,
+    ops_score: existing.ops_score,
+    final_test_score: existing.final_test_score,
+    risk_score: existing.risk_score,
+    overall_score: overallScore,
+    risk_level: riskLevel,
+    final_status: finalStatus,
+    recommendation: existing.recommendation,
+    source: existing.source,
+    analysis_run_id: analysisRun.id,
+    score_breakdown_json: JSON.stringify(breakdown),
+    strengths_json: JSON.stringify(existing.strengths || []),
+    growth_zones_json: JSON.stringify(existing.growth_zones || []),
+    red_flags_json: JSON.stringify(existing.red_flags || []),
+    coach_recommendations_json: JSON.stringify(existing.coach_recommendations || []),
+    has_calls_data: hasCallsData ? 1 : 0,
+    created_at: existing.created_at,
+    updated_at: now,
+  });
+
+  appendAuditLog(db, adminKey, 'phase1_candidate_scores_recalculated', 'candidate', candidate.id, baseKey, {
+    overall_score: overallScore,
+    final_status: finalStatus,
+    risk_level: riskLevel,
+  });
+
+  return updated;
+}
+
+function getCandidateScoresHistory(baseKey) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = getCandidateOrThrow(repos, baseKey);
+  return repos.analysisRunsRepo.listByBaseKeyType(baseKey, 'overall');
+}
+
+function getViewerDashboardSummary() {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidates = repos.candidatesRepo.listCandidates();
+  const byStatus = {};
+  const byRisk = {};
+  const scoreTotals = {
+    hard_score: 0,
+    soft_score: 0,
+    learning_score: 0,
+    discipline_score: 0,
+    call_quality_score: 0,
+    ops_score: 0,
+    final_test_score: 0,
+    risk_score: 0,
+    overall_score: 0,
+  };
+  let scoreCount = 0;
+
+  for (const candidate of candidates) {
+    byStatus[candidate.status] = (byStatus[candidate.status] || 0) + 1;
+    const scores = repos.candidateScoresRepo.getByCandidateId(candidate.id);
+    const riskLevel = scores && scores.risk_level ? scores.risk_level : 'unknown';
+    byRisk[riskLevel] = (byRisk[riskLevel] || 0) + 1;
+    if (scores) {
+      for (const field of Object.keys(scoreTotals)) {
+        scoreTotals[field] += Number(scores[field] || 0);
+      }
+      scoreCount += 1;
+    }
+  }
+
+  const avgScores = {};
+  for (const [field, total] of Object.entries(scoreTotals)) {
+    avgScores[field] = scoreCount ? Math.round((total / scoreCount) * 10) / 10 : 0;
+  }
+
+  return {
+    ok: true,
+    total_candidates: candidates.length,
+    candidates_with_scores: scoreCount,
+    by_status: byStatus,
+    by_risk: byRisk,
+    avg_scores: avgScores,
+  };
+}
+
+function getViewerCandidates(filters = {}) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidates = repos.candidatesRepo.listCandidates();
+  const segment = String(filters.segment || '').trim();
+  const status = String(filters.status || '').trim();
+  const riskLevel = String(filters.risk_level || '').trim();
+
+  return candidates
+    .map(candidate => {
+      const scores = repos.candidateScoresRepo.getByCandidateId(candidate.id);
+      const completeness = buildCompleteness(candidate, repos);
+      return {
+        base_key: candidate.base_key,
+        full_name: candidate.full_name,
+        seller_segment: candidate.seller_segment,
+        direction: candidate.direction,
+        status: candidate.status,
+        created_at: candidate.created_at,
+        updated_at: candidate.updated_at,
+        scores: scores || null,
+        completeness_summary: {
+          completed_count: completeness.completed_count,
+          total_count: completeness.total_count,
+          status: completeness.status,
+        },
+      };
+    })
+    .filter(row => {
+      if (segment && row.seller_segment !== segment) return false;
+      if (status && (row.scores ? row.scores.final_status : row.status) !== status) return false;
+      if (riskLevel && (!row.scores || row.scores.risk_level !== riskLevel)) return false;
+      return true;
+    });
+}
+
+function getViewerCandidateCard(baseKey) {
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = repos.candidatesRepo.findByBaseKey(baseKey);
+  if (!candidate) return null;
+  const completeness = buildCompleteness(candidate, repos);
+  const scores = repos.candidateScoresRepo.getByCandidateId(candidate.id);
+  const importSummary = repos.importRunsRepo.listByBaseKey(baseKey);
+  return {
+    candidate,
+    completeness,
+    scores,
+    import_summary: importSummary,
+    has_legacy_ai_profile: Boolean(repos.aiProfileRepo.getByCandidateId(candidate.id)),
+  };
+}
+
+function getViewerHealth() {
+  const config = getPhase1Config();
+  return {
+    ok: config.viewerEnabled,
+    viewer_enabled: config.viewerEnabled,
+    admin_enabled: config.enabled,
+  };
+}
+
 module.exports = {
   addKeysToCandidate,
   assertEnabled,
@@ -883,6 +1352,14 @@ module.exports = {
   listSourceLinks,
   saveAiProfile,
   saveCandidateFile,
+  saveCandidateScores,
+  getCandidateScores,
+  recalculateCandidateScores,
+  getCandidateScoresHistory,
+  getViewerDashboardSummary,
+  getViewerCandidates,
+  getViewerCandidateCard,
+  getViewerHealth,
   saveManualInput,
   upsertSourceLink,
 };

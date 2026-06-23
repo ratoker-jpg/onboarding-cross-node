@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard новичков — просмотр</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6f1ff;
+      --bg-2: #fbf8ff;
+      --panel: #ffffff;
+      --text: #1f1733;
+      --muted: #73668f;
+      --line: #e5d6ff;
+      --accent: #7f42e1;
+      --accent-soft: #f0e6ff;
+      --ok: #23824f;
+      --warn: #b46b00;
+      --danger: #d85c3a;
+      --shadow: 0 18px 48px rgba(82, 45, 145, 0.12);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Manrope, sans-serif;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+      color: var(--text);
+    }
+    .page { max-width: 1320px; margin: 0 auto; padding: 24px 18px 64px; }
+    .hero {
+      padding: 26px 30px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, #ffffff 0%, #f7efff 100%);
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+    .hero h1 { margin: 0 0 6px; font-size: 28px; font-weight: 800; }
+    .hero p { margin: 0; color: var(--muted); }
+    .auth-row {
+      display: flex; gap: 12px; align-items: end; flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .auth-row label { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px; }
+    .auth-row input {
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--line); font-size: 14px; font-family: inherit;
+    }
+    button {
+      padding: 10px 18px; border-radius: var(--radius-sm);
+      border: 0; background: var(--accent); color: #fff; font-weight: 600;
+      cursor: pointer; font-family: inherit; font-size: 14px;
+    }
+    button.secondary { background: var(--accent-soft); color: var(--accent); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .summary-grid {
+      display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      margin-bottom: 22px;
+    }
+    .summary-card {
+      padding: 16px 18px; border-radius: var(--radius-md);
+      background: var(--panel); border: 1px solid var(--line);
+    }
+    .summary-card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .summary-card .value { font-size: 24px; font-weight: 800; margin-top: 4px; }
+    .summary-card .value.ok { color: var(--ok); }
+    .summary-card .value.warn { color: var(--warn); }
+    .summary-card .value.danger { color: var(--danger); }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius-md); padding: 22px;
+      box-shadow: var(--shadow); margin-bottom: 22px;
+    }
+    .panel h2 { margin: 0 0 14px; font-size: 18px; font-weight: 700; }
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .filters label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+    .filters input, .filters select {
+      padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
+      font-size: 13px; font-family: inherit; min-width: 120px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: var(--accent-soft); }
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 12px;
+      font-size: 11px; font-weight: 600;
+    }
+    .pill.ready { background: #d8f3e3; color: var(--ok); }
+    .pill.ready_with_control { background: #fff1d6; color: var(--warn); }
+    .pill.needs_practice { background: #ffe0d4; color: var(--danger); }
+    .pill.insufficient_data { background: #ece6f5; color: var(--muted); }
+    .pill.risk-low { background: #d8f3e3; color: var(--ok); }
+    .pill.risk-medium { background: #fff1d6; color: var(--warn); }
+    .pill.risk-high { background: #ffe0d4; color: var(--danger); }
+    .pill.risk-critical { background: #fbd0c4; color: var(--danger); }
+    .pill.risk-unknown { background: #ece6f5; color: var(--muted); }
+    .score-cell { font-variant-numeric: tabular-nums; }
+    .score-cell.empty { color: var(--muted); }
+    .card-overlay {
+      position: fixed; inset: 0; background: rgba(31, 23, 51, 0.55);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .card-overlay.show { display: flex; }
+    .card-modal {
+      background: var(--panel); border-radius: var(--radius-lg);
+      max-width: 880px; width: 100%; max-height: 90vh; overflow: auto;
+      padding: 28px; box-shadow: var(--shadow);
+    }
+    .card-modal h2 { margin: 0 0 6px; font-size: 22px; }
+    .card-modal .subtle { color: var(--muted); margin-bottom: 18px; }
+    .scores-grid {
+      display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      margin: 18px 0;
+    }
+    .score-box { padding: 12px 14px; border-radius: var(--radius-sm); background: var(--bg-2); border: 1px solid var(--line); }
+    .score-box .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .score-box .value { font-size: 20px; font-weight: 800; margin-top: 2px; }
+    .score-box .level { font-size: 11px; color: var(--muted); }
+    .recommendation { padding: 14px 18px; background: var(--accent-soft); border-radius: var(--radius-sm); margin: 12px 0; }
+    .recommendation .label { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+    .recommendation .text { margin-top: 4px; }
+    .lists-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 12px; }
+    .list-box h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .list-box ul { margin: 0; padding-left: 18px; font-size: 13px; }
+    .list-box .empty-list { color: var(--muted); font-size: 13px; }
+    .close-btn { float: right; background: transparent; color: var(--text); border: 1px solid var(--line); }
+    .error-banner { padding: 12px 16px; background: #ffe0d4; border-radius: var(--radius-sm); color: var(--danger); margin: 10px 0; display: none; }
+    .empty-state { color: var(--muted); padding: 30px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>Dashboard новичков</h1>
+      <p>Read-only просмотр. Для редактирования оценок используйте админку.</p>
+      <div class="auth-row">
+        <label>Ключ просмотра
+          <input id="viewerKey" type="password" placeholder="Введите VIEWER_KEY" />
+        </label>
+        <button id="openDashboardBtn" type="button">Открыть dashboard</button>
+      </div>
+      <div id="errorBanner" class="error-banner"></div>
+    </section>
+
+    <section id="summaryPanel" class="panel" style="display:none;">
+      <h2>Сводка</h2>
+      <div id="summaryGrid" class="summary-grid"></div>
+    </section>
+
+    <section id="candidatesPanel" class="panel" style="display:none;">
+      <h2>Новички</h2>
+      <div class="filters">
+        <label>Сегмент
+          <select id="filterSegment">
+            <option value="">Все</option>
+            <option>Грузоперевозки</option><option>Стройка</option>
+            <option>Селлеры</option><option>Микс</option>
+            <option>Розница</option><option>ВЭД</option>
+          </select>
+        </label>
+        <label>Статус
+          <select id="filterStatus">
+            <option value="">Все</option>
+            <option value="ready">Готов к выпуску</option>
+            <option value="ready_with_control">Готов с контролем</option>
+            <option value="needs_practice">Нужна доработка</option>
+            <option value="insufficient_data">Недостаточно данных</option>
+          </select>
+        </label>
+        <label>Риск
+          <select id="filterRisk">
+            <option value="">Все</option>
+            <option value="low">Низкий</option>
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+            <option value="critical">Критичный</option>
+          </select>
+        </label>
+        <button id="applyFiltersBtn" type="button" class="secondary">Применить</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>ФИО</th>
+              <th>Ключ</th>
+              <th>Сегмент</th>
+              <th>Статус</th>
+              <th>Риск</th>
+              <th>Hard</th>
+              <th>Soft</th>
+              <th>Learning</th>
+              <th>Discipline</th>
+              <th>Calls</th>
+              <th>Ops</th>
+              <th>Final</th>
+              <th>Overall</th>
+              <th>Готовность</th>
+            </tr>
+          </thead>
+          <tbody id="candidatesTbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div id="cardOverlay" class="card-overlay">
+    <div class="card-modal">
+      <button class="close-btn" type="button" id="closeCardBtn">Закрыть</button>
+      <h2 id="cardName"></h2>
+      <div id="cardSubtle" class="subtle"></div>
+      <div id="cardScores" class="scores-grid"></div>
+      <div id="cardRecommendation" class="recommendation" style="display:none;"></div>
+      <div id="cardLists" class="lists-grid"></div>
+      <div style="margin-top: 18px;">
+        <h3 style="font-size: 14px; color: var(--muted); margin: 0 0 6px;">Готовность данных</h3>
+        <div id="cardCompleteness"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const byId = id => document.getElementById(id);
+    const json = v => JSON.stringify(v, null, 2);
+    const isScopedPage = window.location.pathname === '/onboarding_cross' || window.location.pathname.startsWith('/onboarding_cross/');
+    const VIEWER_BASE = isScopedPage ? '/onboarding_cross/api/viewer/phase1' : '/api/viewer/phase1';
+    const viewerApi = p => `${VIEWER_BASE}${p.startsWith('/') ? p : `/${p}`}`;
+    const viewerKey = () => byId('viewerKey').value.trim();
+
+    function showError(msg) {
+      const el = byId('errorBanner');
+      el.textContent = msg;
+      el.style.display = msg ? 'block' : 'none';
+    }
+
+    async function requestJson(url, options = {}) {
+      const headers = { 'X-Viewer-Key': viewerKey() };
+      if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+      const response = await fetch(url, { ...options, headers });
+      const text = await response.text();
+      let payload;
+      try { payload = text ? JSON.parse(text) : {}; } catch (_) { payload = { raw: text }; }
+      if (!response.ok) {
+        const errMsg = payload && payload.error ? payload.error : `HTTP ${response.status}`;
+        throw new Error(errMsg);
+      }
+      return payload;
+    }
+
+    const STATUS_RU = {
+      ready: 'Готов',
+      ready_with_control: 'Контроль',
+      needs_practice: 'Доработка',
+      insufficient_data: 'Нет данных',
+    };
+    const RISK_RU = {
+      low: 'Низкий',
+      medium: 'Средний',
+      high: 'Высокий',
+      critical: 'Критичный',
+      unknown: '—',
+    };
+    const SCORE_FIELDS = [
+      ['hard_score', 'Hard'],
+      ['soft_score', 'Soft'],
+      ['learning_score', 'Learning'],
+      ['discipline_score', 'Discipline'],
+      ['call_quality_score', 'Calls'],
+      ['ops_score', 'Ops'],
+      ['final_test_score', 'Final'],
+      ['risk_score', 'Risk'],
+      ['overall_score', 'Overall'],
+    ];
+
+    function fmtScore(scores, field) {
+      if (!scores || scores[field] == null) return `<span class="score-cell empty">—</span>`;
+      return `<span class="score-cell">${scores[field]}</span>`;
+    }
+
+    function statusPill(scores) {
+      if (!scores || !scores.final_status) return '<span class="pill risk-unknown">—</span>';
+      const cls = scores.final_status === 'ready' ? 'ready'
+        : scores.final_status === 'ready_with_control' ? 'ready_with_control'
+        : scores.final_status === 'needs_practice' ? 'needs_practice'
+        : 'insufficient_data';
+      return `<span class="pill ${cls}">${STATUS_RU[scores.final_status] || scores.final_status}</span>`;
+    }
+
+    function riskPill(scores) {
+      const level = scores && scores.risk_level ? scores.risk_level : 'unknown';
+      return `<span class="pill risk-${level}">${RISK_RU[level] || level}</span>`;
+    }
+
+    function renderSummary(summary) {
+      const cards = [
+        { label: 'Всего', value: summary.total_candidates },
+        { label: 'С оценками', value: summary.candidates_with_scores },
+        { label: 'Готовы', value: (summary.by_status || {}).ready || 0, kind: 'ok' },
+        { label: 'С контролем', value: (summary.by_status || {}).ready_with_control || 0, kind: 'warn' },
+        { label: 'Доработка', value: (summary.by_status || {}).needs_practice || 0, kind: 'danger' },
+        { label: 'Высокий риск', value: ((summary.by_risk || {}).high || 0) + ((summary.by_risk || {}).critical || 0), kind: 'danger' },
+        { label: 'Ср. Hard', value: (summary.avg_scores || {}).hard_score || 0 },
+        { label: 'Ср. Soft', value: (summary.avg_scores || {}).soft_score || 0 },
+        { label: 'Ср. Overall', value: (summary.avg_scores || {}).overall_score || 0 },
+      ];
+      byId('summaryGrid').innerHTML = cards.map(c => `
+        <div class="summary-card">
+          <div class="label">${c.label}</div>
+          <div class="value ${c.kind || ''}">${c.value}</div>
+        </div>
+      `).join('');
+      byId('summaryPanel').style.display = 'block';
+    }
+
+    function renderCandidates(rows) {
+      const tbody = byId('candidatesTbody');
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="14" class="empty-state">Нет новичков по фильтрам</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(row => {
+        const s = row.scores || {};
+        const comp = row.completeness_summary || {};
+        return `<tr data-base-key="${row.base_key}">
+          <td>${row.full_name || '—'}</td>
+          <td>${row.base_key}</td>
+          <td>${row.seller_segment || ''}</td>
+          <td>${statusPill(row.scores)}</td>
+          <td>${riskPill(row.scores)}</td>
+          <td>${fmtScore(s, 'hard_score')}</td>
+          <td>${fmtScore(s, 'soft_score')}</td>
+          <td>${fmtScore(s, 'learning_score')}</td>
+          <td>${fmtScore(s, 'discipline_score')}</td>
+          <td>${fmtScore(s, 'call_quality_score')}</td>
+          <td>${fmtScore(s, 'ops_score')}</td>
+          <td>${fmtScore(s, 'final_test_score')}</td>
+          <td>${fmtScore(s, 'overall_score')}</td>
+          <td>${comp.completed_count || 0}/${comp.total_count || 0}</td>
+        </tr>`;
+      }).join('');
+      tbody.querySelectorAll('tr[data-base-key]').forEach(tr => {
+        tr.addEventListener('click', () => openCard(tr.dataset.baseKey));
+      });
+      byId('candidatesPanel').style.display = 'block';
+    }
+
+    async function loadDashboard() {
+      showError('');
+      if (!viewerKey()) {
+        showError('Введите ключ просмотра');
+        return;
+      }
+      try {
+        const [summary, candidatesRes] = await Promise.all([
+          requestJson(viewerApi('/summary')),
+          requestJson(viewerApi('/candidates')),
+        ]);
+        renderSummary(summary);
+        renderCandidates(candidatesRes.candidates || []);
+      } catch (err) {
+        showError(err.message);
+        byId('summaryPanel').style.display = 'none';
+        byId('candidatesPanel').style.display = 'none';
+      }
+    }
+
+    async function applyFilters() {
+      try {
+        const params = new URLSearchParams();
+        const segment = byId('filterSegment').value;
+        const status = byId('filterStatus').value;
+        const risk = byId('filterRisk').value;
+        if (segment) params.set('segment', segment);
+        if (status) params.set('status', status);
+        if (risk) params.set('risk_level', risk);
+        const url = viewerApi(`/candidates${params.toString() ? `?${params}` : ''}`);
+        const data = await requestJson(url);
+        renderCandidates(data.candidates || []);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function openCard(baseKey) {
+      try {
+        const card = await requestJson(viewerApi(`/candidates/${encodeURIComponent(baseKey)}/card`));
+        renderCard(card);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function levelLabel(level) {
+      const map = {
+        critical_fail: 'критический провал',
+        weak: 'слабый',
+        basic_unstable: 'базово, нестабильно',
+        working_minimum: 'рабочий минимум',
+        strong: 'сильный',
+        excellent: 'отличный',
+        low: 'низкий',
+        medium: 'средний',
+        high: 'высокий',
+        critical: 'критичный',
+      };
+      return map[level] || level || '';
+    }
+
+    function renderCard(card) {
+      const candidate = card.candidate || {};
+      const scores = card.scores;
+      byId('cardName').textContent = candidate.full_name || 'Без ФИО';
+      byId('cardSubtle').textContent = `${candidate.base_key || ''} • ${candidate.seller_segment || ''} • ${candidate.direction || ''}`;
+
+      const breakdown = scores && scores.score_breakdown ? scores.score_breakdown : null;
+      byId('cardScores').innerHTML = SCORE_FIELDS.map(([field, label]) => {
+        const value = scores ? scores[field] : null;
+        const bdItem = breakdown && breakdown[field] ? breakdown[field] : {};
+        const level = bdItem.level || '';
+        return `<div class="score-box">
+          <div class="label">${label}</div>
+          <div class="value">${value != null ? value : '—'}</div>
+          <div class="level">${levelLabel(level)}</div>
+        </div>`;
+      }).join('');
+
+      const rec = byId('cardRecommendation');
+      if (scores && scores.recommendation) {
+        rec.style.display = 'block';
+        rec.innerHTML = `<div class="label">Рекомендация</div><div class="text">${scores.recommendation}</div>`;
+      } else {
+        rec.style.display = 'none';
+      }
+
+      const lists = [
+        ['Сильные стороны', scores && scores.strengths],
+        ['Зоны роста', scores && scores.growth_zones],
+        ['Красные флаги', scores && scores.red_flags],
+        ['Рекомендации тренеру', scores && scores.coach_recommendations],
+      ];
+      byId('cardLists').innerHTML = lists.map(([title, items]) => {
+        const safe = Array.isArray(items) ? items : [];
+        return `<div class="list-box">
+          <h4>${title}</h4>
+          ${safe.length ? `<ul>${safe.map(i => `<li>${i}</li>`).join('')}</ul>` : '<div class="empty-list">—</div>'}
+        </div>`;
+      }).join('');
+
+      const completeness = card.completeness || { items: [] };
+      byId('cardCompleteness').innerHTML = (completeness.items || []).map(item =>
+        `<div style="font-size: 13px; padding: 4px 0;">
+          <span>${item.title}</span>
+          <span style="float: right; color: ${item.status === 'ready' ? 'var(--ok)' : 'var(--muted)'};">${item.status === 'ready' ? 'готово' : item.status}</span>
+        </div>`
+      ).join('') || '<div class="empty-list">нет данных</div>';
+
+      byId('cardOverlay').classList.add('show');
+    }
+
+    byId('openDashboardBtn').addEventListener('click', loadDashboard);
+    byId('applyFiltersBtn').addEventListener('click', applyFilters);
+    byId('closeCardBtn').addEventListener('click', () => byId('cardOverlay').classList.remove('show'));
+    byId('cardOverlay').addEventListener('click', event => {
+      if (event.target === byId('cardOverlay')) byId('cardOverlay').classList.remove('show');
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') byId('cardOverlay').classList.remove('show');
+    });
+  </script>
+</body>
+</html>

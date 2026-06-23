@@ -3,6 +3,8 @@ const {
   assertEnabled,
   createCandidateWithKeys,
   getCandidateCard,
+  getCandidateScores,
+  getCandidateScoresHistory,
   getCompleteness,
   getDashboardMvp,
   getImportSummary,
@@ -15,8 +17,10 @@ const {
   importTrainingBot,
   listCandidates,
   listSourceLinks,
+  recalculateCandidateScores,
   saveAiProfile,
   saveCandidateFile,
+  saveCandidateScores,
   saveManualInput,
   upsertSourceLink,
 } = require('../services/phase1_candidate_service');
@@ -66,6 +70,8 @@ function createPhase1Routes(options) {
     if (err && err.code === 'INVALID_FILE_SECTION') return sendError(res, 400, { error: 'invalid_file_section', source });
     if (err && err.code === 'INVALID_FILE_PAYLOAD') return sendError(res, 400, { error: 'file_content_required', source });
     if (err && err.code === 'INVALID_SOURCE_CODE') return sendError(res, 400, { error: 'invalid_source_code', source });
+    if (err && err.code === 'INVALID_SCORE_VALUE') return sendError(res, 400, { error: 'invalid_score_value', field: err.field });
+    if (err && err.code === 'INVALID_SCORE_RANGE') return sendError(res, 400, { error: 'invalid_score_range', field: err.field });
     if (err && err.code === 'CANDIDATE_NOT_FOUND') return sendError(res, 404, { error: 'candidate_not_found', source });
     if (err && err.code === 'SOURCE_LINK_NOT_FOUND') return sendError(res, 404, { error: err.message, source, import_run: importRun });
     if (err && err.code === 'PHASE1_SOURCE_CONFIG_MISSING') return sendError(res, 503, { error: err.message, source, import_run: importRun });
@@ -188,6 +194,39 @@ function createPhase1Routes(options) {
 
       const importSummaryMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/import\/summary$/);
       if (importSummaryMatch && req.method === 'GET') return safeSendJson(res, 200, { ok: true, import_summary: getImportSummary(importSummaryMatch[1]) });
+
+      const scoresMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/scores$/);
+      if (scoresMatch && req.method === 'GET') {
+        try {
+          const scores = getCandidateScores(scoresMatch[1]);
+          return safeSendJson(res, 200, { ok: true, scores });
+        } catch (err) {
+          if (err && err.code === 'CANDIDATE_NOT_FOUND') return sendError(res, 404, { error: 'candidate_not_found' });
+          throw err;
+        }
+      }
+      if (scoresMatch && req.method === 'POST') {
+        const payload = await readJsonBody(req);
+        const saved = saveCandidateScores(scoresMatch[1], payload || {}, adminKey);
+        return safeSendJson(res, 200, { ok: true, scores: saved });
+      }
+
+      const scoresRecalcMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/scores\/recalculate$/);
+      if (scoresRecalcMatch && req.method === 'POST') {
+        try {
+          const updated = recalculateCandidateScores(scoresRecalcMatch[1], adminKey);
+          return safeSendJson(res, 200, { ok: true, scores: updated });
+        } catch (err) {
+          if (err && err.code === 'SCORES_NOT_FOUND') return sendError(res, 404, { error: 'scores_not_found' });
+          throw err;
+        }
+      }
+
+      const scoresHistoryMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/scores\/history$/);
+      if (scoresHistoryMatch && req.method === 'GET') {
+        const history = getCandidateScoresHistory(scoresHistoryMatch[1]);
+        return safeSendJson(res, 200, { ok: true, history });
+      }
 
       if (cleanUrl === '/api/dashboard/phase1/mvp' && req.method === 'GET') {
         return safeSendJson(res, 200, getDashboardMvp());

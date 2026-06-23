@@ -347,7 +347,7 @@
     <section class="hero" id="topGuide">
       <span class="eyebrow"><span class="spark"></span> Рабочее место сборки выпуска</span>
       <h1>Админка выпуска новичка</h1>
-      <p>Собираем данные по новичку: ключи, импорты, файлы, операционка, звонки и готовность к анализу. AI-вызовы и запись в Google Sheets здесь не выполняются.</p>
+      <p>Собираем данные по новичку: ключи, импорты, файлы, операционка, звонки, готовность к анализу и ручные итоговые оценки. AI-вызовы и запись в Google Sheets здесь не выполняются.</p>
       <div class="hero-actions">
         <button id="startTourBtn" type="button" class="dark">Пройти обучение</button>
         <a class="btn secondary" href="#learningGuide">Открыть подробную инструкцию</a>
@@ -368,7 +368,7 @@
       <div class="learning-head">
         <div>
           <h2>Как работать с панелью</h2>
-          <p class="subtle">Панель нужна не для анализа, а для аккуратной сборки полного пакета данных по новичку. Рабочая логика: создали или выбрали кандидата, связали старые ключи, импортировали доступные источники, дозагрузили ручные материалы, проверили completeness.</p>
+          <p class="subtle">Панель нужна для сборки данных и ручных итоговых оценок. Рабочая логика: создали или выбрали кандидата, связали старые ключи, импортировали доступные источники, дозагрузили ручные материалы, проверили completeness, заполнили итоговые оценки.</p>
         </div>
         <button id="startTourBtn2" type="button" class="secondary">Показать интерактивно</button>
       </div>
@@ -633,6 +633,7 @@
             <option value="ready">готов к выпуску</option>
             <option value="ready_with_control">готов с контролем</option>
             <option value="needs_practice">нужна доработка</option>
+            <option value="not_recommended">не рекомендован</option>
             <option value="insufficient_data">недостаточно данных</option>
           </select>
         </label>

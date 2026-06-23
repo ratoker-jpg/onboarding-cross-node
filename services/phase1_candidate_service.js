@@ -894,9 +894,10 @@ const SCORE_WEIGHTS = {
 
 const STATUS_RANK = {
   insufficient_data: 0,
-  needs_practice: 1,
-  ready_with_control: 2,
-  ready: 3,
+  not_recommended: 1,
+  needs_practice: 2,
+  ready_with_control: 3,
+  ready: 4,
 };
 
 const STATUS_LABEL_RU = {
@@ -913,15 +914,6 @@ const RISK_LEVEL_LABEL_RU = {
   high: 'высокий',
   critical: 'критичный',
 };
-
-function clampScore(value) {
-  if (value == null || value === '') return null;
-  const num = Number(value);
-  if (!Number.isFinite(num)) return null;
-  if (num < 0) return 0;
-  if (num > 100) return 100;
-  return num;
-}
 
 function normalizeScoreInput(payload) {
   const out = {};
@@ -978,7 +970,21 @@ function detectHasCallsData(candidate, repos) {
   return callsItems.some(item => item.status === 'ready');
 }
 
+// Когда тренер оставил статус пустым — сервер выводит его сам по scores.
+// Возвращает базовый статус ДО применения ограничителей.
+function inferBaseFinalStatus(scores, overallScore, riskLevel, hasCallsData) {
+  if (scores.hard_score == null || scores.soft_score == null) return 'insufficient_data';
+  if (scores.hard_score < 50) return 'needs_practice';
+  if (scores.soft_score < 50) return 'needs_practice';
+  if (overallScore == null) return 'insufficient_data';
+  if (overallScore >= 76 && riskLevel === 'low' && hasCallsData) return 'ready';
+  if (overallScore >= 61) return 'ready_with_control';
+  return 'needs_practice';
+}
+
 function applyStatusLimiters(proposedStatus, scores, hasCallsData) {
+  // not_recommended — тренерский вето. Сервер его не понижает, только повышает,
+  // если есть явные критичные ошибки.
   let status = proposedStatus || 'insufficient_data';
   const rank = STATUS_RANK[status] != null ? STATUS_RANK[status] : 0;
 
@@ -987,6 +993,10 @@ function applyStatusLimiters(proposedStatus, scores, hasCallsData) {
   if (scores.hard_score == null || scores.soft_score == null) {
     return 'insufficient_data';
   }
+  // Если тренер явно сказал not_recommended — оставляем как есть,
+  // сервер не "улучшает" вето тренера.
+  if (status === 'not_recommended') return status;
+
   if (scores.hard_score != null && scores.hard_score < 50) {
     if (rank > STATUS_RANK.needs_practice) return 'needs_practice';
   }
@@ -1043,9 +1053,11 @@ function saveCandidateScores(baseKey, payload, adminKey) {
   const riskLevel = riskLevelFromScore(scores.risk_score);
   const hasCallsData = detectHasCallsData(candidate, repos);
 
-  // final_status из запроса — это рекомендация тренера, но сервер применяет ограничители
+  // final_status: если тренер явно выбрал статус — берём его (с ограничителями).
+  // Если пусто — сервер выводит статус сам по scores.
   const requestedStatus = String(payload.final_status || '').trim() || null;
-  const finalStatus = applyStatusLimiters(requestedStatus, scores, hasCallsData);
+  const baseStatus = requestedStatus || inferBaseFinalStatus(scores, overallScore, riskLevel, hasCallsData);
+  const finalStatus = applyStatusLimiters(baseStatus, scores, hasCallsData);
 
   const recommendation = payload.recommendation ? String(payload.recommendation).trim() : null;
   const strengths = normalizeStringList(payload.strengths);
@@ -1159,7 +1171,17 @@ function recalculateCandidateScores(baseKey, adminKey) {
   const overallScore = computeOverallScore(scores);
   const riskLevel = riskLevelFromScore(scores.risk_score);
   const hasCallsData = detectHasCallsData(candidate, repos);
-  const finalStatus = applyStatusLimiters(existing.final_status, scores, hasCallsData);
+
+  // existing.final_status мог быть сохранён как inferred (когда тренер оставил пусто).
+  // На recalc мы не знаем, что было тренерское вето, а что inferred — поэтому если
+  // existing.final_status !== 'not_recommended', пересчитываем inferred заново.
+  let baseStatus;
+  if (existing.final_status === 'not_recommended') {
+    baseStatus = 'not_recommended';
+  } else {
+    baseStatus = inferBaseFinalStatus(scores, overallScore, riskLevel, hasCallsData);
+  }
+  const finalStatus = applyStatusLimiters(baseStatus, scores, hasCallsData);
 
   const breakdown = buildScoreBreakdown(scores, riskLevel, finalStatus, overallScore);
 
@@ -1230,41 +1252,56 @@ function getViewerDashboardSummary() {
   const candidates = repos.candidatesRepo.listCandidates();
   const byStatus = {};
   const byRisk = {};
-  const scoreTotals = {
-    hard_score: 0,
-    soft_score: 0,
-    learning_score: 0,
-    discipline_score: 0,
-    call_quality_score: 0,
-    ops_score: 0,
-    final_test_score: 0,
-    risk_score: 0,
-    overall_score: 0,
-  };
-  let scoreCount = 0;
+  const scoreFields = [
+    'hard_score',
+    'soft_score',
+    'learning_score',
+    'discipline_score',
+    'call_quality_score',
+    'ops_score',
+    'final_test_score',
+    'risk_score',
+    'overall_score',
+  ];
+  const scoreTotals = {};
+  const scoreCounts = {};
+  for (const field of scoreFields) {
+    scoreTotals[field] = 0;
+    scoreCounts[field] = 0;
+  }
+  let candidatesWithScores = 0;
 
   for (const candidate of candidates) {
-    byStatus[candidate.status] = (byStatus[candidate.status] || 0) + 1;
     const scores = repos.candidateScoresRepo.getByCandidateId(candidate.id);
+    // Summary по статусу берётся из candidate_scores.final_status (а не из candidate.status),
+    // чтобы отражать итоговую аналитику, а не черновой статус кандидата.
+    const status = scores && scores.final_status ? scores.final_status : (candidate.status || 'unknown');
+    byStatus[status] = (byStatus[status] || 0) + 1;
     const riskLevel = scores && scores.risk_level ? scores.risk_level : 'unknown';
     byRisk[riskLevel] = (byRisk[riskLevel] || 0) + 1;
     if (scores) {
-      for (const field of Object.keys(scoreTotals)) {
-        scoreTotals[field] += Number(scores[field] || 0);
+      candidatesWithScores += 1;
+      for (const field of scoreFields) {
+        const value = scores[field];
+        if (value != null && Number.isFinite(Number(value))) {
+          scoreTotals[field] += Number(value);
+          scoreCounts[field] += 1;
+        }
       }
-      scoreCount += 1;
     }
   }
 
   const avgScores = {};
-  for (const [field, total] of Object.entries(scoreTotals)) {
-    avgScores[field] = scoreCount ? Math.round((total / scoreCount) * 10) / 10 : 0;
+  for (const field of scoreFields) {
+    avgScores[field] = scoreCounts[field]
+      ? Math.round((scoreTotals[field] / scoreCounts[field]) * 10) / 10
+      : null;
   }
 
   return {
     ok: true,
     total_candidates: candidates.length,
-    candidates_with_scores: scoreCount,
+    candidates_with_scores: candidatesWithScores,
     by_status: byStatus,
     by_risk: byRisk,
     avg_scores: avgScores,

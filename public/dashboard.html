@@ -96,6 +96,7 @@
     .pill.ready { background: #d8f3e3; color: var(--ok); }
     .pill.ready_with_control { background: #fff1d6; color: var(--warn); }
     .pill.needs_practice { background: #ffe0d4; color: var(--danger); }
+    .pill.not_recommended { background: #f3c2b3; color: #8a2a14; }
     .pill.insufficient_data { background: #ece6f5; color: var(--muted); }
     .pill.risk-low { background: #d8f3e3; color: var(--ok); }
     .pill.risk-medium { background: #fff1d6; color: var(--warn); }
@@ -173,6 +174,7 @@
             <option value="ready">Готов к выпуску</option>
             <option value="ready_with_control">Готов с контролем</option>
             <option value="needs_practice">Нужна доработка</option>
+            <option value="not_recommended">Не рекомендован</option>
             <option value="insufficient_data">Недостаточно данных</option>
           </select>
         </label>
@@ -236,6 +238,15 @@
     const viewerApi = p => `${VIEWER_BASE}${p.startsWith('/') ? p : `/${p}`}`;
     const viewerKey = () => byId('viewerKey').value.trim();
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
     function showError(msg) {
       const el = byId('errorBanner');
       el.textContent = msg;
@@ -260,6 +271,7 @@
       ready: 'Готов',
       ready_with_control: 'Контроль',
       needs_practice: 'Доработка',
+      not_recommended: 'Не рекомендован',
       insufficient_data: 'Нет данных',
     };
     const RISK_RU = {
@@ -283,7 +295,7 @@
 
     function fmtScore(scores, field) {
       if (!scores || scores[field] == null) return `<span class="score-cell empty">—</span>`;
-      return `<span class="score-cell">${scores[field]}</span>`;
+      return `<span class="score-cell">${escapeHtml(scores[field])}</span>`;
     }
 
     function statusPill(scores) {
@@ -291,13 +303,14 @@
       const cls = scores.final_status === 'ready' ? 'ready'
         : scores.final_status === 'ready_with_control' ? 'ready_with_control'
         : scores.final_status === 'needs_practice' ? 'needs_practice'
+        : scores.final_status === 'not_recommended' ? 'not_recommended'
         : 'insufficient_data';
-      return `<span class="pill ${cls}">${STATUS_RU[scores.final_status] || scores.final_status}</span>`;
+      return `<span class="pill ${cls}">${escapeHtml(STATUS_RU[scores.final_status] || scores.final_status)}</span>`;
     }
 
     function riskPill(scores) {
       const level = scores && scores.risk_level ? scores.risk_level : 'unknown';
-      return `<span class="pill risk-${level}">${RISK_RU[level] || level}</span>`;
+      return `<span class="pill risk-${escapeHtml(level)}">${escapeHtml(RISK_RU[level] || level)}</span>`;
     }
 
     function renderSummary(summary) {
@@ -307,15 +320,16 @@
         { label: 'Готовы', value: (summary.by_status || {}).ready || 0, kind: 'ok' },
         { label: 'С контролем', value: (summary.by_status || {}).ready_with_control || 0, kind: 'warn' },
         { label: 'Доработка', value: (summary.by_status || {}).needs_practice || 0, kind: 'danger' },
+        { label: 'Не рекомендованы', value: (summary.by_status || {}).not_recommended || 0, kind: 'danger' },
         { label: 'Высокий риск', value: ((summary.by_risk || {}).high || 0) + ((summary.by_risk || {}).critical || 0), kind: 'danger' },
-        { label: 'Ср. Hard', value: (summary.avg_scores || {}).hard_score || 0 },
-        { label: 'Ср. Soft', value: (summary.avg_scores || {}).soft_score || 0 },
-        { label: 'Ср. Overall', value: (summary.avg_scores || {}).overall_score || 0 },
+        { label: 'Ср. Hard', value: (summary.avg_scores || {}).hard_score == null ? '—' : (summary.avg_scores || {}).hard_score },
+        { label: 'Ср. Soft', value: (summary.avg_scores || {}).soft_score == null ? '—' : (summary.avg_scores || {}).soft_score },
+        { label: 'Ср. Overall', value: (summary.avg_scores || {}).overall_score == null ? '—' : (summary.avg_scores || {}).overall_score },
       ];
       byId('summaryGrid').innerHTML = cards.map(c => `
         <div class="summary-card">
-          <div class="label">${c.label}</div>
-          <div class="value ${c.kind || ''}">${c.value}</div>
+          <div class="label">${escapeHtml(c.label)}</div>
+          <div class="value ${c.kind || ''}">${escapeHtml(c.value)}</div>
         </div>
       `).join('');
       byId('summaryPanel').style.display = 'block';
@@ -330,10 +344,10 @@
       tbody.innerHTML = rows.map(row => {
         const s = row.scores || {};
         const comp = row.completeness_summary || {};
-        return `<tr data-base-key="${row.base_key}">
-          <td>${row.full_name || '—'}</td>
-          <td>${row.base_key}</td>
-          <td>${row.seller_segment || ''}</td>
+        return `<tr data-base-key="${escapeHtml(row.base_key)}">
+          <td>${escapeHtml(row.full_name || '—')}</td>
+          <td>${escapeHtml(row.base_key)}</td>
+          <td>${escapeHtml(row.seller_segment || '')}</td>
           <td>${statusPill(row.scores)}</td>
           <td>${riskPill(row.scores)}</td>
           <td>${fmtScore(s, 'hard_score')}</td>
@@ -344,7 +358,7 @@
           <td>${fmtScore(s, 'ops_score')}</td>
           <td>${fmtScore(s, 'final_test_score')}</td>
           <td>${fmtScore(s, 'overall_score')}</td>
-          <td>${comp.completed_count || 0}/${comp.total_count || 0}</td>
+          <td>${escapeHtml(comp.completed_count || 0)}/${escapeHtml(comp.total_count || 0)}</td>
         </tr>`;
       }).join('');
       tbody.querySelectorAll('tr[data-base-key]').forEach(tr => {
@@ -427,16 +441,16 @@
         const bdItem = breakdown && breakdown[field] ? breakdown[field] : {};
         const level = bdItem.level || '';
         return `<div class="score-box">
-          <div class="label">${label}</div>
-          <div class="value">${value != null ? value : '—'}</div>
-          <div class="level">${levelLabel(level)}</div>
+          <div class="label">${escapeHtml(label)}</div>
+          <div class="value">${value != null ? escapeHtml(value) : '—'}</div>
+          <div class="level">${escapeHtml(levelLabel(level))}</div>
         </div>`;
       }).join('');
 
       const rec = byId('cardRecommendation');
       if (scores && scores.recommendation) {
         rec.style.display = 'block';
-        rec.innerHTML = `<div class="label">Рекомендация</div><div class="text">${scores.recommendation}</div>`;
+        rec.innerHTML = `<div class="label">Рекомендация</div><div class="text">${escapeHtml(scores.recommendation)}</div>`;
       } else {
         rec.style.display = 'none';
       }
@@ -450,16 +464,16 @@
       byId('cardLists').innerHTML = lists.map(([title, items]) => {
         const safe = Array.isArray(items) ? items : [];
         return `<div class="list-box">
-          <h4>${title}</h4>
-          ${safe.length ? `<ul>${safe.map(i => `<li>${i}</li>`).join('')}</ul>` : '<div class="empty-list">—</div>'}
+          <h4>${escapeHtml(title)}</h4>
+          ${safe.length ? `<ul>${safe.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : '<div class="empty-list">—</div>'}
         </div>`;
       }).join('');
 
       const completeness = card.completeness || { items: [] };
       byId('cardCompleteness').innerHTML = (completeness.items || []).map(item =>
         `<div style="font-size: 13px; padding: 4px 0;">
-          <span>${item.title}</span>
-          <span style="float: right; color: ${item.status === 'ready' ? 'var(--ok)' : 'var(--muted)'};">${item.status === 'ready' ? 'готово' : item.status}</span>
+          <span>${escapeHtml(item.title)}</span>
+          <span style="float: right; color: ${item.status === 'ready' ? 'var(--ok)' : 'var(--muted)'};">${escapeHtml(item.status === 'ready' ? 'готово' : item.status)}</span>
         </div>`
       ).join('') || '<div class="empty-list">нет данных</div>';
 

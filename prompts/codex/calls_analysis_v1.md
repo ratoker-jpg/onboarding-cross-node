@@ -43,9 +43,11 @@ A bundle JSON file (`*_calls_bundle.json`) containing:
    does not let you verify the action (e.g. product-dictionary-dependent
    questions when dictionary is unavailable).
 7. **`conflict`** requires evidence describing the contradiction.
-8. **`objections_05` is metadata.** It is marked `metadata: true` in the
-   rubric. Answer it with one of `yes` / `no` / `not_enough_data`. It does
-   NOT affect the weighted score; it goes into `bundle.metadata.relevance_objection_present`.
+8. **`objections_05` is metadata-only inside the rubric.** Still return it
+   as a normal `question_result` with `question_id="objections_05"`. The
+   scoring engine will expose it in `rubric_result.metadata.relevance_objection_present`.
+   Do NOT add a top-level `metadata` object to the output — the validator
+   rejects unknown top-level keys.
 9. **Do not skip questions.** Every question in every stage must appear in
    `question_results[]`.
 10. **Do not write a free-text report.** JSON only.

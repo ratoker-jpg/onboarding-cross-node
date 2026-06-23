@@ -107,6 +107,40 @@ const ANALYSIS_TYPE_TO_RUBRIC = {
   calls: 'calls_automanual_binary_v1',
 };
 
+// Secret-leakage patterns. Mirrors services/phase1_analysis_result_validator.js
+// FORBIDDEN_SECRET_PATTERNS so the same checks run on export (before the
+// bundle leaves the server) AND on import (before the result reaches the DB).
+const FORBIDDEN_SECRET_PATTERNS = [
+  /ADMIN_KEY\s*[:=]/i,
+  /VIEWER_KEY\s*[:=]/i,
+  /ghp_[A-Za-z0-9]{20,}/i,
+  /github_pat_[A-Za-z0-9_]{20,}/i,
+  /AA[A-Za-z0-9_-]{30,}/i,
+  /x-access-token:/i,
+];
+
+/**
+ * Scan a stringified JSON for forbidden secret patterns. Throws if any match.
+ * Export uses this BEFORE fs.writeFileSync so a leaked secret never leaves
+ * the server in the bundle file.
+ *
+ * @param {string} docStr - JSON.stringify(bundle) output
+ * @param {string} context - human-readable label for error messages
+ * @throws {Error} if a forbidden pattern is found
+ */
+function assertNoForbiddenSecrets(docStr, context) {
+  for (const pattern of FORBIDDEN_SECRET_PATTERNS) {
+    const match = docStr.match(pattern);
+    if (match) {
+      const err = new Error(`forbidden_secret_in_bundle:${context}:pattern ${match[0]}`);
+      err.code = 'FORBIDDEN_SECRET_IN_BUNDLE';
+      err.pattern = match[0];
+      err.context = context;
+      throw err;
+    }
+  }
+}
+
 // Sections needed in full for each analysis type.
 // For interview: we want the full transcript text.
 // For calls: we want full transcripts of calls_start / calls_middle / calls_final.
@@ -429,9 +463,14 @@ function main() {
 
   try {
     const bundle = exportBundle(args.baseKey, args.type);
+    // Secret-leak guard: scan BEFORE writing the file. If a forbidden pattern
+    // is found (e.g. an env var accidentally ended up in a manual_input
+    // payload), the bundle must not leave the server.
+    const bundleStr = JSON.stringify(bundle, null, 2);
+    assertNoForbiddenSecrets(bundleStr, `export_bundle:${args.baseKey}:${args.type}`);
     const outDir = path.dirname(path.resolve(args.out));
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    fs.writeFileSync(args.out, JSON.stringify(bundle, null, 2), 'utf8');
+    fs.writeFileSync(args.out, bundleStr, 'utf8');
     const size = fs.statSync(args.out).size;
     console.log(`OK bundle exported:`);
     console.log(`  base_key: ${args.baseKey}`);

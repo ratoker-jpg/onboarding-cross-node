@@ -105,6 +105,29 @@ const ANALYSIS_RUN_TYPE = {
 };
 
 /**
+ * Merge two arrays of strings into a deduplicated list, preserving order
+ * (existing items first, then new items not already present). Comparison is
+ * case-insensitive so "Опасное обещание" and "опасное обещание" are treated
+ * as the same flag.
+ *
+ * Used for red_flags / strengths / growth_zones / coach_recommendations so
+ * that re-importing the same Codex result does not duplicate entries.
+ */
+function mergeUniqueStrings(existing, incoming) {
+  const out = [];
+  const seen = new Set();
+  for (const item of [...(existing || []), ...(incoming || [])]) {
+    const text = String(item || '').trim();
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(text);
+  }
+  return out;
+}
+
+/**
  * Map rubric result to a candidate_scores patch.
  * Only includes fields this rubric can derive; everything else stays null
  * and the caller preserves existing values.
@@ -151,16 +174,25 @@ function buildScoresPatch(rubricId, rubricResult, doc, existingScores) {
     }
   }
 
-  // Override list fields if the doc provides non-empty values
+  // Override list fields if the doc provides non-empty values.
+  // Use mergeUniqueStrings so re-importing the same Codex result does not
+  // duplicate entries (idempotency). Existing manual items are preserved;
+  // new items from the doc are appended if not already present.
   if (doc.summary && (!patch.recommendation || doc.summary.length > patch.recommendation.length)) {
     // Use summary as recommendation if no manual recommendation exists.
     if (!patch.recommendation) patch.recommendation = doc.summary;
   }
-  if (Array.isArray(doc.strengths) && doc.strengths.length) patch.strengths = doc.strengths;
-  if (Array.isArray(doc.growth_zones) && doc.growth_zones.length) patch.growth_zones = doc.growth_zones;
-  if (Array.isArray(doc.red_flags) && doc.red_flags.length) patch.red_flags = patch.red_flags.concat(doc.red_flags);
+  if (Array.isArray(doc.strengths) && doc.strengths.length) {
+    patch.strengths = mergeUniqueStrings(patch.strengths, doc.strengths);
+  }
+  if (Array.isArray(doc.growth_zones) && doc.growth_zones.length) {
+    patch.growth_zones = mergeUniqueStrings(patch.growth_zones, doc.growth_zones);
+  }
+  if (Array.isArray(doc.red_flags) && doc.red_flags.length) {
+    patch.red_flags = mergeUniqueStrings(patch.red_flags, doc.red_flags);
+  }
   if (Array.isArray(doc.coach_recommendations) && doc.coach_recommendations.length) {
-    patch.coach_recommendations = doc.coach_recommendations;
+    patch.coach_recommendations = mergeUniqueStrings(patch.coach_recommendations, doc.coach_recommendations);
   }
 
   // Apply critical-error score caps (calls rubric only)
@@ -206,41 +238,10 @@ function persistResult(doc, rubricResult, scoresPatch, adminKey) {
   }
 
   const now = nowIso();
-
-  // 1. Create analysis_run record
-  const analysisRun = analysisRunsRepo.create({
-    candidate_id: candidate.id,
-    base_key: doc.base_key,
-    analysis_type: ANALYSIS_RUN_TYPE[doc.analysis_type] || doc.analysis_type,
-    source: 'codex',
-    status: 'success',
-    input_payload_json: JSON.stringify({
-      schema_version: doc.schema_version,
-      rubric_id: doc.rubric_id,
-      rubric_version: doc.rubric_version,
-      question_results_count: doc.question_results.length,
-      summary: doc.summary,
-      risk_flags: doc.risk_flags || [],
-    }),
-    output_payload_json: JSON.stringify({
-      rubric_result: rubricResult,
-      scores_patch: scoresPatch,
-    }),
-    error_text: null,
-    created_at: now,
-    finished_at: now,
-  });
-
-  // 2. Upsert candidate_scores with the patch.
-  // We need to preserve created_at if row exists, set updated_at = now.
   const existing = candidateScoresRepo.getByCandidateId(candidate.id);
   const created_at = existing ? existing.created_at : now;
 
-  // 3. Apply scores patch.
-  // Use the same upsert path that saveCandidateScores uses, but bypass its
-  // full-overwrite semantics by passing through fields we want to preserve.
-  // Since candidate_scores has UNIQUE(candidate_id), upsert either creates
-  // or updates. We assemble the full row from existing + patch.
+  // Assemble the candidate_scores row from existing + patch.
   const scoresRow = {
     candidate_id: candidate.id,
     base_key: doc.base_key,
@@ -252,13 +253,12 @@ function persistResult(doc, rubricResult, scoresPatch, adminKey) {
     ops_score: scoresPatch.ops_score,
     final_test_score: scoresPatch.final_test_score,
     risk_score: scoresPatch.risk_score,
-    // overall_score, risk_level, final_status are recalculated by recalculateCandidateScores
     overall_score: existing ? existing.overall_score : null,
     risk_level: existing ? existing.risk_level : null,
     final_status: existing ? existing.final_status : null,
     recommendation: scoresPatch.recommendation,
-    source: 'mixed', // mix of manual + codex
-    analysis_run_id: analysisRun.id,
+    source: 'mixed',
+    analysis_run_id: null, // set inside transaction after analysisRun is created
     score_breakdown_json: existing ? existing.score_breakdown_json : null,
     strengths_json: JSON.stringify(scoresPatch.strengths || []),
     growth_zones_json: JSON.stringify(scoresPatch.growth_zones || []),
@@ -268,9 +268,45 @@ function persistResult(doc, rubricResult, scoresPatch, adminKey) {
     created_at,
     updated_at: now,
   };
-  const upserted = candidateScoresRepo.upsert(scoresRow);
 
-  return { analysisRun, scores: upserted };
+  // Atomic persistence: both analysis_runs.create AND candidate_scores.upsert
+  // must succeed or neither must. If upsert fails after create, the
+  // transaction rolls back so we don't leave a dangling success
+  // analysis_runs row.
+  const tx = db.transaction(() => {
+    // 1. Create analysis_run record (status=success — we only reach here
+    //    after validation + scoring passed, so success is honest).
+    const analysisRun = analysisRunsRepo.create({
+      candidate_id: candidate.id,
+      base_key: doc.base_key,
+      analysis_type: ANALYSIS_RUN_TYPE[doc.analysis_type] || doc.analysis_type,
+      source: 'codex',
+      status: 'success',
+      input_payload_json: JSON.stringify({
+        schema_version: doc.schema_version,
+        rubric_id: doc.rubric_id,
+        rubric_version: doc.rubric_version,
+        question_results_count: doc.question_results.length,
+        summary: doc.summary,
+        risk_flags: doc.risk_flags || [],
+      }),
+      output_payload_json: JSON.stringify({
+        rubric_result: rubricResult,
+        scores_patch: scoresPatch,
+      }),
+      error_text: null,
+      created_at: now,
+      finished_at: now,
+    });
+
+    // 2. Wire the analysis_run id into the scores row, then upsert.
+    scoresRow.analysis_run_id = analysisRun.id;
+    const upserted = candidateScoresRepo.upsert(scoresRow);
+
+    return { analysisRun, scores: upserted };
+  });
+
+  return tx();
 }
 
 // ----------------------------------------------------------------------

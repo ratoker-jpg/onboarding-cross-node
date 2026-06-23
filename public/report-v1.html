@@ -361,7 +361,7 @@
 
         <div class="card">
           <h2>Готовность данных</h2>
-          <p class="subtle">Completeness по блокам карточки новичка.</p>
+          <p class="subtle">Готовность данных по блокам карточки новичка.</p>
           <div class="completeness-list" id="completenessList"></div>
         </div>
       </section>
@@ -379,7 +379,7 @@
       <section class="tab-content" id="tab-calls">
         <div class="card">
           <h2>Звонки</h2>
-          <p class="subtle">Метрики звонков и динамика start/middle/final. Структурированные метрики появятся после Phase 3B-2 / 3C.</p>
+          <p class="subtle">Метрики звонков, загруженные звонки по этапам и результаты анализа по автомануалу.</p>
           <div id="callsContent"></div>
         </div>
       </section>
@@ -406,7 +406,7 @@
       <section class="tab-content" id="tab-ops">
         <div class="card">
           <h2>Операционка</h2>
-          <p class="subtle">Дисциплина и операционные метрики. Структурированные метрики появятся после Phase 3B-2.</p>
+          <p class="subtle">Дисциплина, статусы, просрочки, комментарии и операционные показатели.</p>
           <div id="opsContent"></div>
         </div>
       </section>
@@ -524,7 +524,7 @@
       { field: 'soft_score',         label: 'Софт-навыки',        note: 'Собеседование, учебные агенты, реальные звонки' },
       { field: 'learning_score',     label: 'Обучаемость',        note: 'Погружение, принятие ОС, динамика звонков, рефлексия' },
       { field: 'discipline_score',   label: 'Дисциплина',         note: 'Погружение, операционка, сроки, статусы' },
-      { field: 'call_quality_score', label: 'Качество звонков',   note: 'Учебные агенты + реальные звонки' },
+      { field: 'call_quality_score', label: 'Качество звонков',   note: 'Реальные звонки начала, середины и выпуска + анализ по автомануалу' },
       { field: 'ops_score',          label: 'Операционка',        note: 'Трубка, XSALES, просрочки, статусы, комментарии' },
       { field: 'final_test_score',   label: 'Выпускной тест',     note: 'Балл / процент / критичные ошибки' },
       { field: 'risk_score',         label: 'Риск',               note: 'Красные флаги + слабые оценки (выше = хуже)', isRisk: true },
@@ -665,7 +665,7 @@
       if (!items.length) {
         el.innerHTML = `<div class="empty-state">
           <div class="es-icon">?</div>
-          <div class="es-title">Completeness данные отсутствуют</div>
+          <div class="es-title">Данные о готовности отсутствуют</div>
         </div>`;
         return;
       }
@@ -858,7 +858,7 @@
       if (!calls.length) {
         return `<div class="card" style="margin-bottom:14px;">
           <h3>${escapeHtml(stageLabel)}</h3>
-          <div class="subtle">Звонков нет (section существует, но calls[] пуст).</div>
+          <div class="subtle">Звонки по этому этапу пока не добавлены.</div>
         </div>`;
       }
       const rows = calls.map((c, i) => {
@@ -870,14 +870,14 @@
           <td>${escapeHtml(c.product || '—')}</td>
           <td>${hasTranscript ? '<span class="status-badge ready">да</span>' : '<span class="status-badge unknown">нет</span>'}</td>
           <td>${escapeHtml(c.coach_comment || '—')}</td>
-          <td>${escapeHtml(c.source || '—')}</td>
+          <td>${escapeHtml(inputSourceLabelRu(c.source))}</td>
           <td style="color:var(--muted);font-size:12px;">${escapeHtml(preview)}</td>
         </tr>`;
       }).join('');
       return `<div class="card" style="margin-bottom:14px;">
         <h3>${escapeHtml(stageLabel)} <span class="status-badge ready" style="margin-left:8px;">${calls.length} зв.</span></h3>
         <table class="data-table">
-          <thead><tr><th>#</th><th>Дата</th><th>Продукт</th><th>Transcript</th><th>Комментарий</th><th>Источник</th><th>Preview</th></tr></thead>
+          <thead><tr><th>#</th><th>Дата</th><th>Продукт</th><th>Транскрипт</th><th>Комментарий</th><th>Источник</th><th>Фрагмент</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -982,6 +982,12 @@
         partial: 'частичная оценка',
       };
       return map[status] || status || '—';
+    }
+
+    function inputSourceLabelRu(source) {
+      if (source === 'paste') return 'Вставлено вручную';
+      if (source === 'txt_upload') return 'TXT-файл';
+      return source || '—';
     }
 
     function renderQuestionEvidence(q) {
@@ -1113,7 +1119,7 @@
       } else {
         html.push(renderEmptyState('Собеседование', 'Текст собеседования ещё не загружен',
           interviewComplete && interviewComplete.status === 'ready'
-            ? 'Файл загружен, но не отображается в viewer card.'
+            ? 'Файл загружен, но данные пока не попали в отчёт.'
             : 'Загрузите TXT-транскрибацию через админку (секция «Собеседование»).'));
       }
 
@@ -1151,7 +1157,7 @@
       if (!dialogs.length) {
         el.innerHTML = renderEmptyState('Учебные агенты', 'Диалоги ещё не загружены',
           trainingComplete && trainingComplete.status === 'ready'
-            ? 'Диалоги импортированы, но не отображаются в viewer card.'
+            ? 'Диалоги импортированы, но данные пока не попали в отчёт.'
             : 'Импортируйте бот учебки через админку (Импорт → Импорт бота учебки).');
         return;
       }

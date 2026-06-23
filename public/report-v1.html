@@ -288,6 +288,195 @@
     .completeness-row .cr-status.not_ready { color: var(--muted); }
     .completeness-row .cr-status.partial { color: var(--warn); }
 
+    /* === Score band visual === */
+    .score-band-bar {
+      position: relative; height: 10px;
+      background: var(--accent-soft); border-radius: 6px;
+      overflow: hidden; margin: 8px 0 6px;
+    }
+    .score-band-bar .fill {
+      height: 100%; border-radius: 6px;
+      transition: width 0.4s ease-out;
+    }
+    .score-band-label {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 12px;
+    }
+
+    /* === KPI cards === */
+    .kpi-card {
+      background: var(--panel-soft); border: 1px solid var(--line);
+      border-radius: var(--radius-md); padding: 20px 18px;
+      text-align: center;
+    }
+    .kpi-card .kpi-value {
+      font-size: 30px; font-weight: 800; letter-spacing: -0.02em;
+      line-height: 1.1; color: var(--text);
+    }
+    .kpi-card .kpi-value.muted { color: var(--muted); font-size: 22px; }
+    .kpi-card .kpi-label {
+      font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px;
+    }
+    .kpi-card .kpi-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .kpi-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    /* === Block card (training blocks & aggregate scores) === */
+    .block-card {
+      background: var(--panel-soft); border: 1px solid var(--line);
+      border-radius: var(--radius-md); padding: 14px 16px;
+    }
+    .block-card .block-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 2px; gap: 8px;
+    }
+    .block-card .block-name { font-size: 13px; font-weight: 700; color: var(--text); }
+    .block-card .block-score { font-size: 20px; font-weight: 800; }
+    .block-card .block-comment {
+      font-size: 12px; color: var(--muted);
+      margin-top: 6px; line-height: 1.5;
+    }
+    .block-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    /* === Stage card (codex analysis units) === */
+    .stage-card {
+      background: var(--panel-soft); border: 1px solid var(--line);
+      border-radius: var(--radius-md); padding: 14px 16px;
+    }
+    .stage-card .stage-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 2px; gap: 8px;
+    }
+    .stage-card .stage-name { font-size: 13px; font-weight: 700; }
+    .stage-card .stage-score { font-size: 22px; font-weight: 800; }
+    .stage-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    /* === Chat bubbles === */
+    .chat-wrap {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-top: 10px; background: var(--panel-soft);
+      padding: 14px; border-radius: var(--radius-sm);
+      max-height: 520px; overflow: auto;
+    }
+    .chat-bubble {
+      max-width: 80%; padding: 10px 14px;
+      border-radius: 14px; font-size: 13px; line-height: 1.5;
+      white-space: pre-wrap; word-wrap: break-word;
+    }
+    .chat-bubble.seller {
+      align-self: flex-end; background: var(--accent); color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-bubble.client {
+      align-self: flex-start; background: #fff; color: var(--text);
+      border: 1px solid var(--line); border-bottom-left-radius: 4px;
+    }
+    .chat-bubble.plain {
+      align-self: stretch; background: var(--panel); color: var(--text);
+      border: 1px dashed var(--line-strong); font-style: italic;
+    }
+    .chat-speaker {
+      font-size: 10px; font-weight: 700; opacity: 0.75;
+      text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px;
+    }
+
+    /* === Source cards (overview) === */
+    .source-card {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--panel-soft); border: 1px solid var(--line);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+    }
+    .source-card .sc-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700;
+      background: var(--accent-soft); color: var(--accent); flex-shrink: 0;
+    }
+    .source-card .sc-icon.ok { background: var(--ok-soft); color: var(--ok); }
+    .source-card .sc-icon.muted { background: #ece6f5; color: var(--muted); }
+    .source-card .sc-body { flex: 1; min-width: 0; }
+    .source-card .sc-title { font-size: 14px; font-weight: 600; }
+    .source-card .sc-status { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .source-card .sc-badge {
+      font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 12px; flex-shrink: 0;
+    }
+    .source-card .sc-badge.ok { background: var(--ok-soft); color: var(--ok); }
+    .source-card .sc-badge.warn { background: var(--warn-soft); color: var(--warn); }
+    .source-card .sc-badge.muted { background: #ece6f5; color: var(--muted); }
+    .source-grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    /* === Next step card (overview) === */
+    .next-step-card {
+      background: linear-gradient(135deg, var(--accent-soft), #fff);
+      border: 1px solid var(--line-strong); border-left: 4px solid var(--accent);
+      border-radius: var(--radius-md); padding: 18px 22px;
+    }
+    .next-step-card .ns-label {
+      font-size: 11px; color: var(--accent); font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .next-step-card .ns-text {
+      font-size: 15px; line-height: 1.55; margin-top: 6px;
+    }
+    .next-step-card .ns-list {
+      margin: 8px 0 0; padding-left: 22px;
+      font-size: 14px; line-height: 1.6;
+    }
+
+    /* === Notice block (codex prompt / missing analysis) === */
+    .notice-block {
+      background: var(--panel-soft);
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px; margin-top: 10px;
+    }
+    .notice-block .nb-text { font-size: 14px; margin-bottom: 10px; }
+
+    /* === Collapsible technical data === */
+    .tech-details {
+      margin-top: 10px;
+      background: var(--panel-soft);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+    }
+    .tech-details > summary {
+      cursor: pointer; font-size: 12px;
+      color: var(--muted); font-weight: 600;
+      list-style: none;
+    }
+    .tech-details > summary::before {
+      content: '▸ '; color: var(--muted);
+    }
+    .tech-details[open] > summary::before { content: '▾ '; }
+    .tech-details pre {
+      margin: 8px 0 0; padding: 10px;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 6px; font-size: 11px; overflow: auto;
+    }
+    .tech-details .tech-row {
+      font-size: 12px; color: var(--muted);
+      margin-top: 4px;
+    }
+    .tech-details .tech-row code {
+      font-size: 11px; color: var(--text);
+      background: var(--panel); padding: 1px 6px;
+      border-radius: 4px; border: 1px solid var(--line);
+    }
+
     /* === Print === */
     @media print {
       .auth-bar, .tabs { display: none; }
@@ -348,6 +537,12 @@
       <!-- Tab 1: Overview -->
       <section class="tab-content active" id="tab-overview">
         <div class="card">
+          <h2>Что учтено в оценке</h2>
+          <p class="subtle">Источники, которые сейчас влияют на оценку. Зелёным отмечены рассчитанные и загруженные источники.</p>
+          <div id="sourcesConsidered"></div>
+        </div>
+
+        <div class="card">
           <h2>Быстрый срез</h2>
           <p class="subtle">Ключевые итоговые оценки. Если оценка не заполнена — значение показывается как «—».</p>
           <div class="quick-slice" id="quickSlice"></div>
@@ -357,6 +552,12 @@
           <h2>Ключевой вывод</h2>
           <div id="overviewRecommendation"></div>
           <div class="lists-grid" id="overviewLists" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Следующий шаг для тимлида</h2>
+          <p class="subtle">Автоматически выведено из оценок, статуса и анализа. Используйте как стартовую точку для плана контроля.</p>
+          <div id="nextStepForLead"></div>
         </div>
 
         <div class="card">
@@ -519,6 +720,27 @@
       return { code: 'strong', label: 'сильный уровень', className: 'strong', barClass: 'zone-strong' };
     }
 
+    // Managerial score band — used for KPI cards, training blocks,
+    // call stage cards and interview unit cards. Accepts 0..1 or 0..100.
+    function scoreBand(value) {
+      if (value == null) return { color: '#73668f', bg: '#ece6f5', label: 'нет данных', level: 'none', percent: 0 };
+      const v = value <= 1 ? value * 100 : value; // normalize 0-1 to 0-100
+      if (v >= 85) return { color: '#23824f', bg: '#d8f3e3', label: 'сильный уровень', level: 'strong', percent: v };
+      if (v >= 75) return { color: '#b46b00', bg: '#fff1d6', label: 'рабочий уровень', level: 'working', percent: v };
+      if (v >= 65) return { color: '#d85c3a', bg: '#ffe0d4', label: 'риск, нужна отработка', level: 'risk', percent: v };
+      return { color: '#d85c3a', bg: '#fbd0c4', label: 'слабый уровень', level: 'weak', percent: v };
+    }
+
+    // Russian names for training result_payload BLOCK_1..6 keys.
+    const TRAINING_BLOCK_NAMES_RU = {
+      BLOCK_1: 'Блок 1. Установление контакта',
+      BLOCK_2: 'Блок 2. Выявление потребностей',
+      BLOCK_3: 'Блок 3. Презентация',
+      BLOCK_4: 'Блок 4. Работа с возражениями',
+      BLOCK_5: 'Блок 5. Тест на сделку и завершение',
+      BLOCK_6: 'Блок 6. Сегментная адаптация',
+    };
+
     const SCORE_CARDS = [
       { field: 'hard_score',         label: 'Профессиональные навыки / продажи', note: 'Сейчас: анализ собеседования. Позже: тестовый день, звонки и выпускной тест.' },
       { field: 'soft_score',         label: 'Софт-навыки',        note: 'Сейчас: анализ собеседования. Позже: учебные агенты и реальные звонки.' },
@@ -627,6 +849,130 @@
       COMMENT_5: 'Комментарий 5',
       COMMENT_6: 'Комментарий 6',
     };
+
+    // ====================================================================
+    // Managerial UI helpers (score band cards, chat bubbles, source cards)
+    // ====================================================================
+
+    // Render a generic score-band card. Used for training blocks, aggregate
+    // interview scores, and any other 0..1 / 0..100 score that needs the
+    // colored bar + label. opts: { comment, note }.
+    function renderScoreBandCard(label, value, opts = {}) {
+      const band = scoreBand(value);
+      const valueDisplay = value == null ? '—' : escapeHtml(band.percent);
+      const commentHtml = opts.comment
+        ? `<div class="block-comment">${escapeHtml(opts.comment)}</div>`
+        : '';
+      const noteHtml = opts.note
+        ? `<div class="block-comment">${escapeHtml(opts.note)}</div>`
+        : '';
+      return `<div class="block-card">
+        <div class="block-head">
+          <span class="block-name">${escapeHtml(label)}</span>
+          <span class="block-score" style="color:${band.color};">${valueDisplay}</span>
+        </div>
+        <div class="score-band-bar"><div class="fill" style="width:${band.percent}%; background:${band.color};"></div></div>
+        <span class="score-band-label" style="background:${band.bg}; color:${band.color};">${escapeHtml(band.label)}</span>
+        ${commentHtml}
+        ${noteHtml}
+      </div>`;
+    }
+
+    // Render the 6 training block cards (BLOCK_1..BLOCK_6 + COMMENT_1..6) from
+    // the aggregate result_payload. Numeric values are visualized via scoreBand;
+    // non-numeric values (booleans, strings) are shown as plain text.
+    function renderTrainingBlocks(aggregatePayload) {
+      if (!aggregatePayload) return '';
+      const blocks = [];
+      for (let i = 1; i <= 6; i++) {
+        const blockKey = `BLOCK_${i}`;
+        const commentKey = `COMMENT_${i}`;
+        const blockVal = aggregatePayload[blockKey];
+        const commentVal = aggregatePayload[commentKey];
+        const name = TRAINING_BLOCK_NAMES_RU[blockKey] || blockKey;
+        let numericVal = null;
+        if (typeof blockVal === 'number') {
+          numericVal = blockVal;
+        } else if (typeof blockVal === 'string' && blockVal.trim() !== '') {
+          const parsed = Number(blockVal.replace(',', '.'));
+          if (!isNaN(parsed)) numericVal = parsed;
+        }
+        blocks.push({ name, value: numericVal, comment: commentVal, raw: blockVal });
+      }
+      return `<div class="block-grid">${blocks.map(b => renderTrainingBlockCard(b)).join('')}</div>`;
+    }
+
+    function renderTrainingBlockCard(b) {
+      const band = scoreBand(b.value);
+      const valueDisplay = b.value == null
+        ? (b.raw == null ? '—' : escapeHtml(String(b.raw)))
+        : escapeHtml(band.percent);
+      return `<div class="block-card">
+        <div class="block-head">
+          <span class="block-name">${escapeHtml(b.name)}</span>
+          <span class="block-score" style="color:${band.color};">${valueDisplay}</span>
+        </div>
+        <div class="score-band-bar"><div class="fill" style="width:${band.percent}%; background:${band.color};"></div></div>
+        <span class="score-band-label" style="background:${band.bg}; color:${band.color};">${escapeHtml(band.label)}</span>
+        ${b.comment ? `<div class="block-comment">${escapeHtml(b.comment)}</div>` : ''}
+      </div>`;
+    }
+
+    // Render a transcript preview as a chat bubble layout.
+    // Recognized speaker prefixes:
+    //   seller (purple, right): "Продавец:", "Оператор:", "Менеджер:"
+    //   client (white, left):   "Клиент:"
+    // Lines without a speaker prefix are appended to the previous turn, or
+    // shown as a plain block if there is no current turn.
+    function renderTranscriptBubbles(transcript) {
+      if (!transcript || !String(transcript).trim()) {
+        return `<div class="chat-bubble plain">Транскрипт не загружен.</div>`;
+      }
+      const sellerPrefixes = ['Продавец:', 'Оператор:', 'Менеджер:'];
+      const clientPrefixes = ['Клиент:'];
+      const turns = [];
+      let cur = null;
+
+      const lines = String(transcript).split(/\r?\n/);
+      for (const raw of lines) {
+        const line = raw.replace(/\s+$/, '');
+        if (!line.trim()) continue;
+        let matched = null;
+        let body = line;
+        for (const p of sellerPrefixes) {
+          if (line.startsWith(p)) { matched = 'seller'; body = line.slice(p.length).trim(); break; }
+        }
+        if (!matched) {
+          for (const p of clientPrefixes) {
+            if (line.startsWith(p)) { matched = 'client'; body = line.slice(p.length).trim(); break; }
+          }
+        }
+        if (matched) {
+          if (cur) turns.push(cur);
+          cur = { speaker: matched, text: body };
+        } else if (cur) {
+          cur.text += '\n' + line;
+        } else {
+          cur = { speaker: 'plain', text: line };
+        }
+      }
+      if (cur) turns.push(cur);
+
+      if (!turns.length) {
+        return `<div class="chat-bubble plain">${escapeHtml(transcript)}</div>`;
+      }
+
+      return turns.map(t => {
+        if (t.speaker === 'plain') {
+          return `<div class="chat-bubble plain">${escapeHtml(t.text)}</div>`;
+        }
+        const speakerLabel = t.speaker === 'seller' ? 'Продавец' : 'Клиент';
+        return `<div class="chat-bubble ${t.speaker}">
+          <div class="chat-speaker">${escapeHtml(speakerLabel)}</div>
+          ${escapeHtml(t.text)}
+        </div>`;
+      }).join('');
+    }
 
     // ====================================================================
     // Renderers
@@ -744,6 +1090,105 @@
       }).join('');
     }
 
+    // "Что учтено в оценке" — shows which sources are calculated / imported /
+    // loaded for this candidate. Managerial summary at the top of the overview.
+    function renderSourcesConsidered(card) {
+      const latest = card.latest_analysis || {};
+      const trainingDialogs = card.training_bot_dialogs || [];
+      const opsSummary = card.ops_summary || null;
+      const s = card.scores || {};
+      const opsSections = opsSummary && Array.isArray(opsSummary.sections) ? opsSummary.sections : [];
+      const opsLoaded = opsSections.length > 0 && opsSections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
+
+      const sources = [
+        {
+          title: 'Собеседование',
+          ok: Boolean(latest.interview),
+          statusText: latest.interview ? 'рассчитано' : 'не рассчитано',
+        },
+        {
+          title: 'Звонки',
+          ok: Boolean(latest.calls),
+          statusText: latest.calls ? 'рассчитано' : 'не рассчитано',
+        },
+        {
+          title: 'Учебные агенты',
+          ok: trainingDialogs.length > 0,
+          statusText: trainingDialogs.length > 0 ? 'импортировано' : 'не импортировано',
+        },
+        {
+          title: 'Операционка',
+          ok: opsLoaded,
+          statusText: opsLoaded ? 'данные загружены' : 'анализ не рассчитан',
+        },
+        {
+          title: 'Выпускной тест',
+          ok: s.final_test_score != null,
+          statusText: s.final_test_score != null ? 'результат есть' : 'не рассчитано',
+        },
+      ];
+
+      byId('sourcesConsidered').innerHTML = `<div class="source-grid">
+        ${sources.map(src => {
+          const icon = src.ok ? '✓' : '—';
+          const iconCls = src.ok ? 'ok' : 'muted';
+          const badgeCls = src.ok ? 'ok' : 'muted';
+          return `<div class="source-card">
+            <div class="sc-icon ${iconCls}">${escapeHtml(icon)}</div>
+            <div class="sc-body">
+              <div class="sc-title">${escapeHtml(src.title)}</div>
+              <div class="sc-status">${escapeHtml(src.statusText)}</div>
+            </div>
+            <span class="sc-badge ${badgeCls}">${escapeHtml(src.statusText)}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    // "Следующий шаг для тимлида" — auto-derived from scores, status, and
+    // the presence/absence of analyses. Same logic family as recFirstWeeks.
+    function renderNextStepForLead(card) {
+      const s = card.scores || {};
+      const latest = card.latest_analysis || {};
+      const steps = [];
+
+      if (s.final_status === 'not_recommended') {
+        steps.push('Не выпускать без повторной оценки. Согласовать с тренером план доработки по красным флагам.');
+      } else if (s.final_status === 'needs_practice') {
+        steps.push('Не выпускать без повторной оценки. Назначить тренировки по слабым блокам и повторный срез.');
+      } else if (s.final_status === 'ready_with_control') {
+        steps.push('Можно выпускать под контролем. На первой неделе — ежедневная проверка операционки и прослушивание звонков.');
+      } else if (s.final_status === 'ready') {
+        steps.push('Готов к выпуску. На первой неделе — плановое прослушивание звонков и контроль операционки.');
+      }
+
+      if (s.call_quality_score != null && s.call_quality_score < 65) {
+        steps.push('Качество звонков ниже рабочего минимума — разобрать 2–3 звонка с тренером в первую неделю.');
+      }
+      if (s.discipline_score != null && s.discipline_score < 65) {
+        steps.push('Дисциплина слабая — ежедневный контроль прохождения маршрута и операционки.');
+      }
+      if (s.risk_score != null && s.risk_score >= 56) {
+        steps.push('Высокий риск — плотный контроль тимлида в первые 2 недели.');
+      }
+      if (s.red_flags && s.red_flags.length) {
+        steps.push('Проконтролировать красные флаги: ' + s.red_flags.slice(0, 3).join('; ') + '.');
+      }
+      if (!latest.calls) {
+        steps.push('Запустить анализ звонков по автомануалу — без него оценка качества звонков неполная.');
+      }
+      if (!latest.interview) {
+        steps.push('Запустить анализ собеседования — без него оценка софт- и хард-навыков неполная.');
+      }
+
+      const finalSteps = steps.length ? steps : ['Явных точек контроля не выявлено. Согласуйте с тренером плановую проверку через 2 недели.'];
+
+      byId('nextStepForLead').innerHTML = `<div class="next-step-card">
+        <div class="ns-label">Следующий шаг</div>
+        <ul class="ns-list">${finalSteps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}</ul>
+      </div>`;
+    }
+
     function renderScoresGrid(card) {
       const s = card.scores || {};
       const latest = card.latest_analysis || {};
@@ -829,21 +1274,23 @@
 
       const html = [];
 
-      // Call quality headline — show source if Codex analysis exists
+      // Call quality headline — KPI card with source badge
       const sourceBadge = latestCalls
         ? `<span class="status-badge ready" style="margin-left:10px;">Анализ звонков</span>`
         : (s.call_quality_score != null ? `<span class="status-badge unknown" style="margin-left:10px;">Ручной ввод</span>` : '');
+      const callQualityBand = scoreBand(s.call_quality_score);
       html.push(`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
-        <h3>Итог по звонкам</h3>
-        <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
-          <div class="qs-cell">
-            <div class="qs-label">Качество звонков ${sourceBadge}</div>
-            <div class="qs-value ${s.call_quality_score == null ? 'empty' : ''}">${s.call_quality_score == null ? '—' : escapeHtml(s.call_quality_score)}</div>
+        <h3>Итог по звонкам ${sourceBadge}</h3>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-value" style="color:${callQualityBand.color};">${s.call_quality_score == null ? '—' : escapeHtml(callQualityBand.percent)}</div>
+            <div class="kpi-label">Качество звонков</div>
+            <span class="score-band-label" style="background:${callQualityBand.bg}; color:${callQualityBand.color}; margin-top:8px;">${escapeHtml(callQualityBand.label)}</span>
           </div>
         </div>
       </div>`);
 
-      // Phone metrics
+      // Phone metrics — KPI cards
       const hasCallStats = callStats && (
         callStats.talk_time_minutes != null ||
         callStats.calls_total != null ||
@@ -852,14 +1299,14 @@
       if (hasCallStats) {
         html.push(`<div class="card" style="margin-bottom:14px;">
           <h3>Метрики трубки</h3>
-          <div class="metrics-grid">
-            ${renderMetricCell('talk_time_minutes', 'Время на трубке, мин', callStats.talk_time_minutes)}
-            ${renderMetricCell('calls_total', 'Всего звонков', callStats.calls_total)}
-            ${renderMetricCell('reached_calls', 'Дозвонов', callStats.reached_calls)}
-            ${renderMetricCell('calls_over_2min', 'Звонков > 2 мин', callStats.calls_over_2min)}
-            ${renderMetricCell('calls_over_2min_percent', 'Звонков > 2 мин, %', callStats.calls_over_2min_percent)}
-            ${renderMetricCell('calls_over_10min', 'Звонков > 10 мин', callStats.calls_over_10min)}
-            ${renderMetricCell('effective_minutes', 'Эффективные минуты', callStats.effective_minutes)}
+          <div class="kpi-grid">
+            ${renderKpiCell('Время на трубке, мин', callStats.talk_time_minutes)}
+            ${renderKpiCell('Всего звонков', callStats.calls_total)}
+            ${renderKpiCell('Дозвонов', callStats.reached_calls)}
+            ${renderKpiCell('Звонков > 2 мин', callStats.calls_over_2min)}
+            ${renderKpiCell('Звонков > 2 мин, %', callStats.calls_over_2min_percent)}
+            ${renderKpiCell('Звонков > 10 мин', callStats.calls_over_10min)}
+            ${renderKpiCell('Эффективные минуты', callStats.effective_minutes)}
           </div>
           ${callStats.days && callStats.days.length ? `
             <h3 style="margin-top:18px;">По дням</h3>
@@ -878,22 +1325,25 @@
       } else {
         html.push(`<div class="card" style="margin-bottom:14px;">
           <h3>Метрики трубки</h3>
-          <div class="metrics-grid">
-            ${renderMetricPlaceholder('talk_time_minutes', 'Время на трубке, мин', phoneMetrics)}
-            ${renderMetricPlaceholder('calls_total', 'Всего звонков', phoneMetrics)}
-            ${renderMetricPlaceholder('reached_calls', 'Дозвонов', phoneMetrics)}
-            ${renderMetricPlaceholder('calls_over_2min', 'Звонков > 2 мин', phoneMetrics)}
-            ${renderMetricPlaceholder('calls_over_2min_percent', 'Звонков > 2 мин, %', phoneMetrics)}
-            ${renderMetricPlaceholder('calls_over_10min', 'Звонков > 10 мин', phoneMetrics)}
-            ${renderMetricPlaceholder('effective_minutes', 'Эффективные минуты', phoneMetrics)}
+          <div class="kpi-grid">
+            ${renderKpiCell('Время на трубке, мин', deriveMetricValue('talk_time_minutes', phoneMetrics))}
+            ${renderKpiCell('Всего звонков', deriveMetricValue('calls_total', phoneMetrics))}
+            ${renderKpiCell('Дозвонов', null)}
+            ${renderKpiCell('Звонков > 2 мин', null)}
+            ${renderKpiCell('Звонков > 2 мин, %', deriveMetricValue('calls_over_2min_percent', phoneMetrics))}
+            ${renderKpiCell('Звонков > 10 мин', null)}
+            ${renderKpiCell('Эффективные минуты', null)}
           </div>
+          <div class="subtle" style="margin-top:10px;">Метрики трубки не рассчитаны. Заполните данные по дням в админке (секция «Метрики трубки»).</div>
         </div>`);
       }
 
       // Placeholder: quality scales by talk time are pending
       html.push(`<div class="card" style="margin-bottom:14px; background:var(--panel-soft);">
         <h3>Шкалы качества по времени на трубке</h3>
-        <div class="subtle" style="margin:0;">Шкалы качества по времени на трубке будут добавлены после согласования норм.</div>
+        <div class="notice-block" style="margin-top:0;">
+          <div class="nb-text">Шкалы качества по времени на трубке будут добавлены после согласования норм.</div>
+        </div>
       </div>`);
 
       // Loaded calls (real calls, not training agents) — pass readiness status
@@ -902,7 +1352,7 @@
       html.push(renderLoadedCallsBlock('Звонки середины', callsMiddle, callsMiddleReady ? callsMiddleReady.status : null));
       html.push(renderLoadedCallsBlock('Звонки выпуска', callsFinal, callsFinalReady ? callsFinalReady.status : null));
 
-      // Codex calls analysis breakdown
+      // Codex calls analysis breakdown — 5 stage cards (contact/needs/presentation/objections/close)
       if (latestCalls) {
         html.push(renderCodexAnalysisBlock('Анализ звонков по автомануалу', latestCalls, [
           'contact', 'needs', 'presentation', 'objections', 'close'
@@ -911,8 +1361,8 @@
         // Real calls are loaded but Codex automanual analysis hasn't been run yet.
         html.push(`<div class="card">
           <h3>Анализ звонков по автомануалу</h3>
-          <div style="padding:14px; background:var(--panel-soft); border-radius:8px;">
-            <div style="font-size:14px; margin-bottom:10px;">Звонки загружены, но анализ по автомануалу ещё не рассчитан.</div>
+          <div class="notice-block">
+            <div class="nb-text">Звонки загружены, но анализ по автомануалу ещё не рассчитан.</div>
             ${baseKey ? renderCopyPromptButton(baseKey, 'calls', 'Скопировать промпт для Codex') : '<span class="status-badge unknown">Ключ новичка недоступен — промпт недоступен.</span>'}
           </div>
         </div>`);
@@ -923,12 +1373,49 @@
             <div class="es-icon">!</div>
             <div class="es-title">Codex-анализ звонков ещё не запущен</div>
             <div class="es-sub">Загрузите реальные звонки по этапам и передайте их на анализ в Codex.</div>
-            <details style="margin-top:6px;"><summary style="cursor:pointer; font-size:12px; color:var(--muted);">Техническая команда</summary><pre style="margin-top:4px; font-size:11px;">node scripts/export_candidate_analysis_bundle.js --type calls\nnode scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
+            <details class="tech-details" style="margin-top:6px;"><summary>Технические данные</summary><pre>node scripts/export_candidate_analysis_bundle.js --type calls
+node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
           </div>
         </div>`);
       }
 
       el.innerHTML = html.join('');
+    }
+
+    // KPI cell — large number + small label, centered.
+    function renderKpiCell(label, value) {
+      if (value != null) {
+        return `<div class="kpi-card">
+          <div class="kpi-value">${escapeHtml(value)}</div>
+          <div class="kpi-label">${escapeHtml(label)}</div>
+        </div>`;
+      }
+      return `<div class="kpi-card">
+        <div class="kpi-value muted">—</div>
+        <div class="kpi-label">${escapeHtml(label)}</div>
+      </div>`;
+    }
+
+    // Derive a single phone-metric value from the legacy manual_inputs.phone_metrics
+    // payload (sum across days). Returns null when no data is available.
+    function deriveMetricValue(fieldName, phoneMetrics) {
+      if (!phoneMetrics || !phoneMetrics.payload) return null;
+      const p = phoneMetrics.payload;
+      if (!Array.isArray(p.days)) return null;
+      if (fieldName === 'talk_time_minutes') {
+        const v = p.days.reduce((s, d) => s + (Number(d.minutes) || 0), 0);
+        return v === 0 ? null : v;
+      }
+      if (fieldName === 'calls_total') {
+        const v = p.days.reduce((s, d) => s + (Number(d.calls_count) || 0), 0);
+        return v === 0 ? null : v;
+      }
+      if (fieldName === 'calls_over_2min_percent') {
+        const total = p.days.reduce((s, d) => s + (Number(d.calls_count) || 0), 0);
+        const over2 = p.days.reduce((s, d) => s + (Number(d.calls_count) || 0) * (Number(d.calls_over_2min_percent) || 0) / 100, 0);
+        if (total > 0) return Math.round((over2 / total) * 1000) / 10;
+      }
+      return null;
     }
 
     function renderLoadedCallsBlock(stageLabel, manualInput, readinessStatus) {
@@ -969,7 +1456,7 @@
         </tr>`;
       }).join('');
       return `<div class="card" style="margin-bottom:14px;">
-        <h3>${escapeHtml(stageLabel)} <span class="status-badge ready" style="margin-left:8px;">${calls.length} зв.</span></h3>
+        <h3>${escapeHtml(stageLabel)} <span class="status-badge ready" style="margin-left:8px;">${escapeHtml(calls.length)} зв.</span></h3>
         <table class="data-table">
           <thead><tr><th>#</th><th>Дата</th><th>Продукт</th><th>Транскрипт</th><th>Комментарий</th><th>Источник</th><th>Фрагмент</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -984,8 +1471,8 @@
       const status = rr.overall_status;
       const isPartial = confidence === 'low' || status === 'partial' || status === 'not_enough_data';
       const warning = isPartial
-        ? `<div class="error-banner show" style="background:var(--warn-soft,#fff1d4);color:var(--warn,#b46b00);margin-bottom:12px;">
-            <b>Оценка частичная:</b> часть этапов не была оценена или данных недостаточно. Итоговый балл нельзя читать как полную оценку звонков.
+        ? `<div class="error-banner show" style="background:var(--warn-soft);color:var(--warn);margin-bottom:12px;">
+            <b>Оценка частичная:</b> часть этапов не была оценена или данных недостаточно. Итоговый балл нельзя читать как полную оценку.
           </div>`
         : '';
 
@@ -994,42 +1481,36 @@
       if (rr.metadata && rr.metadata.relevance_objection_present) {
         const val = rr.metadata.relevance_objection_present;
         const valRu = val === 'yes' ? 'да' : val === 'no' ? 'нет' : 'недостаточно данных';
-        metadataHtml = `<div style="background:var(--panel-soft); padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:13px;">
-          <b>Возражение по релевантности продукта:</b> ${escapeHtml(valRu)}
-          <span style="color:var(--muted); margin-left:8px;">(метаданные, не оценка качества оператора)</span>
+        metadataHtml = `<div class="notice-block">
+          <div class="nb-text"><b>Возражение по релевантности продукта:</b> ${escapeHtml(valRu)}
+          <span style="color:var(--muted); margin-left:8px;">(метаданные, не оценка качества оператора)</span></div>
         </div>`;
       }
 
-      // Units breakdown
+      // Units breakdown — stage cards with scoreBand visual bars.
+      // Evidence (question_details) is shown inside a secondary <details>.
       const unitsHtml = expectedUnitIds.map(uid => {
         const u = units.find(x => x.unit_id === uid);
         if (!u) return '';
         const score = u.score_percent;
-        const isNull = score == null;
-        const zone = isNull ? { barClass: '', className: '', label: 'недостаточно данных / не применимо / не проверялось' } : zoneForScore(score);
-        const progressBar = isNull
-          ? `<div class="progress-bar"><div style="width:0%;"></div></div>`
-          : `<div class="progress-bar"><div class="${zone.barClass}" style="width:${escapeHtml(score)}%;"></div></div>`;
-        const zoneText = isNull
-          ? `<div class="score-zone" style="color:var(--muted);">${escapeHtml(zone.label)}</div>`
-          : `<div class="score-zone ${zone.className}">${escapeHtml(zone.label)}</div>`;
-        const confidenceBadge = u.confidence === 'low' ? `<span class="status-badge unknown" style="margin-left:6px;">низкая уверенность</span>` : '';
-        const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px;">${escapeHtml(analysisStatusRu(u.status))}</span>` : '';
-        // Evidence details
+        const band = scoreBand(score);
+        const valueDisplay = score == null ? '—' : escapeHtml(band.percent);
+        const confidenceBadge = u.confidence === 'low' ? `<span class="status-badge unknown" style="margin-left:6px; font-size:10px;">низкая уверенность</span>` : '';
+        const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px; font-size:10px;">${escapeHtml(analysisStatusRu(u.status))}</span>` : '';
         const qd = Array.isArray(u.question_details) ? u.question_details : [];
-        const detailsHtml = qd.length ? `<details style="margin-top:8px;">
-          <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Вопросы и обоснование (${qd.length})</summary>
+        const detailsHtml = qd.length ? `<details class="tech-details" style="margin-top:8px;">
+          <summary>Вопросы и обоснование (${escapeHtml(qd.length)})</summary>
           <div style="margin-top:8px;">
             ${qd.map(q => renderQuestionEvidence(q)).join('')}
           </div>
         </details>` : '';
-        return `<div class="score-card">
-          <div class="score-head">
-            <span class="score-name">${escapeHtml(u.unit_name || u.unit_id)}${confidenceBadge}${statusBadge}</span>
-            <span class="score-value ${isNull ? 'empty' : ''}">${isNull ? '—' : escapeHtml(score)}</span>
+        return `<div class="stage-card">
+          <div class="stage-head">
+            <span class="stage-name">${escapeHtml(u.unit_name || u.unit_id)}${confidenceBadge}${statusBadge}</span>
+            <span class="stage-score" style="color:${band.color};">${valueDisplay}</span>
           </div>
-          ${progressBar}
-          ${zoneText}
+          <div class="score-band-bar"><div class="fill" style="width:${band.percent}%; background:${band.color};"></div></div>
+          <span class="score-band-label" style="background:${band.bg}; color:${band.color};">${escapeHtml(band.label)}</span>
           ${detailsHtml}
         </div>`;
       }).join('');
@@ -1050,14 +1531,17 @@
       return `<div class="card">
         <h3>${escapeHtml(title)}</h3>
         <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
-          Рубрика: <code>${escapeHtml(rr.rubric_id || '—')}</code> v${escapeHtml(rr.rubric_version || '—')} ·
           общий балл: <b>${rr.overall_score_percent == null ? '—' : escapeHtml(rr.overall_score_percent)}</b> ·
           уверенность: <b>${escapeHtml(analysisConfidenceRu(confidence))}</b> ·
           статус: <b>${escapeHtml(analysisStatusRu(status))}</b>
         </div>
         ${warning}
         ${metadataHtml}
-        <div class="scores-grid">${unitsHtml}</div>
+        <details class="tech-details">
+          <summary>Технические данные анализа</summary>
+          <div class="tech-row">Рубрика: <code>${escapeHtml(rr.rubric_id || '—')}</code> v${escapeHtml(rr.rubric_version || '—')}</div>
+        </details>
+        <div class="stage-grid" style="margin-top:10px;">${unitsHtml}</div>
         ${listsHtml}
       </div>`;
     }
@@ -1156,15 +1640,18 @@
 
       const html = [];
 
-      // Aggregate scores — show source badge if Codex analysis exists
+      // Aggregate scores — scoreBand visual cards
       const sourceBadge = latestInterview
         ? `<span class="status-badge ready" style="margin-left:10px;">Анализ собеседования</span>`
         : '';
-      html.push(`<div class="scores-grid" style="margin-bottom:14px;">
-        ${renderScoreMiniCard('Софт-навыки', s.soft_score, 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : ''))}
-        ${renderScoreMiniCard('Профессиональные навыки / продажи', s.hard_score, 'Включая понимание сегмента и ролевую практику')}
-        ${renderScoreMiniCard('Потенциал обучения', s.learning_score, 'Из гибкости + антихрупкости + проактивности')}
-        ${renderScoreMiniCard('Риск', s.risk_score, 'Красные флаги + конфликт данных', true)}
+      html.push(`<div class="card" style="margin-bottom:14px; background:var(--panel-soft);">
+        <h3>Итог по собеседованию ${sourceBadge}</h3>
+        <div class="block-grid">
+          ${renderScoreBandCard('Софт-навыки', s.soft_score, { note: 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : '') })}
+          ${renderScoreBandCard('Профессиональные навыки / продажи', s.hard_score, { note: 'Включая понимание сегмента и ролевую практику' })}
+          ${renderScoreBandCard('Потенциал обучения', s.learning_score, { note: 'Из гибкости + антихрупкости + проактивности' })}
+          ${renderScoreBandCard('Риск', s.risk_score, { note: 'Красные флаги + конфликт данных' })}
+        </div>
       </div>`);
 
       // Codex interview analysis breakdown
@@ -1181,7 +1668,8 @@
             <div class="es-icon">!</div>
             <div class="es-title">Codex-анализ собеседования ещё не запущен</div>
             <div class="es-sub">Экспортируйте пакет данных для анализа и передайте его Codex.</div>
-            <details style="margin-top:6px;"><summary style="cursor:pointer; font-size:12px; color:var(--muted);">Техническая команда</summary><pre style="margin-top:4px; font-size:11px;">node scripts/export_candidate_analysis_bundle.js --type interview\nnode scripts/import_analysis_result.js --file <result>.json</pre></details>
+            <details class="tech-details" style="margin-top:6px;"><summary>Технические данные</summary><pre>node scripts/export_candidate_analysis_bundle.js --type interview
+node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
           </div>
         </div>`);
       }
@@ -1289,32 +1777,32 @@
 
       const html = [];
 
-      // Top-level summary
+      // Top-level summary — KPI cards
       html.push(`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
         <h3>Сводка по учебным диалогам</h3>
-        <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
-          <div class="qs-cell">
-            <div class="qs-label">Всего учебных диалогов</div>
-            <div class="qs-value">${escapeHtml(totalDialogs)}</div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-value">${escapeHtml(totalDialogs)}</div>
+            <div class="kpi-label">Учебных диалогов</div>
           </div>
-          <div class="qs-cell">
-            <div class="qs-label">Всего ролей</div>
-            <div class="qs-value">${escapeHtml(uniqueRoleIds)}</div>
+          <div class="kpi-card">
+            <div class="kpi-value">${escapeHtml(uniqueRoleIds)}</div>
+            <div class="kpi-label">Всего ролей</div>
           </div>
-          <div class="qs-cell">
-            <div class="qs-label">Всего тренировок</div>
-            <div class="qs-value">${escapeHtml(groups.length)}</div>
+          <div class="kpi-card">
+            <div class="kpi-value">${escapeHtml(groups.length)}</div>
+            <div class="kpi-label">Всего тренировок</div>
           </div>
-          <div class="qs-cell">
-            <div class="qs-label">Успешных тренировок</div>
-            <div class="qs-value">${escapeHtml(successfulTrainings)}</div>
+          <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--ok);">${escapeHtml(successfulTrainings)}</div>
+            <div class="kpi-label">Успешных тренировок</div>
           </div>
-          <div class="qs-cell">
-            <div class="qs-label">Проваленных тренировок</div>
-            <div class="qs-value">${escapeHtml(failedTrainings)}</div>
+          <div class="kpi-card">
+            <div class="kpi-value" style="color:var(--danger);">${escapeHtml(failedTrainings)}</div>
+            <div class="kpi-label">Проваленных тренировок</div>
           </div>
         </div>
-        <div class="subtle" style="margin-top:8px;">Это учебные диалоги из бота учебки. Они не являются реальными звонками, не оцениваются по рубрике качества реальных звонков и не влияют на оценку качества звонков.</div>
+        <div class="subtle" style="margin-top:10px;">Это учебные диалоги из бота учебки. Они не являются реальными звонками, не оцениваются по рубрике качества реальных звонков и не влияют на оценку качества звонков.</div>
       </div>`);
 
       // Phase 3E2: training agents don't have a Codex analysis yet
@@ -1325,8 +1813,8 @@
       const trainingCodexDraftLabel = 'Скопировать черновик промпта для Codex';
       html.push(`<div class="card" style="margin-bottom:14px;">
         <h3>Анализ по нашему мануалу</h3>
-        <div style="padding:14px; background:var(--panel-soft); border-radius:8px;">
-          <div style="font-size:14px; margin-bottom:10px;">Импортирован результат из учебного бота. Отдельный анализ по нашему мануалу ещё не рассчитан.</div>
+        <div class="notice-block">
+          <div class="nb-text">Импортирован результат из учебного бота. Отдельный анализ по нашему мануалу ещё не рассчитан.</div>
           <button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" onclick="copyTextToClipboard(${escapeHtml(JSON.stringify(trainingCodexDraftPrompt))}); this.textContent='Скопировано!'; setTimeout(()=>{this.textContent='${escapeHtml(trainingCodexDraftLabel)}'},2000);">${escapeHtml(trainingCodexDraftLabel)}</button>
         </div>
       </div>`);
@@ -1339,52 +1827,39 @@
         const aggregatePayload = group.aggregatePayload;
         const successfulYesNo = aggregatePayload && aggregatePayload.SUCCESSFUL === true ? 'да' : 'нет';
         const failedYesNo = aggregatePayload && aggregatePayload.FAILED === true ? 'да' : 'нет';
+        const successfulCls = aggregatePayload && aggregatePayload.SUCCESSFUL === true ? 'ok' : 'muted';
+        const failedCls = aggregatePayload && aggregatePayload.FAILED === true ? 'warn' : 'muted';
 
         html.push(`<div class="card" style="margin-bottom:14px;">
-          <h3>${escapeHtml(trainingName)} <span style="font-size:12px; color:var(--muted); font-weight:400; margin-left:8px;">Ключ сессии: <code>${escapeHtml(group.key || '—')}</code></span></h3>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:12px; font-size:13px;">
+          <h3>${escapeHtml(trainingName)}</h3>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px; font-size:13px; align-items:center;">
             <div><b>Всего диалогов:</b> ${escapeHtml(groupTotal)}</div>
-            <div><b>Успешно:</b> ${escapeHtml(successfulYesNo)}</div>
-            <div><b>Провалено:</b> ${escapeHtml(failedYesNo)}</div>
-          </div>`);
+            <div><b>Успешно:</b> <span class="sc-badge ${successfulCls}">${escapeHtml(successfulYesNo)}</span></div>
+            <div><b>Провалено:</b> <span class="sc-badge ${failedCls}">${escapeHtml(failedYesNo)}</span></div>
+          </div>
+          <details class="tech-details">
+            <summary>Технические данные сессии</summary>
+            <div class="tech-row">Ключ сессии: <code>${escapeHtml(group.key || '—')}</code></div>
+          </details>`);
 
-        // Aggregate result_payload block — use TRAINING_RESULT_FIELDS_RU for labels.
+        // 6 training block cards (BLOCK_1..BLOCK_6 + COMMENT_1..6)
         if (aggregatePayload) {
-          const payloadRows = Object.entries(aggregatePayload).map(([k, v]) => {
-            const label = TRAINING_RESULT_FIELDS_RU[k] || k;
-            const vStr = (v != null && typeof v === 'object') ? JSON.stringify(v) : String(v);
-            return `<tr><th style="width:50%;">${escapeHtml(label)} <span style="color:var(--muted); font-size:11px;">(<code>${escapeHtml(k)}</code>)</span></th><td>${escapeHtml(vStr)}</td></tr>`;
-          }).join('');
-          html.push(`<h4 style="margin:0 0 6px; font-size:13px; color:var(--muted);">Агрегированный результат</h4>
-            <table class="data-table" style="font-size:12px; margin-bottom:12px;"><tbody>${payloadRows}</tbody></table>`);
+          html.push(`<h4 style="margin:14px 0 8px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;">Блоки учебного диалога</h4>`);
+          html.push(renderTrainingBlocks(aggregatePayload));
 
-          // Collapsible "Подробнее по этапам" — show BLOCK_1..6 + COMMENT_1..6.
-          const blockRows = [];
-          for (let b = 1; b <= 6; b++) {
-            const blockKey = `BLOCK_${b}`;
-            const commentKey = `COMMENT_${b}`;
-            const blockVal = aggregatePayload[blockKey];
-            const commentVal = aggregatePayload[commentKey];
-            if (blockVal == null && (commentVal == null || commentVal === '')) continue;
-            const blockLabel = TRAINING_RESULT_FIELDS_RU[blockKey] || blockKey;
-            const blockStr = (blockVal == null) ? '—' : ((typeof blockVal === 'object') ? JSON.stringify(blockVal) : String(blockVal));
-            blockRows.push(`<tr><th style="width:50%;">${escapeHtml(blockLabel)} <span style="color:var(--muted); font-size:11px;">(<code>${escapeHtml(blockKey)}</code>)</span></th><td>${escapeHtml(blockStr)}</td></tr>`);
-            if (commentVal != null && commentVal !== '') {
-              const commentLabel = TRAINING_RESULT_FIELDS_RU[commentKey] || commentKey;
-              const commentStr = (typeof commentVal === 'object') ? JSON.stringify(commentVal) : String(commentVal);
-              blockRows.push(`<tr><th style="width:50%;">${escapeHtml(commentLabel)} <span style="color:var(--muted); font-size:11px;">(<code>${escapeHtml(commentKey)}</code>)</span></th><td>${escapeHtml(commentStr)}</td></tr>`);
-            }
-          }
-          if (blockRows.length) {
-            html.push(`<details style="margin-bottom:12px;">
-              <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Подробнее по этапам</summary>
-              <table class="data-table" style="font-size:12px; margin-top:8px;"><tbody>${blockRows.join('')}</tbody></table>
-            </details>`);
-          }
+          // Collapsible aggregate raw payload (technical view)
+          const payloadRows = Object.entries(aggregatePayload).map(([k, v]) => {
+            const vStr = (v != null && typeof v === 'object') ? JSON.stringify(v) : String(v);
+            return `<div class="tech-row"><code>${escapeHtml(k)}</code> — ${escapeHtml(vStr)}</div>`;
+          }).join('');
+          html.push(`<details class="tech-details">
+            <summary>Технические данные: агрегированный результат</summary>
+            ${payloadRows}
+          </details>`);
         }
 
         // "Посмотреть диалоги" — expandable list of individual dialog cards.
-        html.push(`<details style="margin-top:10px;">
+        html.push(`<details style="margin-top:14px;">
           <summary style="cursor:pointer; font-size:13px; color:var(--accent); font-weight:600;">Посмотреть диалоги (${escapeHtml(groupTotal)})</summary>
           <div style="margin-top:12px;">${groupDialogs.map(d => renderTrainingDialogCard(d)).join('')}</div>
         </details>`);
@@ -1396,9 +1871,9 @@
     }
 
     // Phase 3E2: render a single training dialog card (used inside an expandable
-    // group). Shows the header (date, session key, role ID, result, product),
-    // the role portrait from d.role_portrait, and either the imported
-    // analysis_json / result_payload or a fallback "Результат не импортирован".
+    // group). Shows the header (date, role, result, product), the role portrait
+    // from d.role_portrait, a bubble-chat transcript preview, and the
+    // individual analysis_json / result behind a "Технические данные" block.
     function renderTrainingDialogCard(d) {
       const html = [];
       const roleClient = d.role_client || d.role_client_name || '';
@@ -1409,19 +1884,24 @@
       const hasResult = Boolean(d.result);
 
       html.push(`<div class="card" style="margin-bottom:12px; background:var(--panel-soft);">
-        <h4 style="margin:0 0 8px; font-size:14px;">${escapeHtml(roleStr || d.role_id || 'Диалог')}</h4>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; margin-bottom:10px; font-size:13px;">
+        <h4 style="margin:0 0 8px; font-size:14px;">${escapeHtml(roleStr || 'Диалог')}</h4>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:8px; margin-bottom:10px; font-size:13px;">
           <div><b>Дата:</b> ${escapeHtml(d.dialog_date || '—')}</div>
-          <div><b>Ключ сессии:</b> <code>${escapeHtml(d.session_key || '—')}</code></div>
-          <div><b>ID роли:</b> <code>${escapeHtml(d.role_id || '—')}</code></div>
           <div><b>Результат:</b> ${escapeHtml(d.result || '—')}</div>
           <div><b>Продукт:</b> ${escapeHtml(product || '—')}</div>
         </div>`);
 
+      // Technical details (session key, role id)
+      html.push(`<details class="tech-details">
+        <summary>Технические данные диалога</summary>
+        <div class="tech-row">Ключ сессии: <code>${escapeHtml(d.session_key || '—')}</code></div>
+        <div class="tech-row">ID роли: <code>${escapeHtml(d.role_id || '—')}</code></div>
+      </details>`);
+
       // Role portrait from d.role_portrait
       html.push(renderRolePortraitBlock(d.role_portrait));
 
-      // Transcript preview (collapsible). transcript_preview may be null when
+      // Transcript preview as chat bubbles. transcript_preview may be null when
       // the transcript wasn't loaded for this dialog; show a fallback message
       // in that case. When transcript_truncated is true, the preview is only
       // a slice of the full transcript_length characters.
@@ -1430,24 +1910,24 @@
       const transcriptLength = Number(d.transcript_length) || 0;
       const hasTranscript = transcriptPreview != null && transcriptPreview !== '';
       const transcriptBody = hasTranscript
-        ? `<pre style="white-space:pre-wrap; font-size:13px; line-height:1.5; max-height:500px; overflow:auto; background:var(--panel-soft); padding:12px; border-radius:8px; margin-top:8px;">${escapeHtml(transcriptPreview)}</pre>${transcriptTruncated ? `<div class="score-note" style="color:var(--warn,#b46b00);">Диалог обрезан для просмотра в отчёте. Показано ${escapeHtml(transcriptPreview.length)} из ${escapeHtml(transcriptLength)} символов.</div>` : ''}`
-        : `<div style="margin-top:8px; padding:10px 14px; background:var(--panel); border-radius:8px; font-size:13px; color:var(--muted);">Транскрипт не загружен.</div>`;
+        ? `<div class="chat-wrap">${renderTranscriptBubbles(transcriptPreview)}</div>${transcriptTruncated ? `<div class="score-note" style="color:var(--warn); margin-top:6px;">Диалог обрезан для просмотра в отчёте. Показано ${escapeHtml(transcriptPreview.length)} из ${escapeHtml(transcriptLength)} символов.</div>` : ''}`
+        : `<div class="chat-bubble plain">Транскрипт не загружен.</div>`;
       html.push(`<details style="margin-top:10px;">
         <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Транскрипт диалога</summary>
         ${transcriptBody}
       </details>`);
 
-      // Individual dialog analytics/result.
+      // Individual dialog analytics/result — wrap as technical data.
       // Phase 3E2 fixup: do NOT show result_payload here — it's the
       // aggregate training result already shown on the training card.
       // Only show analysis_json (individual dialog analytics) or result
       // (individual dialog result). If neither, show nothing — the
       // aggregate training result is already visible above.
       if (hasAnalysis) {
-        html.push(`<div style="margin-top:10px;">
-          <h5 style="margin:0 0 6px; font-size:13px; color:var(--muted);">Индивидуальная аналитика диалога</h5>
+        html.push(`<details class="tech-details" style="margin-top:10px;">
+          <summary>Технические данные: индивидуальная аналитика</summary>
           ${renderGenericJsonBlock(d.analysis_json)}
-        </div>`);
+        </details>`);
       } else if (hasResult) {
         html.push(`<div style="margin-top:10px; padding:10px 14px; background:var(--panel); border-radius:8px; font-size:13px;">
           <b>Результат диалога:</b> ${escapeHtml(d.result)}
@@ -1533,113 +2013,97 @@
 
       const html = [];
 
-      // Scores headline
-      html.push(`<div class="scores-grid" style="margin-bottom:14px;">
-        ${renderScoreMiniCard('Оценка операционки', s.ops_score, 'Трубка, XSALES, просрочки, статусы, комментарии')}
-        ${renderScoreMiniCard('Дисциплина', s.discipline_score, 'Погружение, операционка, сроки, статусы')}
+      // Scores headline — scoreBand cards
+      html.push(`<div class="card" style="margin-bottom:14px; background:var(--panel-soft);">
+        <h3>Итог по операционке</h3>
+        <div class="block-grid">
+          ${renderScoreBandCard('Оценка операционки', s.ops_score, { note: 'Трубка, XSALES, просрочки, статусы, комментарии' })}
+          ${renderScoreBandCard('Дисциплина', s.discipline_score, { note: 'Погружение, операционка, сроки, статусы' })}
+        </div>
       </div>`);
 
-      // Ops sections — prefer ops_summary (Phase 3D1), fallback to manual_inputs
+      // Resolve ops sections (prefer ops_summary, fallback to manual_inputs).
+      // Each section: { title, status, statusCls, statusRu, comment, updated_at }.
+      let opsSections = [];
       if (opsSummary && opsSummary.sections && opsSummary.sections.length) {
         const anyFilled = opsSummary.sections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
         if (anyFilled) {
           opsDataLoaded = true;
-          html.push(`<div class="card">
-            <h3>Состояние по разделам операционки</h3>
-            <table class="data-table">
-              <thead>
-                <tr><th>Раздел</th><th>Статус</th><th>Комментарий</th><th>Обновлено</th></tr>
-              </thead>
-              <tbody>
-                ${opsSummary.sections.map(sec => {
-                  const status = sec.status || 'not_checked';
-                  const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
-                  const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
-                  const comment = sec.comment || '—';
-                  const updated = sec.updated_at || '—';
-                  return `<tr>
-                    <td>${escapeHtml(sec.title)}</td>
-                    <td><span class="status-badge ${statusCls}">${escapeHtml(statusRu)}</span></td>
-                    <td>${escapeHtml(comment)}</td>
-                    <td>${escapeHtml(updated)}</td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>`);
-        } else {
-          // ops_summary returned all not_checked — show completeness fallback
-          const opsComplete = (completeness.items || []).filter(i =>
-            i.code.startsWith('ops_') || i.code === 'phone_metrics'
-          );
-          if (opsComplete.length) {
-            html.push(`<div class="card">
-              <h3>Готовность данных по операционке</h3>
-              <div class="completeness-list">
-                ${opsComplete.map(item => `<div class="completeness-row">
-                  <span class="cr-title">${escapeHtml(item.title)}</span>
-                  <span class="cr-status ${item.status === 'ready' ? 'ready' : 'not_ready'}">${escapeHtml(item.status === 'ready' ? 'готово' : 'не готово')}</span>
-                </div>`).join('')}
-              </div>
-            </div>`);
-          } else {
-            html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
-              'Заполните в админке данные по XSales, просрочкам, статусам, комментариям и времени на трубке.'));
-          }
+          opsSections = opsSummary.sections.map(sec => {
+            const status = sec.status || 'not_checked';
+            const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
+            const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
+            return {
+              title: sec.title || 'Раздел',
+              status, statusCls, statusRu,
+              comment: sec.comment || '',
+              updated_at: sec.updated_at || '',
+            };
+          });
         }
       } else {
         // Legacy fallback: derive from manual_inputs directly
-        const opsSections = [
+        const legacySections = [
           { code: 'phone_metrics', title: 'Время на трубке' },
           { code: 'ops_xsales', title: 'XSALES' },
           { code: 'ops_overdue_goals', title: 'Просрочки клиентских целей' },
           { code: 'ops_statuses', title: 'Статусы' },
           { code: 'ops_comments', title: 'Комментарии' },
         ];
-        const anyOpsData = opsSections.some(sec => manualInputs.find(m => m.section === sec.code));
+        const anyOpsData = legacySections.some(sec => manualInputs.find(m => m.section === sec.code));
         if (anyOpsData) {
           opsDataLoaded = true;
-          html.push(`<div class="card">
-            <h3>Состояние по разделам операционки</h3>
-            <table class="data-table">
-              <thead>
-                <tr><th>Раздел</th><th>Статус</th><th>Комментарий</th></tr>
-              </thead>
-              <tbody>
-                ${opsSections.map(sec => {
-                  const m = manualInputs.find(x => x.section === sec.code);
-                  const p = m && m.payload ? m.payload : null;
-                  const status = p && p.status ? p.status : 'not_checked';
-                  const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
-                  const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
-                  const comment = p && p.comment ? p.comment : '—';
-                  return `<tr>
-                    <td>${escapeHtml(sec.title)}</td>
-                    <td><span class="status-badge ${statusCls}">${escapeHtml(statusRu)}</span></td>
-                    <td>${escapeHtml(comment)}</td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
+          opsSections = legacySections.map(sec => {
+            const m = manualInputs.find(x => x.section === sec.code);
+            const p = m && m.payload ? m.payload : null;
+            const status = p && p.status ? p.status : 'not_checked';
+            const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
+            const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
+            return {
+              title: sec.title,
+              status, statusCls, statusRu,
+              comment: p && p.comment ? p.comment : '',
+              updated_at: m && m.updated_at ? m.updated_at : '',
+            };
+          });
+        }
+      }
+
+      // Source cards (XSales, просрочки, статусы, комментарии …) with badges
+      if (opsSections.length) {
+        html.push(`<div class="card" style="margin-bottom:14px;">
+          <h3>Источники операционки</h3>
+          <p class="subtle">Состояние по каждому разделу операционки.</p>
+          <div class="source-grid">
+            ${opsSections.map(sec => `<div class="source-card">
+              <div class="sc-icon ${sec.statusCls === 'ready' ? 'ok' : 'muted'}">${escapeHtml(sec.statusCls === 'ready' ? '✓' : '—')}</div>
+              <div class="sc-body">
+                <div class="sc-title">${escapeHtml(sec.title)}</div>
+                <div class="sc-status">${sec.comment ? escapeHtml(sec.comment) : 'без комментария'}</div>
+              </div>
+              <span class="status-badge ${sec.statusCls}">${escapeHtml(sec.statusRu)}</span>
+            </div>`).join('')}
+          </div>
+          ${opsSections.some(sec => sec.updated_at) ? `<div class="subtle" style="margin-top:10px;">Обновлено: ${escapeHtml(opsSections.find(sec => sec.updated_at).updated_at)}</div>` : ''}
+        </div>`);
+      } else {
+        // No ops data loaded — show completeness fallback or empty state
+        const opsComplete = (completeness.items || []).filter(i =>
+          i.code.startsWith('ops_') || i.code === 'phone_metrics'
+        );
+        if (opsComplete.length) {
+          html.push(`<div class="card" style="margin-bottom:14px;">
+            <h3>Готовность данных по операционке</h3>
+            <div class="completeness-list">
+              ${opsComplete.map(item => `<div class="completeness-row">
+                <span class="cr-title">${escapeHtml(item.title)}</span>
+                <span class="cr-status ${item.status === 'ready' ? 'ready' : 'not_ready'}">${escapeHtml(item.status === 'ready' ? 'готово' : 'не готово')}</span>
+              </div>`).join('')}
+            </div>
           </div>`);
         } else {
-          const opsComplete = (completeness.items || []).filter(i =>
-            i.code.startsWith('ops_') || i.code === 'phone_metrics'
-          );
-          if (opsComplete.length) {
-            html.push(`<div class="card">
-              <h3>Готовность данных по операционке</h3>
-              <div class="completeness-list">
-                ${opsComplete.map(item => `<div class="completeness-row">
-                  <span class="cr-title">${escapeHtml(item.title)}</span>
-                  <span class="cr-status ${item.status === 'ready' ? 'ready' : 'not_ready'}">${escapeHtml(item.status === 'ready' ? 'готово' : 'не готово')}</span>
-                </div>`).join('')}
-              </div>
-            </div>`);
-          } else {
-            html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
-              'Заполните в админке данные по XSales, просрочкам, статусам, комментариям и времени на трубке.'));
-          }
+          html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
+            'Заполните в админке данные по XSales, просрочкам, статусам, комментариям и времени на трубке.'));
         }
       }
 
@@ -1669,8 +2133,8 @@
       const escapedDraftJson = JSON.stringify(draftText);
       return `<div class="card">
         <h3>Анализ операционки</h3>
-        <div style="padding:14px; background:var(--panel-soft); border-radius:8px;">
-          <div style="font-size:14px; margin-bottom:10px;">Операционные данные загружены, но анализ операционки ещё не рассчитан.</div>
+        <div class="notice-block">
+          <div class="nb-text">Операционные данные загружены, но анализ операционки ещё не рассчитан.</div>
           <button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" onclick="copyTextToClipboard(${escapedDraftJson}); this.textContent='Скопировано!'; setTimeout(()=>{this.textContent='${buttonLabel}'},2000);">${buttonLabel}</button>
         </div>
       </div>`;
@@ -1693,6 +2157,9 @@
       const latest = card.latest_analysis || {};
       const hasInterview = Boolean(latest.interview);
       const hasCalls = Boolean(latest.calls);
+      const opsSummary = card.ops_summary || null;
+      const opsSections = opsSummary && Array.isArray(opsSummary.sections) ? opsSummary.sections : [];
+      const opsLoaded = opsSections.length > 0 && opsSections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
 
       // Phase 3E2: source explanation block at the top of the recommendations
       // tab. Tells the user what the current recommendations are based on.
@@ -1711,9 +2178,34 @@
         <div style="font-size:14px; line-height:1.5;">${escapeHtml(sourceNote)}</div>
         <div style="font-size:12px; color:var(--muted); margin-top:6px;">${escapeHtml(futureNote)}</div>
       </div>`;
-      // Insert the source block before the "Итоговая рекомендация" card.
+
+      // "Не учтено" — what is NOT yet analyzed. Always lists training agents
+      // and ops (no rubric yet), plus interview/calls when their Codex analysis
+      // hasn't been run.
+      const notConsidered = [];
+      if (!hasInterview) {
+        notConsidered.push('Собеседование — анализ Codex ещё не запущен.');
+      }
+      if (!hasCalls) {
+        notConsidered.push('Звонки — анализ Codex ещё не запущен.');
+      }
+      notConsidered.push('Учебные агенты — импортированы, но анализ по нашему мануалу ещё не рассчитан.');
+      if (!opsLoaded) {
+        notConsidered.push('Операционка — данные не загружены или анализ операционки ещё не рассчитан.');
+      } else {
+        notConsidered.push('Операционка — данные загружены, но анализ операционки ещё не рассчитан.');
+      }
+      const notConsideredHtml = `<div class="card" style="margin-bottom:14px; background:var(--panel-soft);">
+        <h2 style="font-size:18px;">Не учтено в оценке</h2>
+        <p class="subtle">Что ещё не попало в оценку. После доработки этих анализов рекомендации будут точнее.</p>
+        <ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.6;">
+          ${notConsidered.map(n => `<li>${escapeHtml(n)}</li>`).join('')}
+        </ul>
+      </div>`;
+
+      // Insert the source block + "Не учтено" before the "Итоговая рекомендация" card.
       const finalRecEl = byId('finalRecommendation');
-      finalRecEl.parentElement.insertAdjacentHTML('beforebegin', sourceBlockHtml);
+      finalRecEl.parentElement.insertAdjacentHTML('beforebegin', sourceBlockHtml + notConsideredHtml);
 
       finalRecEl.innerHTML = rec
         ? `<div class="recommendation-block">
@@ -1834,8 +2326,10 @@
           return;
         }
         renderHero(card);
+        renderSourcesConsidered(card);
         renderQuickSlice(card);
         renderOverviewRecommendation(card);
+        renderNextStepForLead(card);
         renderCompleteness(card);
         renderScoresGrid(card);
         renderCallsTab(card);

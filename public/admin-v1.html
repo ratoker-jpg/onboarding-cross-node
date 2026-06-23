@@ -347,7 +347,7 @@
     <section class="hero" id="topGuide">
       <span class="eyebrow"><span class="spark"></span> Рабочее место сборки выпуска</span>
       <h1>Админка выпуска новичка</h1>
-      <p>Собираем данные по новичку: ключи, импорты, файлы, операционка, звонки и готовность к анализу. AI-вызовы и запись в Google Sheets здесь не выполняются.</p>
+      <p>Собираем данные по новичку: ключи, импорты, файлы, операционка, звонки, готовность к анализу и ручные итоговые оценки. AI-вызовы и запись в Google Sheets здесь не выполняются.</p>
       <div class="hero-actions">
         <button id="startTourBtn" type="button" class="dark">Пройти обучение</button>
         <a class="btn secondary" href="#learningGuide">Открыть подробную инструкцию</a>
@@ -368,7 +368,7 @@
       <div class="learning-head">
         <div>
           <h2>Как работать с панелью</h2>
-          <p class="subtle">Панель нужна не для анализа, а для аккуратной сборки полного пакета данных по новичку. Рабочая логика: создали или выбрали кандидата, связали старые ключи, импортировали доступные источники, дозагрузили ручные материалы, проверили completeness.</p>
+          <p class="subtle">Панель нужна для сборки данных и ручных итоговых оценок. Рабочая логика: создали или выбрали кандидата, связали старые ключи, импортировали доступные источники, дозагрузили ручные материалы, проверили completeness, заполнили итоговые оценки.</p>
         </div>
         <button id="startTourBtn2" type="button" class="secondary">Показать интерактивно</button>
       </div>
@@ -612,6 +612,44 @@
         </div>
         <h3>Результат</h3>
         <pre id="finalResult" class="result"></pre>
+      </article>
+
+      <article class="card wide" id="scoresGuide">
+        <h2>Итоговые оценки</h2>
+        <p class="subtle">Ручной слой аналитики Phase 3B-min. Scores 0–100. overall, risk_level, final_status считает сервер.</p>
+        <div class="fields-4">
+          <label>Hard score<input id="scoreHard" type="number" min="0" max="100" step="1" /></label>
+          <label>Soft score<input id="scoreSoft" type="number" min="0" max="100" step="1" /></label>
+          <label>Learning score<input id="scoreLearning" type="number" min="0" max="100" step="1" /></label>
+          <label>Discipline score<input id="scoreDiscipline" type="number" min="0" max="100" step="1" /></label>
+          <label>Call quality score<input id="scoreCallQuality" type="number" min="0" max="100" step="1" /></label>
+          <label>Ops score<input id="scoreOps" type="number" min="0" max="100" step="1" /></label>
+          <label>Final test score<input id="scoreFinalTest" type="number" min="0" max="100" step="1" /></label>
+          <label>Risk score<input id="scoreRisk" type="number" min="0" max="100" step="1" /></label>
+        </div>
+        <label>Запрашиваемый статус
+          <select id="scoreFinalStatus">
+            <option value="">— оставить серверу —</option>
+            <option value="ready">готов к выпуску</option>
+            <option value="ready_with_control">готов с контролем</option>
+            <option value="needs_practice">нужна доработка</option>
+            <option value="not_recommended">не рекомендован</option>
+            <option value="insufficient_data">недостаточно данных</option>
+          </select>
+        </label>
+        <label>Рекомендация<textarea id="scoreRecommendation" placeholder="Короткий итоговый вывод"></textarea></label>
+        <label>Сильные стороны (по строке)<textarea id="scoreStrengths" placeholder="Каждый пункт с новой строки"></textarea></label>
+        <label>Зоны роста (по строке)<textarea id="scoreGrowthZones" placeholder="Каждый пункт с новой строки"></textarea></label>
+        <label>Красные флаги (по строке)<textarea id="scoreRedFlags" placeholder="Каждый пункт с новой строки"></textarea></label>
+        <label>Рекомендации тренеру (по строке)<textarea id="scoreCoachRecommendations" placeholder="Каждый пункт с новой строки"></textarea></label>
+        <div class="row-actions">
+          <button id="saveScoresBtn" type="button">Сохранить оценки</button>
+          <button id="recalcScoresBtn" type="button" class="secondary">Пересчитать итог</button>
+          <button id="loadScoresBtn" type="button" class="secondary">Загрузить текущие</button>
+          <button id="loadScoresHistoryBtn" type="button" class="secondary">История</button>
+        </div>
+        <h3>Результат</h3>
+        <pre id="scoresResult" class="result"></pre>
       </article>
 
       <article class="card" id="filesGuide">
@@ -1000,6 +1038,98 @@
     });
     byId('uploadGenericBtn').addEventListener('click', async () => {
       try { await uploadFile(byId('genericFileSection').value, 'genericFile', 'genericFileComment', 'genericResult', 'attachment'); } catch (err) { show('genericResult', err.message); }
+    });
+
+    function scoreOrNull(id) {
+      const value = byId(id).value;
+      return value === '' ? null : Number(value);
+    }
+    function splitLines(id) {
+      return byId(id).value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    }
+    function fillScoreInputs(scores) {
+      if (!scores) {
+        ['scoreHard','scoreSoft','scoreLearning','scoreDiscipline','scoreCallQuality','scoreOps','scoreFinalTest','scoreRisk'].forEach(id => byId(id).value = '');
+        byId('scoreFinalStatus').value = '';
+        byId('scoreRecommendation').value = '';
+        byId('scoreStrengths').value = '';
+        byId('scoreGrowthZones').value = '';
+        byId('scoreRedFlags').value = '';
+        byId('scoreCoachRecommendations').value = '';
+        return;
+      }
+      byId('scoreHard').value = scores.hard_score != null ? scores.hard_score : '';
+      byId('scoreSoft').value = scores.soft_score != null ? scores.soft_score : '';
+      byId('scoreLearning').value = scores.learning_score != null ? scores.learning_score : '';
+      byId('scoreDiscipline').value = scores.discipline_score != null ? scores.discipline_score : '';
+      byId('scoreCallQuality').value = scores.call_quality_score != null ? scores.call_quality_score : '';
+      byId('scoreOps').value = scores.ops_score != null ? scores.ops_score : '';
+      byId('scoreFinalTest').value = scores.final_test_score != null ? scores.final_test_score : '';
+      byId('scoreRisk').value = scores.risk_score != null ? scores.risk_score : '';
+      byId('scoreFinalStatus').value = scores.final_status || '';
+      byId('scoreRecommendation').value = scores.recommendation || '';
+      byId('scoreStrengths').value = (scores.strengths || []).join('\n');
+      byId('scoreGrowthZones').value = (scores.growth_zones || []).join('\n');
+      byId('scoreRedFlags').value = (scores.red_flags || []).join('\n');
+      byId('scoreCoachRecommendations').value = (scores.coach_recommendations || []).join('\n');
+    }
+    byId('saveScoresBtn').addEventListener('click', async () => {
+      try {
+        const baseKey = selectedBaseKey();
+        const payload = {
+          hard_score: scoreOrNull('scoreHard'),
+          soft_score: scoreOrNull('scoreSoft'),
+          learning_score: scoreOrNull('scoreLearning'),
+          discipline_score: scoreOrNull('scoreDiscipline'),
+          call_quality_score: scoreOrNull('scoreCallQuality'),
+          ops_score: scoreOrNull('scoreOps'),
+          final_test_score: scoreOrNull('scoreFinalTest'),
+          risk_score: scoreOrNull('scoreRisk'),
+          final_status: byId('scoreFinalStatus').value || null,
+          recommendation: byId('scoreRecommendation').value,
+          strengths: splitLines('scoreStrengths'),
+          growth_zones: splitLines('scoreGrowthZones'),
+          red_flags: splitLines('scoreRedFlags'),
+          coach_recommendations: splitLines('scoreCoachRecommendations'),
+        };
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/scores`), {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        show('scoresResult', data);
+        fillScoreInputs(data.scores);
+      } catch (err) {
+        show('scoresResult', err.message);
+      }
+    });
+    byId('recalcScoresBtn').addEventListener('click', async () => {
+      try {
+        const baseKey = selectedBaseKey();
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/scores/recalculate`), { method: 'POST', body: '{}' });
+        show('scoresResult', data);
+        fillScoreInputs(data.scores);
+      } catch (err) {
+        show('scoresResult', err.message);
+      }
+    });
+    byId('loadScoresBtn').addEventListener('click', async () => {
+      try {
+        const baseKey = selectedBaseKey();
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/scores`));
+        show('scoresResult', data);
+        fillScoreInputs(data.scores);
+      } catch (err) {
+        show('scoresResult', err.message);
+      }
+    });
+    byId('loadScoresHistoryBtn').addEventListener('click', async () => {
+      try {
+        const baseKey = selectedBaseKey();
+        const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/scores/history`));
+        show('scoresResult', data);
+      } catch (err) {
+        show('scoresResult', err.message);
+      }
     });
 
     const tourSteps = [

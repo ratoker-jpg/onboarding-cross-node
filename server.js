@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { OnboardingCore } = require('./onboarding_core');
 const { createPhase1Routes } = require('./routes/phase1_admin_routes');
+const { createPhase1ViewerRoutes } = require('./routes/phase1_viewer_routes');
 
 function loadDotEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -84,6 +85,10 @@ function normalizeApiAlias(cleanUrl) {
   if (cleanUrl === dashboardAlias || cleanUrl.startsWith(`${dashboardAlias}/`)) {
     return `/api/dashboard/phase1${cleanUrl.slice(dashboardAlias.length)}`;
   }
+  const viewerAlias = `${BASE_PATH}/api/viewer/phase1`;
+  if (cleanUrl === viewerAlias || cleanUrl.startsWith(`${viewerAlias}/`)) {
+    return `/api/viewer/phase1${cleanUrl.slice(viewerAlias.length)}`;
+  }
   return cleanUrl;
 }
 
@@ -99,6 +104,11 @@ async function handleRun(req, res) {
 
 const phase1Routes = createPhase1Routes({
   adminKey: CONFIG.adminKey,
+  readBody,
+  sendJson,
+});
+
+const phase1ViewerRoutes = createPhase1ViewerRoutes({
   readBody,
   sendJson,
 });
@@ -127,6 +137,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (apiUrl === '/api/onboarding/run' && req.method === 'POST') return handleRun(req, res);
     if (await phase1Routes.handle(req, res, apiUrl)) return;
+    if (await phase1ViewerRoutes.handle(req, res, apiUrl)) return;
     if (cleanUrl === BASE_PATH || cleanUrl.startsWith(BASE_PATH + '/')) return serveStatic(req, res, cleanUrl);
     if (cleanUrl === '/') {
       if (res.writableEnded || res.headersSent) return;

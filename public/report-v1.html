@@ -397,7 +397,7 @@
       <section class="tab-content" id="tab-training">
         <div class="card">
           <h2>Учебные агенты</h2>
-          <p class="subtle">Диалоги с ботом учебки. Аналитика по диалогам появится в Phase 3C.</p>
+          <p class="subtle">Диалоги с ботом учебки. Это не реальные звонки — они не оцениваются по calls_automanual_binary_v1. Импортированные результаты показываются, если они есть в analysis_json / result_payload.</p>
           <div id="trainingContent"></div>
         </div>
       </section>
@@ -682,6 +682,7 @@
 
     function renderScoresGrid(card) {
       const s = card.scores || {};
+      const latest = card.latest_analysis || {};
       const el = byId('scoresGrid');
       el.innerHTML = SCORE_CARDS.map(sc => {
         const value = s[sc.field];
@@ -695,6 +696,36 @@
         const zoneText = value == null
           ? `<div class="score-zone">нет данных</div>`
           : `<div class="score-zone ${zone.className}">${escapeHtml(zone.label)}</div>`;
+
+        // Phase 3E1: source badge per score
+        let sourceBadge = '';
+        let partialBadge = '';
+        if (sc.field === 'soft_score' || sc.field === 'hard_score' || sc.field === 'learning_score') {
+          if (latest.interview) {
+            sourceBadge = `<span class="status-badge ready" style="font-size:10px;">Codex interview</span>`;
+            if (latest.interview.rubric_result.overall_confidence === 'low' || latest.interview.rubric_result.overall_status === 'partial') {
+              partialBadge = `<span class="status-badge unknown" style="font-size:10px; margin-left:4px;">частичная оценка</span>`;
+            }
+          } else if (value != null) {
+            sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">manual</span>`;
+          }
+        } else if (sc.field === 'call_quality_score') {
+          if (latest.calls) {
+            sourceBadge = `<span class="status-badge ready" style="font-size:10px;">Codex calls</span>`;
+            if (latest.calls.rubric_result.overall_confidence === 'low' || latest.calls.rubric_result.overall_status === 'partial') {
+              partialBadge = `<span class="status-badge unknown" style="font-size:10px; margin-left:4px;">частичная оценка</span>`;
+            }
+          } else if (value != null) {
+            sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">manual</span>`;
+          }
+        } else if (sc.field === 'risk_score') {
+          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">derived</span>`;
+        } else if (sc.field === 'overall_score') {
+          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">computed</span>`;
+        } else if (value != null) {
+          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">manual</span>`;
+        }
+
         return `<div class="score-card">
           <div class="score-head">
             <span class="score-name">${escapeHtml(sc.label)}</span>
@@ -703,6 +734,7 @@
           ${progressBar}
           ${zoneText}
           <div class="score-note">${escapeHtml(sc.note)}</div>
+          <div style="margin-top:6px;">${sourceBadge}${partialBadge}</div>
         </div>`;
       }).join('');
     }
@@ -711,11 +743,12 @@
       const el = byId('callsContent');
       const s = card.scores || {};
       const manualInputs = card.manual_inputs || [];
-      const callStats = card.call_stats || null; // Phase 3D1 normalized block
+      const callStats = card.call_stats || null;
       const phoneMetrics = manualInputs.find(m => m.section === 'phone_metrics');
       const callsStart = manualInputs.find(m => m.section === 'calls_start');
       const callsMiddle = manualInputs.find(m => m.section === 'calls_middle');
       const callsFinal = manualInputs.find(m => m.section === 'calls_final');
+      const latestCalls = card.latest_analysis && card.latest_analysis.calls ? card.latest_analysis.calls : null;
       const completeness = card.completeness || { items: [] };
       const callsComplete = (completeness.items || []).filter(i =>
         i.code === 'calls_start' || i.code === 'calls_middle' || i.code === 'calls_final'
@@ -723,18 +756,21 @@
 
       const html = [];
 
-      // Call quality headline
+      // Call quality headline — show source if Codex analysis exists
+      const sourceBadge = latestCalls
+        ? `<span class="status-badge ready" style="margin-left:10px;">Codex calls analysis</span>`
+        : (s.call_quality_score != null ? `<span class="status-badge unknown" style="margin-left:10px;">manual</span>` : '');
       html.push(`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
         <h3>Итог по звонкам</h3>
         <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
           <div class="qs-cell">
-            <div class="qs-label">Call quality score</div>
+            <div class="qs-label">Call quality score ${sourceBadge}</div>
             <div class="qs-value ${s.call_quality_score == null ? 'empty' : ''}">${s.call_quality_score == null ? '—' : escapeHtml(s.call_quality_score)}</div>
           </div>
         </div>
       </div>`);
 
-      // Phone metrics — prefer call_stats (Phase 3D1), fallback to manual_inputs.phone_metrics
+      // Phone metrics
       const hasCallStats = callStats && (
         callStats.talk_time_minutes != null ||
         callStats.calls_total != null ||
@@ -755,13 +791,10 @@
           ${callStats.days && callStats.days.length ? `
             <h3 style="margin-top:18px;">По дням</h3>
             <table class="data-table">
-              <thead>
-                <tr><th>День</th><th>Минуты</th><th>Звонков</th><th>Звонков > 2 мин, %</th></tr>
-              </thead>
+              <thead><tr><th>День</th><th>Минуты</th><th>Звонков</th><th>Звонков > 2 мин, %</th></tr></thead>
               <tbody>
                 ${callStats.days.map(d => `<tr>
-                  <td>${escapeHtml(d.day)}</td>
-                  <td>${escapeHtml(d.minutes)}</td>
+                  <td>${escapeHtml(d.day)}</td><td>${escapeHtml(d.minutes)}</td>
                   <td>${escapeHtml(d.calls_count)}</td>
                   <td>${d.calls_over_2min_percent == null ? '—' : escapeHtml(d.calls_over_2min_percent)}</td>
                 </tr>`).join('')}
@@ -770,7 +803,6 @@
           ` : ''}
         </div>`);
       } else {
-        // Backward-compat fallback: derive from manual_inputs.phone_metrics
         html.push(`<div class="card" style="margin-bottom:14px;">
           <h3>Метрики трубки</h3>
           <div class="metrics-grid">
@@ -785,44 +817,179 @@
         </div>`);
       }
 
-      // Start/middle/final dynamics
-      const dynamicsRows = [
-        { label: 'Звонки начала', data: callsStart, completeItem: callsComplete.find(i => i.code === 'calls_start') },
-        { label: 'Звонки середины', data: callsMiddle, completeItem: callsComplete.find(i => i.code === 'calls_middle') },
-        { label: 'Звонки выпуска', data: callsFinal, completeItem: callsComplete.find(i => i.code === 'calls_final') },
-      ];
+      // Loaded calls (real calls, not training agents)
+      html.push(renderLoadedCallsBlock('Звонки начала', callsStart));
+      html.push(renderLoadedCallsBlock('Звонки середины', callsMiddle));
+      html.push(renderLoadedCallsBlock('Звонки выпуска', callsFinal));
 
-      if (dynamicsRows.some(r => r.data || (r.completeItem && r.completeItem.status === 'ready'))) {
-        html.push(`<div class="card">
-          <h3>Динамика start / middle / final</h3>
-          <table class="data-table">
-            <thead>
-              <tr><th>Этап</th><th>Статус данных</th><th>Заметки/транскрипт</th></tr>
-            </thead>
-            <tbody>
-              ${dynamicsRows.map(r => {
-                const ready = r.completeItem && r.completeItem.status === 'ready';
-                const payload = r.data && r.data.payload ? r.data.payload : null;
-                let notes = '—';
-                if (payload) {
-                  if (payload.transcript) notes = payload.transcript.slice(0, 80) + (payload.transcript.length > 80 ? '…' : '');
-                  else if (payload.coach_comment) notes = payload.coach_comment;
-                  else if (payload.comment) notes = payload.comment;
-                }
-                return `<tr>
-                  <td>${escapeHtml(r.label)}</td>
-                  <td>${ready ? '<span class="status-badge ready">готово</span>' : '<span class="status-badge unknown">нет данных</span>'}</td>
-                  <td>${escapeHtml(notes)}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>`);
+      // Codex calls analysis breakdown
+      if (latestCalls) {
+        html.push(renderCodexAnalysisBlock('Анализ звонков по автомануалу', latestCalls, [
+          'contact', 'needs', 'presentation', 'objections', 'close'
+        ]));
       } else {
-        html.push(renderEmptyState('Звонки', 'Динамика start/middle/final ещё не загружена', 'Загрузите транскрипты или сохраните manual_inputs.calls_start / calls_middle / calls_final через админку.'));
+        html.push(`<div class="card">
+          <h3>Анализ звонков по автомануалу</h3>
+          <div class="empty-state">
+            <div class="es-icon">!</div>
+            <div class="es-title">Codex-анализ звонков ещё не запущен</div>
+            <div class="es-sub">Экспортируйте bundle (scripts/export_candidate_analysis_bundle.js --type calls), отдайте Codex, импортируйте результат (scripts/import_analysis_result.js).</div>
+          </div>
+        </div>`);
       }
 
       el.innerHTML = html.join('');
+    }
+
+    function renderLoadedCallsBlock(stageLabel, manualInput) {
+      if (!manualInput || !manualInput.payload) {
+        return `<div class="card" style="margin-bottom:14px;">
+          <h3>${escapeHtml(stageLabel)}</h3>
+          <div class="empty-state">
+            <div class="es-icon">?</div>
+            <div class="es-title">Звонки не загружены</div>
+            <div class="es-sub">Добавьте звонки через админку (секция «Качество звонков»).</div>
+          </div>
+        </div>`;
+      }
+      const p = manualInput.payload;
+      const calls = Array.isArray(p.calls) ? p.calls : [];
+      if (!calls.length) {
+        return `<div class="card" style="margin-bottom:14px;">
+          <h3>${escapeHtml(stageLabel)}</h3>
+          <div class="subtle">Звонков нет (section существует, но calls[] пуст).</div>
+        </div>`;
+      }
+      const rows = calls.map((c, i) => {
+        const hasTranscript = Boolean(c.transcript && c.transcript.trim());
+        const preview = hasTranscript ? (c.transcript.slice(0, 80) + (c.transcript.length > 80 ? '…' : '')) : '—';
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${escapeHtml(c.call_date || '—')}</td>
+          <td>${escapeHtml(c.product || '—')}</td>
+          <td>${hasTranscript ? '<span class="status-badge ready">да</span>' : '<span class="status-badge unknown">нет</span>'}</td>
+          <td>${escapeHtml(c.coach_comment || '—')}</td>
+          <td>${escapeHtml(c.source || '—')}</td>
+          <td style="color:var(--muted);font-size:12px;">${escapeHtml(preview)}</td>
+        </tr>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>${escapeHtml(stageLabel)} <span class="status-badge ready" style="margin-left:8px;">${calls.length} зв.</span></h3>
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Дата</th><th>Продукт</th><th>Transcript</th><th>Комментарий</th><th>Источник</th><th>Preview</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }
+
+    function renderCodexAnalysisBlock(title, analysis, expectedUnitIds) {
+      const rr = analysis.rubric_result || {};
+      const units = rr.units || [];
+      const confidence = rr.overall_confidence;
+      const status = rr.overall_status;
+      const isPartial = confidence === 'low' || status === 'partial' || status === 'not_enough_data';
+      const warning = isPartial
+        ? `<div class="error-banner show" style="background:var(--warn-soft,#fff1d4);color:var(--warn,#b46b00);margin-bottom:12px;">
+            <b>Оценка частичная:</b> часть этапов не была оценена или данных недостаточно. Итоговый балл нельзя читать как полную оценку звонков.
+          </div>`
+        : '';
+
+      // Metadata block (e.g. relevance_objection_present)
+      let metadataHtml = '';
+      if (rr.metadata && rr.metadata.relevance_objection_present) {
+        const val = rr.metadata.relevance_objection_present;
+        const valRu = val === 'yes' ? 'да' : val === 'no' ? 'нет' : 'недостаточно данных';
+        metadataHtml = `<div style="background:var(--panel-soft); padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:13px;">
+          <b>Возражение по релевантности продукта:</b> ${escapeHtml(valRu)}
+          <span style="color:var(--muted); margin-left:8px;">(metadata, не оценка качества оператора)</span>
+        </div>`;
+      }
+
+      // Units breakdown
+      const unitsHtml = expectedUnitIds.map(uid => {
+        const u = units.find(x => x.unit_id === uid);
+        if (!u) return '';
+        const score = u.score_percent;
+        const isNull = score == null;
+        const zone = isNull ? { barClass: '', className: '', label: 'не применимо / недостаточно данных / не проверялось' } : zoneForScore(score);
+        const progressBar = isNull
+          ? `<div class="progress-bar"><div style="width:0%;"></div></div>`
+          : `<div class="progress-bar"><div class="${zone.barClass}" style="width:${escapeHtml(score)}%;"></div></div>`;
+        const zoneText = isNull
+          ? `<div class="score-zone" style="color:var(--muted);">${escapeHtml(zone.label)}</div>`
+          : `<div class="score-zone ${zone.className}">${escapeHtml(zone.label)}</div>`;
+        const confidenceBadge = u.confidence === 'low' ? `<span class="status-badge unknown" style="margin-left:6px;">low confidence</span>` : '';
+        const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px;">${escapeHtml(u.status)}</span>` : '';
+        // Evidence details
+        const qd = Array.isArray(u.question_details) ? u.question_details : [];
+        const detailsHtml = qd.length ? `<details style="margin-top:8px;">
+          <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Вопросы и evidence (${qd.length})</summary>
+          <div style="margin-top:8px;">
+            ${qd.map(q => renderQuestionEvidence(q)).join('')}
+          </div>
+        </details>` : '';
+        return `<div class="score-card">
+          <div class="score-head">
+            <span class="score-name">${escapeHtml(u.unit_name || u.unit_id)}${confidenceBadge}${statusBadge}</span>
+            <span class="score-value ${isNull ? 'empty' : ''}">${isNull ? '—' : escapeHtml(score)}</span>
+          </div>
+          ${progressBar}
+          ${zoneText}
+          ${detailsHtml}
+        </div>`;
+      }).join('');
+
+      // Summary + lists
+      const listsHtml = (analysis.summary || analysis.strengths || analysis.growth_zones || analysis.coach_recommendations || analysis.red_flags)
+        ? `<div style="margin-top:14px;">
+            ${analysis.summary ? `<div class="recommendation-block" style="margin-bottom:10px;"><div class="label">Вывод Codex</div><div class="text">${escapeHtml(analysis.summary)}</div></div>` : ''}
+            <div class="lists-grid">
+              <div class="list-box strengths"><h4>Сильные стороны</h4>${renderListOrEmpty(analysis.strengths)}</div>
+              <div class="list-box growth"><h4>Зоны роста</h4>${renderListOrEmpty(analysis.growth_zones)}</div>
+              <div class="list-box red-flags"><h4>Красные флаги</h4>${renderListOrEmpty(analysis.red_flags)}</div>
+              <div class="list-box coach"><h4>Рекомендации тренеру</h4>${renderListOrEmpty(analysis.coach_recommendations)}</div>
+            </div>
+          </div>`
+        : '';
+
+      return `<div class="card">
+        <h3>${escapeHtml(title)}</h3>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
+          Рубрика: <code>${escapeHtml(rr.rubric_id || '—')}</code> v${escapeHtml(rr.rubric_version || '—')} ·
+          overall: <b>${rr.overall_score_percent == null ? '—' : escapeHtml(rr.overall_score_percent)}</b> ·
+          confidence: <b>${escapeHtml(confidence || '—')}</b> ·
+          status: <b>${escapeHtml(status || '—')}</b>
+        </div>
+        ${warning}
+        ${metadataHtml}
+        <div class="scores-grid">${unitsHtml}</div>
+        ${listsHtml}
+      </div>`;
+    }
+
+    function renderQuestionEvidence(q) {
+      const answerLabels = {
+        yes: 'Да', no: 'Нет', not_applicable: 'Не применимо',
+        not_enough_data: 'Недостаточно данных', not_checked: 'Не проверялось', conflict: 'Конфликт данных',
+        ok: 'Да (ok)',
+      };
+      const answerRu = answerLabels[q.answer] || q.answer || '—';
+      const answerCls = q.answer === 'yes' ? 'ready' : q.answer === 'no' ? 'needs_practice' : q.answer === 'conflict' ? 'not_recommended' : 'unknown';
+      return `<div style="padding:8px 10px; margin-bottom:6px; background:var(--panel-soft); border-radius:6px; font-size:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+          <code>${escapeHtml(q.question_id)}</code>
+          <span class="status-badge ${answerCls}">${escapeHtml(answerRu)}</span>
+        </div>
+        ${q.evidence ? `<div style="margin-top:4px; color:var(--text);"><b>Evidence:</b> ${escapeHtml(q.evidence)}</div>` : ''}
+        ${q.quote ? `<div style="margin-top:2px; color:var(--muted); font-style:italic;">«${escapeHtml(q.quote)}»</div>` : ''}
+        ${(q.source || q.source_ref) ? `<div style="margin-top:2px; color:var(--muted); font-size:11px;">source: ${escapeHtml(q.source || '—')} · ref: ${escapeHtml(q.source_ref || '—')}</div>` : ''}
+      </div>`;
+    }
+
+    function renderListOrEmpty(items) {
+      const safe = Array.isArray(items) ? items : [];
+      if (!safe.length) return '<div class="empty-list">—</div>';
+      return `<ul>${safe.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
     }
 
     function renderMetricCell(fieldName, label, value) {
@@ -864,22 +1031,44 @@
       const el = byId('interviewContent');
       const s = card.scores || {};
       const manualInputs = card.manual_inputs || [];
-      const interviewSummary = card.interview_summary || null; // Phase 3D1
+      const interviewSummary = card.interview_summary || null;
       const interviewManual = manualInputs.find(m => m.section === 'interview' || m.section === 'interview_transcript');
+      const latestInterview = card.latest_analysis && card.latest_analysis.interview ? card.latest_analysis.interview : null;
       const completeness = card.completeness || { items: [] };
       const interviewComplete = (completeness.items || []).find(i => i.code === 'interview_transcript');
 
       const html = [];
 
-      // Scores from candidate_scores
+      // Aggregate scores — show source badge if Codex analysis exists
+      const sourceBadge = latestInterview
+        ? `<span class="status-badge ready" style="margin-left:10px;">Codex interview analysis</span>`
+        : '';
       html.push(`<div class="scores-grid" style="margin-bottom:14px;">
-        ${renderScoreMiniCard('Soft (interview)', s.soft_score, 'Оценка по собеседованию из candidate_scores')}
+        ${renderScoreMiniCard('Soft (interview)', s.soft_score, 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : ''))}
         ${renderScoreMiniCard('Hard / sales fit', s.hard_score, 'Включая segment_understanding и roleplay')}
         ${renderScoreMiniCard('Learning potential', s.learning_score, 'Из soft_flexibility + antifragility + proactivity')}
         ${renderScoreMiniCard('Risk (interview)', s.risk_score, 'Красные флаги + conflict', true)}
       </div>`);
 
-      // Transcript / notes — prefer interview_summary (Phase 3D1), fallback to manual_inputs
+      // Codex interview analysis breakdown
+      if (latestInterview) {
+        // Interview rubric units grouped by stage
+        const softUnits = ['soft_motivation', 'soft_responsibility', 'soft_communication', 'soft_emotional_intelligence', 'soft_flexibility', 'soft_proactivity', 'soft_antifragility', 'soft_client_approach'];
+        const hardUnits = ['hard_b2b_experience', 'hard_sales_tech', 'hard_roleplay', 'hard_digital'];
+        const segmentUnits = ['segment_understanding'];
+        html.push(renderCodexAnalysisBlock('Детализация по блокам собеседования', latestInterview, [...softUnits, ...hardUnits, ...segmentUnits]));
+      } else {
+        html.push(`<div class="card">
+          <h3>Детализация по блокам собеседования</h3>
+          <div class="empty-state">
+            <div class="es-icon">!</div>
+            <div class="es-title">Codex-анализ собеседования ещё не запущен</div>
+            <div class="es-sub">Экспортируйте bundle (scripts/export_candidate_analysis_bundle.js --type interview), отдайте Codex, импортируйте результат.</div>
+          </div>
+        </div>`);
+      }
+
+      // Transcript / notes — prefer interview_summary
       let previewText = '';
       let transcriptLength = 0;
       let transcriptUpdatedAt = null;
@@ -938,7 +1127,6 @@
     function renderTrainingTab(card) {
       const el = byId('trainingContent');
       const dialogs = card.training_bot_dialogs || [];
-      const manualInputs = card.manual_inputs || [];
       const completeness = card.completeness || { items: [] };
       const trainingComplete = (completeness.items || []).find(i => i.code === 'training_bot_dialogs');
 
@@ -951,71 +1139,84 @@
       }
 
       const html = [`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
-        <h3>Сводка по диалогам</h3>
+        <h3>Сводка по учебным диалогам</h3>
         <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
           <div class="qs-cell">
             <div class="qs-label">Всего диалогов</div>
             <div class="qs-value">${escapeHtml(dialogs.length)}</div>
           </div>
+          <div class="qs-cell">
+            <div class="qs-label">С результатом</div>
+            <div class="qs-value">${escapeHtml(dialogs.filter(d => d.result || d.analysis_json || d.result_payload).length)}</div>
+          </div>
         </div>
+        <div class="subtle" style="margin-top:8px;">Это учебные диалоги из бота учебки. Они не являются реальными звонками и не оцениваются по <code>calls_automanual_binary_v1</code>.</div>
       </div>`];
 
-      // Table of dialogs
-      html.push(`<div class="card">
-        <h3>Диалоги</h3>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Дата</th>
-              <th>Session key</th>
-              <th>Role ID</th>
-              <th>Роль / клиент</th>
-              <th>Продукт</th>
-              <th>Результат</th>
-              <th>Аналитика</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${dialogs.map(d => {
-              // Phase 3D1 normalized fields: role_client, role_business, product.
-              // Backward compat: also check role_client_name / role_company / role_title
-              // for older card responses that may ship the full row.
-              const roleClient = d.role_client || d.role_client_name || '';
-              const roleBusiness = d.role_business || d.role_company || '';
-              const roleStr = [roleClient, roleBusiness].filter(Boolean).join(' / ');
-              const product = d.product || d.role_title || '';
-              const analysis = d.analysis_json || d.analysis || (d.result_payload && d.result_payload.summary);
-              const analysisState = analysis
-                ? `<span class="status-badge ready">есть</span>`
-                : `<span class="status-badge unknown">не рассчитана</span>`;
-              return `<tr>
-                <td>${escapeHtml(d.dialog_date || '—')}</td>
-                <td>${escapeHtml(d.session_key || d.training_key || '—')}</td>
-                <td>${escapeHtml(d.role_id || '—')}</td>
-                <td>${escapeHtml(roleStr || '—')}</td>
-                <td>${escapeHtml(product || '—')}</td>
-                <td>${escapeHtml(d.result || '—')}</td>
-                <td>${analysisState}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`);
+      // Per-dialog cards with imported results
+      for (const d of dialogs) {
+        const roleClient = d.role_client || d.role_client_name || '';
+        const roleBusiness = d.role_business || d.role_company || '';
+        const roleStr = [roleClient, roleBusiness].filter(Boolean).join(' / ');
+        const product = d.product || d.role_title || '';
+        const hasAnalysis = Boolean(d.analysis_json);
+        const hasResultPayload = Boolean(d.result_payload && Object.keys(d.result_payload).length);
+        const hasResult = Boolean(d.result);
 
-      // Note about analytics
-      const anyAnalysis = dialogs.some(d => d.analysis_json || d.analysis);
-      if (!anyAnalysis) {
-        html.push(`<div class="card">
-          <h3>Аналитика по диалогам</h3>
-          <div class="empty-state">
-            <div class="es-icon">!</div>
-            <div class="es-title">Диалоги загружены, аналитика ещё не рассчитана</div>
-            <div class="es-sub">Аналитика по учебным агентам появится в Phase 3C (AI-анализ по рубрикам).</div>
-          </div>
-        </div>`);
+        html.push(`<div class="card" style="margin-bottom:14px;">
+          <h3>${escapeHtml(roleStr || d.role_id || 'Диалог')} <span style="font-size:13px; color:var(--muted); font-weight:400;">${escapeHtml(d.dialog_date || '—')}</span></h3>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; margin-bottom:10px; font-size:13px;">
+            <div><b>Session key:</b> ${escapeHtml(d.session_key || '—')}</div>
+            <div><b>Role ID:</b> ${escapeHtml(d.role_id || '—')}</div>
+            <div><b>Продукт:</b> ${escapeHtml(product || '—')}</div>
+            <div><b>Результат:</b> ${escapeHtml(d.result || '—')}</div>
+          </div>`);
+
+        // Imported analysis_json (Phase 3E1: show if present, don't say "Phase 3C")
+        if (hasAnalysis) {
+          html.push(`<div style="margin-top:10px;">
+            <h4 style="margin:0 0 6px; font-size:13px; color:var(--muted);">ИМПОРТИРОВАННАЯ АНАЛИТИКА (analysis_json)</h4>
+            ${renderGenericJsonBlock(d.analysis_json)}
+          </div>`);
+        } else if (hasResultPayload) {
+          html.push(`<div style="margin-top:10px;">
+            <h4 style="margin:0 0 6px; font-size:13px; color:var(--muted);">ИМПОРТИРОВАННЫЙ РЕЗУЛЬТАТ (result_payload)</h4>
+            ${renderGenericJsonBlock(d.result_payload)}
+          </div>`);
+        } else if (hasResult) {
+          html.push(`<div style="margin-top:10px; padding:10px 14px; background:var(--panel-soft); border-radius:8px; font-size:13px;">
+            <b>Результат:</b> ${escapeHtml(d.result)}
+          </div>`);
+        } else {
+          html.push(`<div style="margin-top:10px; padding:10px 14px; background:var(--panel-soft); border-radius:8px; font-size:13px; color:var(--muted);">
+            Результат не импортирован
+          </div>`);
+        }
+
+        html.push(`</div>`);
       }
 
       el.innerHTML = html.join('');
+    }
+
+    function renderGenericJsonBlock(value) {
+      if (value == null) return '<div class="empty-list">—</div>';
+      if (typeof value === 'string') {
+        return `<div style="font-size:13px; white-space:pre-wrap; padding:10px 14px; background:var(--panel-soft); border-radius:8px;">${escapeHtml(value)}</div>`;
+      }
+      if (Array.isArray(value)) {
+        if (!value.length) return '<div class="empty-list">—</div>';
+        return `<ul style="margin:0; padding-left:20px; font-size:13px;">${value.map(v => `<li>${renderGenericJsonBlock(v)}</li>`).join('')}</ul>`;
+      }
+      if (typeof value === 'object') {
+        const entries = Object.entries(value);
+        if (!entries.length) return '<div class="empty-list">—</div>';
+        return `<table class="data-table" style="font-size:12px;"><tbody>${entries.map(([k, v]) => {
+          const vStr = (v != null && typeof v === 'object') ? renderGenericJsonBlock(v) : escapeHtml(String(v));
+          return `<tr><th style="width:30%;">${escapeHtml(k)}</th><td>${vStr}</td></tr>`;
+        }).join('')}</tbody></table>`;
+      }
+      return `<div style="font-size:13px;">${escapeHtml(String(value))}</div>`;
     }
 
     function renderOpsTab(card) {
@@ -1198,6 +1399,35 @@
             <div class="es-title">Явных точек контроля не выявлено</div>
             <div class="es-sub">Заполните оценки и red flags — точки контроля появятся автоматически.</div>
           </div>`;
+
+      // Phase 3E1: append Codex-source recommendations (interview + calls)
+      // These are rendered as separate sections so the user can distinguish
+      // manual/aggregate recommendations from per-analysis Codex output.
+      const latest = card.latest_analysis || {};
+      const codexSections = [];
+      if (latest.interview && (latest.interview.summary || (latest.interview.strengths && latest.interview.strengths.length) || (latest.interview.growth_zones && latest.interview.growth_zones.length) || (latest.interview.coach_recommendations && latest.interview.coach_recommendations.length) || (latest.interview.red_flags && latest.interview.red_flags.length))) {
+        codexSections.push({ title: 'Рекомендации по собеседованию (Codex interview analysis)', analysis: latest.interview });
+      }
+      if (latest.calls && (latest.calls.summary || (latest.calls.strengths && latest.calls.strengths.length) || (latest.calls.growth_zones && latest.calls.growth_zones.length) || (latest.calls.coach_recommendations && latest.calls.coach_recommendations.length) || (latest.calls.red_flags && latest.calls.red_flags.length))) {
+        codexSections.push({ title: 'Рекомендации по звонкам (Codex calls analysis)', analysis: latest.calls });
+      }
+      // Append after recFirstWeeks
+      const firstWeeksEl = byId('recFirstWeeks');
+      if (codexSections.length) {
+        const codexHtml = codexSections.map(sec => `
+          <div class="card" style="margin-top:14px;">
+            <h2>${escapeHtml(sec.title)}</h2>
+            ${sec.analysis.summary ? `<div class="recommendation-block" style="margin-bottom:10px;"><div class="label">Вывод</div><div class="text">${escapeHtml(sec.analysis.summary)}</div></div>` : ''}
+            <div class="lists-grid">
+              <div class="list-box strengths"><h4>Сильные стороны</h4>${renderListOrEmpty(sec.analysis.strengths)}</div>
+              <div class="list-box growth"><h4>Зоны роста</h4>${renderListOrEmpty(sec.analysis.growth_zones)}</div>
+              <div class="list-box red-flags"><h4>Красные флаги</h4>${renderListOrEmpty(sec.analysis.red_flags)}</div>
+              <div class="list-box coach"><h4>Рекомендации тренеру</h4>${renderListOrEmpty(sec.analysis.coach_recommendations)}</div>
+            </div>
+          </div>
+        `).join('');
+        firstWeeksEl.insertAdjacentHTML('afterend', codexHtml);
+      }
     }
 
     function renderEmptyState(title, sub, hint) {

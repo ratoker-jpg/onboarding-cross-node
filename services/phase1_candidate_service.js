@@ -1483,11 +1483,10 @@ function mapManualInputForViewer(raw) {
 
 function mapTrainingDialogForViewer(raw) {
   if (!raw) return null;
-  // Pick only the minimal, non-secret fields needed by report-v1.html.
-  // transcript_text is intentionally omitted — too large and not needed for
-  // the report card. analysis_json + result_payload are included so the
-  // report can render imported bot-training results without falling back to
-  // the misleading "аналитика появится в Phase 3C" placeholder.
+  // Phase 3E2: include full role portrait fields + result_payload so the
+  // report can render training results and role portraits without needing
+  // a separate API call. transcript_text is still omitted (too large).
+  const rolePayload = raw.role_payload || null;
   return {
     session_key: raw.training_key || null,
     dialog_date: raw.dialog_date || null,
@@ -1498,6 +1497,27 @@ function mapTrainingDialogForViewer(raw) {
     result: raw.result || null,
     analysis_json: raw.analysis_json || null,
     result_payload: raw.result_payload || null,
+    // Phase 3E2: role portrait fields from the dialog row
+    role_portrait: {
+      role_id: raw.role_id || null,
+      team_id: raw.team_id || null,
+      team_name: raw.team_name || null,
+      company_name: raw.role_company || (rolePayload && rolePayload.company_name) || null,
+      full_name: raw.role_client_name || (rolePayload && rolePayload.full_name) || null,
+      position: (rolePayload && rolePayload.position) || null,
+      tax_system: raw.role_tax_system || (rolePayload && rolePayload.tax_system) || null,
+      business_type: raw.role_business_type || (rolePayload && rolePayload.business_type) || null,
+      previous_interactions: (rolePayload && rolePayload.previous_interactions) || null,
+      client_info: (rolePayload && rolePayload.client_info) || null,
+      business_experience: (rolePayload && rolePayload.business_experience) || null,
+      success_criteria: raw.role_success_criteria || null,
+      failure_criteria: raw.role_failure_criteria || null,
+      target_action: raw.role_target_action || null,
+      objections: raw.role_objections || null,
+      tone: raw.role_tone || null,
+      extra_profile: raw.role_extra_profile || null,
+    },
+    legacy_key: raw.legacy_key || null,
   };
 }
 

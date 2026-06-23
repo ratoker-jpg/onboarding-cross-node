@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Отчёт по новичку — Rich Report v1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f6f1ff;
+      --bg-2: #fbf8ff;
+      --panel: #ffffff;
+      --panel-soft: #faf7ff;
+      --text: #1f1733;
+      --muted: #73668f;
+      --line: #e5d6ff;
+      --line-strong: #d8c2ff;
+      --accent: #7f42e1;
+      --accent-hover: #6934c7;
+      --accent-soft: #f0e6ff;
+      --black: #141019;
+      --ok: #23824f;
+      --ok-soft: #d8f3e3;
+      --warn: #b46b00;
+      --warn-soft: #fff1d6;
+      --danger: #d85c3a;
+      --danger-soft: #ffe0d4;
+      --info: #2a5db0;
+      --info-soft: #d6e4ff;
+      --shadow: 0 18px 48px rgba(82, 45, 145, 0.12);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --radius-xs: 8px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Manrope, system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 8% 4%, rgba(127, 66, 225, 0.16), transparent 34%),
+        radial-gradient(circle at 86% 12%, rgba(203, 174, 255, 0.42), transparent 30%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 58%, #ffffff 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .page { max-width: 1280px; margin: 0 auto; padding: 24px 18px 80px; }
+
+    /* === Auth bar === */
+    .auth-bar {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 18px 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+    }
+    .auth-bar label { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .auth-bar input {
+      padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      font-size: 14px; font-family: inherit; color: var(--text); background: var(--panel);
+    }
+    .auth-bar input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+    .auth-bar .auth-actions { display: flex; gap: 8px; }
+    .btn {
+      padding: 10px 20px; border-radius: var(--radius-sm); border: 0; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      background: var(--accent); color: #fff;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.secondary { background: var(--accent-soft); color: var(--accent); }
+    .btn.dark { background: var(--black); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* === Error banner === */
+    .error-banner {
+      padding: 14px 18px; border-radius: var(--radius-sm);
+      background: var(--danger-soft); color: var(--danger);
+      font-weight: 500; margin-bottom: 16px; display: none;
+    }
+    .error-banner.show { display: block; }
+
+    /* === Loading === */
+    .loading-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+    .loading-state .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--line);
+      border-top-color: var(--accent); border-radius: 50%;
+      margin: 0 auto 12px; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* === Hero === */
+    .hero {
+      background: linear-gradient(135deg, #5a2fb8 0%, #7f42e1 50%, #9b6ce8 100%);
+      color: #fff;
+      border-radius: var(--radius-xl);
+      padding: 36px 38px;
+      box-shadow: 0 24px 60px rgba(90, 47, 184, 0.32);
+      margin-bottom: 24px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -40%; right: -10%;
+      width: 60%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 60%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 12px; border-radius: 14px;
+      background: rgba(255,255,255,0.16); font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 34px; font-weight: 800; letter-spacing: -0.01em; }
+    .hero .hero-sub { font-size: 16px; opacity: 0.85; margin-bottom: 22px; }
+    .hero-grid {
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .hero-cell { background: rgba(255,255,255,0.12); border-radius: var(--radius-sm); padding: 12px 14px; backdrop-filter: blur(4px); }
+    .hero-cell .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
+    .hero-cell .value { font-size: 17px; font-weight: 700; margin-top: 2px; }
+    .hero-cell .pill {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600;
+      background: rgba(255,255,255,0.22);
+    }
+    .hero-cell .pill.ok { background: rgba(35, 130, 79, 0.5); }
+    .hero-cell .pill.warn { background: rgba(180, 107, 0, 0.55); }
+    .hero-cell .pill.danger { background: rgba(216, 92, 58, 0.6); }
+    .hero-cell .pill.muted { background: rgba(255,255,255,0.18); }
+
+    /* === Tabs === */
+    .tabs {
+      display: flex; gap: 4px; flex-wrap: wrap;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 6px;
+      margin-bottom: 20px; box-shadow: var(--shadow);
+      position: sticky; top: 12px; z-index: 10;
+    }
+    .tab {
+      padding: 10px 16px; border-radius: var(--radius-sm);
+      border: 0; background: transparent; color: var(--muted);
+      font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab:hover { background: var(--accent-soft); color: var(--accent); }
+    .tab.active { background: var(--accent); color: #fff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fade 0.2s ease-out; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* === Cards === */
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 24px;
+      box-shadow: var(--shadow); margin-bottom: 18px;
+    }
+    .card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 800; }
+    .card h3 { margin: 0 0 12px; font-size: 15px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .card .subtle { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+
+    /* === Score cards grid === */
+    .scores-grid {
+      display: grid; gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .score-card {
+      background: var(--panel-soft); border: 1px solid var(--line);
+      border-radius: var(--radius-md); padding: 18px 20px;
+    }
+    .score-card .score-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .score-card .score-name { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .score-card .score-value { font-size: 28px; font-weight: 800; letter-spacing: -0.01em; }
+    .score-card .score-value.empty { color: var(--muted); font-size: 22px; }
+    .progress-bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 10px 0 8px; }
+    .progress-bar > div { height: 100%; border-radius: 4px; transition: width 0.4s ease-out; }
+    .progress-bar > .zone-critical { background: var(--danger); }
+    .progress-bar > .zone-risk { background: var(--warn); }
+    .progress-bar > .zone-minimum { background: var(--info); }
+    .progress-bar > .zone-confident { background: var(--ok); }
+    .progress-bar > .zone-strong { background: #1a6e3d; }
+    .score-card .score-zone { font-size: 12px; font-weight: 600; }
+    .score-card .score-zone.critical { color: var(--danger); }
+    .score-card .score-zone.risk { color: var(--warn); }
+    .score-card .score-zone.minimum { color: var(--info); }
+    .score-card .score-zone.confident { color: var(--ok); }
+    .score-card .score-zone.strong { color: #1a6e3d; }
+    .score-card .score-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* === Quick slice === */
+    .quick-slice { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .quick-slice .qs-cell {
+      background: linear-gradient(135deg, var(--panel-soft), #fff);
+      border: 1px solid var(--line); border-radius: var(--radius-md);
+      padding: 16px 18px; text-align: center;
+    }
+    .quick-slice .qs-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .quick-slice .qs-value { font-size: 30px; font-weight: 800; margin-top: 4px; letter-spacing: -0.01em; }
+    .quick-slice .qs-value.empty { color: var(--muted); font-size: 22px; }
+
+    /* === Recommendation block === */
+    .recommendation-block {
+      background: var(--accent-soft); border-left: 4px solid var(--accent);
+      padding: 18px 22px; border-radius: var(--radius-sm); margin-bottom: 14px;
+    }
+    .recommendation-block .label { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .recommendation-block .text { margin-top: 6px; font-size: 15px; line-height: 1.5; }
+
+    /* === Lists === */
+    .lists-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .list-box { background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px 18px; }
+    .list-box h4 { margin: 0 0 10px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+    .list-box ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.55; }
+    .list-box ul li { margin-bottom: 4px; }
+    .list-box .empty-list { color: var(--muted); font-size: 13px; font-style: italic; }
+
+    .list-box.strengths { border-left: 3px solid var(--ok); }
+    .list-box.growth { border-left: 3px solid var(--warn); }
+    .list-box.red-flags { border-left: 3px solid var(--danger); }
+    .list-box.coach { border-left: 3px solid var(--info); }
+
+    /* === Tables === */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+    .data-table th { color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; background: var(--panel-soft); }
+    .data-table tbody tr:hover { background: var(--accent-soft); }
+
+    /* === Empty state === */
+    .empty-state {
+      padding: 40px 20px; text-align: center;
+      background: var(--panel-soft); border: 1px dashed var(--line-strong);
+      border-radius: var(--radius-md); color: var(--muted);
+    }
+    .empty-state .es-icon {
+      width: 40px; height: 40px; margin: 0 auto 12px;
+      border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 700;
+    }
+    .empty-state .es-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .empty-state .es-sub { font-size: 13px; }
+
+    /* === Metrics placeholder grid === */
+    .metrics-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .metric-cell {
+      background: var(--panel-soft); border: 1px solid var(--line);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+    }
+    .metric-cell .m-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .metric-cell .m-value { font-size: 22px; font-weight: 700; margin-top: 2px; color: var(--text); }
+    .metric-cell .m-value.placeholder { color: var(--muted); font-size: 14px; font-weight: 500; font-style: italic; }
+
+    /* === Status badges === */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600;
+    }
+    .status-badge.ready { background: var(--ok-soft); color: var(--ok); }
+    .status-badge.ready_with_control { background: var(--warn-soft); color: var(--warn); }
+    .status-badge.needs_practice { background: var(--danger-soft); color: var(--danger); }
+    .status-badge.not_recommended { background: #fbd0c4; color: #8a2a14; }
+    .status-badge.insufficient_data { background: #ece6f5; color: var(--muted); }
+    .status-badge.unknown { background: #ece6f5; color: var(--muted); }
+
+    .risk-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .risk-badge.low { background: var(--ok-soft); color: var(--ok); }
+    .risk-badge.medium { background: var(--warn-soft); color: var(--warn); }
+    .risk-badge.high { background: var(--danger-soft); color: var(--danger); }
+    .risk-badge.critical { background: #fbd0c4; color: #8a2a14; }
+    .risk-badge.unknown { background: #ece6f5; color: var(--muted); }
+
+    /* === Completeness list === */
+    .completeness-list { display: grid; gap: 8px; }
+    .completeness-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      background: var(--panel-soft); border: 1px solid var(--line);
+    }
+    .completeness-row .cr-title { font-size: 14px; font-weight: 500; }
+    .completeness-row .cr-status { font-size: 12px; font-weight: 600; }
+    .completeness-row .cr-status.ready { color: var(--ok); }
+    .completeness-row .cr-status.not_ready { color: var(--muted); }
+    .completeness-row .cr-status.partial { color: var(--warn); }
+
+    /* === Print === */
+    @media print {
+      .auth-bar, .tabs { display: none; }
+      .hero { box-shadow: none; }
+      .tab-content { display: block !important; page-break-after: always; }
+    }
+
+    /* === Responsive === */
+    @media (max-width: 768px) {
+      .hero { padding: 24px 20px; }
+      .hero h1 { font-size: 26px; }
+      .card { padding: 18px; }
+      .tab { padding: 8px 12px; font-size: 13px; }
+      .scores-grid, .quick-slice, .lists-grid, .metrics-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Auth bar -->
+    <div class="auth-bar">
+      <label>Ключ просмотра (VIEWER_KEY)
+        <input id="viewerKey" type="password" placeholder="Введите VIEWER_KEY" />
+      </label>
+      <label>Ключ новичка
+        <input id="baseKeyInput" type="text" placeholder="GTRAIN01" />
+      </label>
+      <div class="auth-actions">
+        <button id="openReportBtn" type="button" class="btn dark">Открыть отчёт</button>
+      </div>
+    </div>
+
+    <div id="errorBanner" class="error-banner"></div>
+
+    <!-- Loading -->
+    <div id="loadingState" class="loading-state" style="display:none;">
+      <div class="spinner"></div>
+      <div>Загружаем данные по новичку…</div>
+    </div>
+
+    <!-- Report container (hidden until data loaded) -->
+    <div id="reportContainer" style="display:none;">
+
+      <!-- Hero -->
+      <section class="hero" id="hero"></section>
+
+      <!-- Tabs -->
+      <nav class="tabs" id="tabsNav">
+        <button class="tab active" data-tab="overview">Основной отчёт</button>
+        <button class="tab" data-tab="scores">Оценка по этапам</button>
+        <button class="tab" data-tab="calls">Звонки</button>
+        <button class="tab" data-tab="interview">Собеседование</button>
+        <button class="tab" data-tab="training">Учебные агенты</button>
+        <button class="tab" data-tab="ops">Операционка</button>
+        <button class="tab" data-tab="recommendations">Рекомендации</button>
+      </nav>
+
+      <!-- Tab 1: Overview -->
+      <section class="tab-content active" id="tab-overview">
+        <div class="card">
+          <h2>Быстрый срез</h2>
+          <p class="subtle">Ключевые итоговые оценки. Если оценка не заполнена — значение показывается как «—».</p>
+          <div class="quick-slice" id="quickSlice"></div>
+        </div>
+
+        <div class="card">
+          <h2>Ключевой вывод</h2>
+          <div id="overviewRecommendation"></div>
+          <div class="lists-grid" id="overviewLists" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Готовность данных</h2>
+          <p class="subtle">Completeness по блокам карточки новичка.</p>
+          <div class="completeness-list" id="completenessList"></div>
+        </div>
+      </section>
+
+      <!-- Tab 2: Scores -->
+      <section class="tab-content" id="tab-scores">
+        <div class="card">
+          <h2>Оценка по этапам</h2>
+          <p class="subtle">Итоговые scores из candidate_scores. Для обычных scores: выше — лучше. Для risk_score: выше — хуже.</p>
+          <div class="scores-grid" id="scoresGrid"></div>
+        </div>
+      </section>
+
+      <!-- Tab 3: Calls -->
+      <section class="tab-content" id="tab-calls">
+        <div class="card">
+          <h2>Звонки</h2>
+          <p class="subtle">Метрики звонков и динамика start/middle/final. Структурированные метрики появятся после Phase 3B-2 / 3C.</p>
+          <div id="callsContent"></div>
+        </div>
+      </section>
+
+      <!-- Tab 4: Interview -->
+      <section class="tab-content" id="tab-interview">
+        <div class="card">
+          <h2>Собеседование</h2>
+          <p class="subtle">Оценки по собеседованию из candidate_scores + источники из manual_inputs.interview.</p>
+          <div id="interviewContent"></div>
+        </div>
+      </section>
+
+      <!-- Tab 5: Training agents -->
+      <section class="tab-content" id="tab-training">
+        <div class="card">
+          <h2>Учебные агенты</h2>
+          <p class="subtle">Диалоги с ботом учебки. Аналитика по диалогам появится в Phase 3C.</p>
+          <div id="trainingContent"></div>
+        </div>
+      </section>
+
+      <!-- Tab 6: Ops -->
+      <section class="tab-content" id="tab-ops">
+        <div class="card">
+          <h2>Операционка</h2>
+          <p class="subtle">Дисциплина и операционные метрики. Структурированные метрики появятся после Phase 3B-2.</p>
+          <div id="opsContent"></div>
+        </div>
+      </section>
+
+      <!-- Tab 7: Recommendations -->
+      <section class="tab-content" id="tab-recommendations">
+        <div class="card">
+          <h2>Итоговая рекомендация</h2>
+          <div id="finalRecommendation"></div>
+        </div>
+        <div class="card">
+          <h2>Сильные стороны</h2>
+          <div id="recStrengths"></div>
+        </div>
+        <div class="card">
+          <h2>Зоны роста</h2>
+          <div id="recGrowth"></div>
+        </div>
+        <div class="card">
+          <h2>Красные флаги</h2>
+          <div id="recRedFlags"></div>
+        </div>
+        <div class="card">
+          <h2>Рекомендации тренеру</h2>
+          <div id="recCoach"></div>
+        </div>
+        <div class="card">
+          <h2>Что контролировать в первые 1–2 недели</h2>
+          <p class="subtle">Автоматически выведено из красных флагов, зон роста и статуса. Дополните вручную после выпуска.</p>
+          <div id="recFirstWeeks"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    'use strict';
+
+    // ====================================================================
+    // Utilities
+    // ====================================================================
+
+    const byId = id => document.getElementById(id);
+    const isScopedPage = window.location.pathname === '/onboarding_cross' || window.location.pathname.startsWith('/onboarding_cross/');
+    const VIEWER_BASE = isScopedPage ? '/onboarding_cross/api/viewer/phase1' : '/api/viewer/phase1';
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function showError(msg) {
+      const el = byId('errorBanner');
+      el.textContent = msg;
+      el.classList.toggle('show', Boolean(msg));
+    }
+
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name) || '';
+    }
+
+    function loadViewerKey() {
+      try {
+        return sessionStorage.getItem('onboarding_viewer_key') || '';
+      } catch (_) { return ''; }
+    }
+    function saveViewerKey(key) {
+      try { sessionStorage.setItem('onboarding_viewer_key', key); } catch (_) {}
+    }
+
+    async function requestJson(url, options = {}) {
+      const headers = { 'X-Viewer-Key': byId('viewerKey').value.trim() };
+      if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+      const response = await fetch(url, { ...options, headers });
+      const text = await response.text();
+      let payload;
+      try { payload = text ? JSON.parse(text) : {}; } catch (_) { payload = { raw: text }; }
+      if (!response.ok) {
+        const errMsg = payload && payload.error ? payload.error : `HTTP ${response.status}`;
+        const err = new Error(errMsg);
+        err.status = response.status;
+        err.payload = payload;
+        throw err;
+      }
+      return payload;
+    }
+
+    // ====================================================================
+    // Score interpretation
+    // ====================================================================
+
+    function zoneForScore(value, isRisk = false) {
+      if (value == null) return { code: 'empty', label: 'нет данных', className: '', barClass: '' };
+      if (isRisk) {
+        // higher = worse
+        if (value <= 25) return { code: 'low', label: 'низкий риск', className: 'confident', barClass: 'zone-confident' };
+        if (value <= 55) return { code: 'medium', label: 'средний риск', className: 'minimum', barClass: 'zone-minimum' };
+        if (value <= 75) return { code: 'high', label: 'высокий риск', className: 'risk', barClass: 'zone-risk' };
+        return { code: 'critical', label: 'критичный риск', className: 'critical', barClass: 'zone-critical' };
+      }
+      if (value <= 40) return { code: 'critical', label: 'критичный разрыв', className: 'critical', barClass: 'zone-critical' };
+      if (value <= 60) return { code: 'risk', label: 'зона риска', className: 'risk', barClass: 'zone-risk' };
+      if (value <= 75) return { code: 'minimum', label: 'рабочий минимум', className: 'minimum', barClass: 'zone-minimum' };
+      if (value <= 89) return { code: 'confident', label: 'уверенный уровень', className: 'confident', barClass: 'zone-confident' };
+      return { code: 'strong', label: 'сильный уровень', className: 'strong', barClass: 'zone-strong' };
+    }
+
+    const SCORE_CARDS = [
+      { field: 'hard_score',         label: 'Hard skills',        note: 'Тестовый день, учебные агенты, звонки, выпускной тест' },
+      { field: 'soft_score',         label: 'Soft skills',        note: 'Собеседование, учебные агенты, реальные звонки' },
+      { field: 'learning_score',     label: 'Обучаемость',        note: 'Погружение, принятие ОС, динамика звонков, рефлексия' },
+      { field: 'discipline_score',   label: 'Дисциплина',         note: 'Погружение, операционка, сроки, статусы' },
+      { field: 'call_quality_score', label: 'Качество звонков',   note: 'Учебные агенты + реальные звонки' },
+      { field: 'ops_score',          label: 'Операционка',        note: 'Трубка, XSALES, просрочки, статусы, комментарии' },
+      { field: 'final_test_score',   label: 'Выпускной тест',     note: 'Балл / процент / критичные ошибки' },
+      { field: 'risk_score',         label: 'Risk score',         note: 'Красные флаги + слабые scores (выше = хуже)', isRisk: true },
+      { field: 'overall_score',      label: 'Overall',            note: 'Агрегированный итог (hard/soft/learning/discipline/calls/final)' },
+    ];
+
+    const STATUS_RU = {
+      ready: 'Готов к выпуску',
+      ready_with_control: 'Готов с контролем',
+      needs_practice: 'Нужна доработка',
+      not_recommended: 'Не рекомендован',
+      insufficient_data: 'Недостаточно данных',
+    };
+    const RISK_RU = {
+      low: 'Низкий',
+      medium: 'Средний',
+      high: 'Высокий',
+      critical: 'Критичный',
+    };
+
+    function statusBadgeClass(status) {
+      if (!status) return 'unknown';
+      if (status === 'ready') return 'ready';
+      if (status === 'ready_with_control') return 'ready_with_control';
+      if (status === 'needs_practice') return 'needs_practice';
+      if (status === 'not_recommended') return 'not_recommended';
+      if (status === 'insufficient_data') return 'insufficient_data';
+      return 'unknown';
+    }
+    function statusLabelRu(status) {
+      return STATUS_RU[status] || (status || '—');
+    }
+    function riskBadgeClass(level) {
+      return ['low', 'medium', 'high', 'critical'].includes(level) ? level : 'unknown';
+    }
+    function riskLabelRu(level) {
+      return RISK_RU[level] || (level || '—');
+    }
+
+    // ====================================================================
+    // Renderers
+    // ====================================================================
+
+    function renderHero(card) {
+      const c = card.candidate || {};
+      const s = card.scores || {};
+      const status = s.final_status;
+      const risk = s.risk_level;
+      const heroEl = byId('hero');
+
+      const cells = [
+        { label: 'Ключ новичка', value: escapeHtml(c.base_key || '—') },
+        { label: 'Сегмент', value: escapeHtml(c.seller_segment || '—') },
+        { label: 'Направление', value: escapeHtml(c.direction || '—') },
+        { label: 'Итоговый статус', pillHtml: `<span class="pill ${statusBadgeClass(status)}">${escapeHtml(statusLabelRu(status))}</span>` },
+        { label: 'Риск', pillHtml: `<span class="pill ${riskBadgeClass(risk)}">${escapeHtml(riskLabelRu(risk))}</span>` },
+        { label: 'Дата тестового дня', value: escapeHtml(c.test_day_started_at || '—') },
+        { label: 'Дата погружения', value: escapeHtml(c.immersion_started_at || '—') },
+      ];
+
+      const cellsHtml = cells.map(cell => `
+        <div class="hero-cell">
+          <div class="label">${escapeHtml(cell.label)}</div>
+          <div class="value">${cell.value != null ? cell.value : cell.pillHtml}</div>
+        </div>
+      `).join('');
+
+      heroEl.innerHTML = `
+        <div class="hero-eyebrow">Отчёт по новичку · v1</div>
+        <h1>${escapeHtml(c.full_name || 'Без ФИО')}</h1>
+        <div class="hero-sub">Read-only отчёт на основе данных из candidate_scores и completeness.</div>
+        <div class="hero-grid">${cellsHtml}</div>
+      `;
+    }
+
+    function renderQuickSlice(card) {
+      const s = card.scores || {};
+      const cells = [
+        { label: 'Overall', value: s.overall_score },
+        { label: 'Call quality', value: s.call_quality_score },
+        { label: 'Learning', value: s.learning_score },
+        { label: 'Discipline', value: s.discipline_score },
+        { label: 'Risk', value: s.risk_score, isRisk: true },
+      ];
+      byId('quickSlice').innerHTML = cells.map(cell => {
+        const v = cell.value;
+        const display = v == null ? '—' : escapeHtml(v);
+        const emptyCls = v == null ? 'empty' : '';
+        return `<div class="qs-cell">
+          <div class="qs-label">${escapeHtml(cell.label)}</div>
+          <div class="qs-value ${emptyCls}">${display}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderOverviewRecommendation(card) {
+      const s = card.scores || {};
+      const rec = s.recommendation;
+      const el = byId('overviewRecommendation');
+      if (rec) {
+        el.innerHTML = `<div class="recommendation-block">
+          <div class="label">Ключевой вывод</div>
+          <div class="text">${escapeHtml(rec)}</div>
+        </div>`;
+      } else {
+        el.innerHTML = `<div class="empty-state">
+          <div class="es-icon">!</div>
+          <div class="es-title">Ключевой вывод ещё не заполнен</div>
+          <div class="es-sub">Тренер может заполнить recommendation в админке (секция «Итоговые оценки»).</div>
+        </div>`;
+      }
+      renderListsGrid(byId('overviewLists'), s);
+    }
+
+    function renderListsGrid(container, scores) {
+      const lists = [
+        { title: 'Сильные стороны', items: scores.strengths, cls: 'strengths' },
+        { title: 'Зоны роста', items: scores.growth_zones, cls: 'growth' },
+        { title: 'Красные флаги', items: scores.red_flags, cls: 'red-flags' },
+        { title: 'Рекомендации тренеру', items: scores.coach_recommendations, cls: 'coach' },
+      ];
+      container.innerHTML = lists.map(list => {
+        const safe = Array.isArray(list.items) ? list.items : [];
+        const itemsHtml = safe.length
+          ? `<ul>${safe.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
+          : '<div class="empty-list">—</div>';
+        return `<div class="list-box ${list.cls}">
+          <h4>${escapeHtml(list.title)}</h4>
+          ${itemsHtml}
+        </div>`;
+      }).join('');
+    }
+
+    function renderCompleteness(card) {
+      const completeness = card.completeness || { items: [] };
+      const items = completeness.items || [];
+      const el = byId('completenessList');
+      if (!items.length) {
+        el.innerHTML = `<div class="empty-state">
+          <div class="es-icon">?</div>
+          <div class="es-title">Completeness данные отсутствуют</div>
+        </div>`;
+        return;
+      }
+      el.innerHTML = items.map(item => {
+        const isReady = item.status === 'ready';
+        const statusCls = isReady ? 'ready' : 'not_ready';
+        const statusText = isReady ? 'готово' : (item.status || 'не готово');
+        return `<div class="completeness-row">
+          <span class="cr-title">${escapeHtml(item.title || item.code)}</span>
+          <span class="cr-status ${statusCls}">${escapeHtml(statusText)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function renderScoresGrid(card) {
+      const s = card.scores || {};
+      const el = byId('scoresGrid');
+      el.innerHTML = SCORE_CARDS.map(sc => {
+        const value = s[sc.field];
+        const zone = zoneForScore(value, sc.isRisk);
+        const valueDisplay = value == null
+          ? `<span class="score-value empty">—</span>`
+          : `<span class="score-value">${escapeHtml(value)}</span>`;
+        const progressBar = value == null
+          ? `<div class="progress-bar"><div style="width:0%;"></div></div>`
+          : `<div class="progress-bar"><div class="${zone.barClass}" style="width:${escapeHtml(value)}%;"></div></div>`;
+        const zoneText = value == null
+          ? `<div class="score-zone">нет данных</div>`
+          : `<div class="score-zone ${zone.className}">${escapeHtml(zone.label)}</div>`;
+        return `<div class="score-card">
+          <div class="score-head">
+            <span class="score-name">${escapeHtml(sc.label)}</span>
+            ${valueDisplay}
+          </div>
+          ${progressBar}
+          ${zoneText}
+          <div class="score-note">${escapeHtml(sc.note)}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderCallsTab(card) {
+      const el = byId('callsContent');
+      const s = card.scores || {};
+      const manualInputs = card.manual_inputs || [];
+      const phoneMetrics = manualInputs.find(m => m.section === 'phone_metrics');
+      const callsStart = manualInputs.find(m => m.section === 'calls_start');
+      const callsMiddle = manualInputs.find(m => m.section === 'calls_middle');
+      const callsFinal = manualInputs.find(m => m.section === 'calls_final');
+      const completeness = card.completeness || { items: [] };
+      const callsComplete = (completeness.items || []).filter(i =>
+        i.code === 'calls_start' || i.code === 'calls_middle' || i.code === 'calls_final'
+      );
+
+      const html = [];
+
+      // Call quality headline
+      html.push(`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
+        <h3>Итог по звонкам</h3>
+        <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+          <div class="qs-cell">
+            <div class="qs-label">Call quality score</div>
+            <div class="qs-value ${s.call_quality_score == null ? 'empty' : ''}">${s.call_quality_score == null ? '—' : escapeHtml(s.call_quality_score)}</div>
+          </div>
+        </div>
+      </div>`);
+
+      // Phone metrics — placeholder grid
+      html.push(`<div class="card" style="margin-bottom:14px;">
+        <h3>Метрики трубки</h3>
+        <div class="metrics-grid">
+          ${renderMetricPlaceholder('talk_time_minutes', 'Время на трубке, мин', phoneMetrics)}
+          ${renderMetricPlaceholder('calls_total', 'Всего звонков', phoneMetrics)}
+          ${renderMetricPlaceholder('reached_calls', 'Дозвонов', phoneMetrics)}
+          ${renderMetricPlaceholder('calls_over_2min', 'Звонков > 2 мин', phoneMetrics)}
+          ${renderMetricPlaceholder('calls_over_2min_percent', 'Звонков > 2 мин, %', phoneMetrics)}
+          ${renderMetricPlaceholder('calls_over_10min', 'Звонков > 10 мин', phoneMetrics)}
+          ${renderMetricPlaceholder('effective_minutes', 'Эффективные минуты', phoneMetrics)}
+        </div>
+      </div>`);
+
+      // Start/middle/final dynamics
+      const dynamicsRows = [
+        { label: 'Звонки начала', data: callsStart, completeItem: callsComplete.find(i => i.code === 'calls_start') },
+        { label: 'Звонки середины', data: callsMiddle, completeItem: callsComplete.find(i => i.code === 'calls_middle') },
+        { label: 'Звонки выпуска', data: callsFinal, completeItem: callsComplete.find(i => i.code === 'calls_final') },
+      ];
+
+      if (dynamicsRows.some(r => r.data || (r.completeItem && r.completeItem.status === 'ready'))) {
+        html.push(`<div class="card">
+          <h3>Динамика start / middle / final</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Этап</th><th>Статус данных</th><th>Заметки/транскрипт</th></tr>
+            </thead>
+            <tbody>
+              ${dynamicsRows.map(r => {
+                const ready = r.completeItem && r.completeItem.status === 'ready';
+                const payload = r.data && r.data.payload ? r.data.payload : null;
+                let notes = '—';
+                if (payload) {
+                  if (payload.transcript) notes = payload.transcript.slice(0, 80) + (payload.transcript.length > 80 ? '…' : '');
+                  else if (payload.coach_comment) notes = payload.coach_comment;
+                  else if (payload.comment) notes = payload.comment;
+                }
+                return `<tr>
+                  <td>${escapeHtml(r.label)}</td>
+                  <td>${ready ? '<span class="status-badge ready">готово</span>' : '<span class="status-badge unknown">нет данных</span>'}</td>
+                  <td>${escapeHtml(notes)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`);
+      } else {
+        html.push(renderEmptyState('Звонки', 'Данные по звонкам ещё не загружены', 'Загрузите транскрипты или сохраните manual_inputs.calls_start / calls_middle / calls_final через админку.'));
+      }
+
+      el.innerHTML = html.join('');
+    }
+
+    function renderMetricPlaceholder(fieldName, label, phoneMetrics) {
+      // Try to extract a real value from phone_metrics payload (current format: { days: [...], comment })
+      let value = null;
+      if (phoneMetrics && phoneMetrics.payload) {
+        const p = phoneMetrics.payload;
+        if (fieldName === 'talk_time_minutes' && Array.isArray(p.days)) {
+          value = p.days.reduce((s, d) => s + (Number(d.minutes) || 0), 0);
+          if (value === 0) value = null;
+        }
+        if (fieldName === 'calls_total' && Array.isArray(p.days)) {
+          value = p.days.reduce((s, d) => s + (Number(d.calls_count) || 0), 0);
+          if (value === 0) value = null;
+        }
+        if (fieldName === 'calls_over_2min_percent' && Array.isArray(p.days)) {
+          const total = p.days.reduce((s, d) => s + (Number(d.calls_count) || 0), 0);
+          const over2 = p.days.reduce((s, d) => s + (Number(d.calls_count) || 0) * (Number(d.calls_over_2min_percent) || 0) / 100, 0);
+          if (total > 0) value = Math.round((over2 / total) * 1000) / 10;
+        }
+      }
+      if (value != null) {
+        return `<div class="metric-cell">
+          <div class="m-label">${escapeHtml(label)}</div>
+          <div class="m-value">${escapeHtml(value)}</div>
+        </div>`;
+      }
+      return `<div class="metric-cell">
+        <div class="m-label">${escapeHtml(label)}</div>
+        <div class="m-value placeholder">данных нет</div>
+      </div>`;
+    }
+
+    function renderInterviewTab(card) {
+      const el = byId('interviewContent');
+      const s = card.scores || {};
+      const manualInputs = card.manual_inputs || [];
+      const interviewManual = manualInputs.find(m => m.section === 'interview' || m.section === 'interview_transcript');
+      const completeness = card.completeness || { items: [] };
+      const interviewComplete = (completeness.items || []).find(i => i.code === 'interview_transcript');
+
+      const html = [];
+
+      // Scores from candidate_scores
+      html.push(`<div class="scores-grid" style="margin-bottom:14px;">
+        ${renderScoreMiniCard('Soft (interview)', s.soft_score, 'Оценка по собеседованию из candidate_scores')}
+        ${renderScoreMiniCard('Hard / sales fit', s.hard_score, 'Включая segment_understanding и roleplay')}
+        ${renderScoreMiniCard('Learning potential', s.learning_score, 'Из soft_flexibility + antifragility + proactivity')}
+        ${renderScoreMiniCard('Risk (interview)', s.risk_score, 'Красные флаги + conflict', true)}
+      </div>`);
+
+      // Transcript / notes
+      if (interviewManual && interviewManual.payload) {
+        const p = interviewManual.payload;
+        const text = p.text_content || p.transcript || p.comment || '';
+        const preview = text.slice(0, 400) + (text.length > 400 ? '…' : '');
+        html.push(`<div class="card">
+          <h3>Текст собеседования (фрагмент)</h3>
+          <div style="font-size:13px; line-height:1.55; color:var(--text); white-space:pre-wrap;">${escapeHtml(preview) || '<span class="empty-list">—</span>'}</div>
+        </div>`);
+      } else {
+        html.push(renderEmptyState('Собеседование', 'Текст собеседования ещё не загружен',
+          interviewComplete && interviewComplete.status === 'ready'
+            ? 'Файл загружен, но не отображается в viewer card.'
+            : 'Загрузите TXT-транскрибацию через админку (секция «Собеседование»).'));
+      }
+
+      el.innerHTML = html.join('');
+    }
+
+    function renderScoreMiniCard(label, value, note, isRisk = false) {
+      const zone = zoneForScore(value, isRisk);
+      const valueDisplay = value == null
+        ? `<span class="score-value empty">—</span>`
+        : `<span class="score-value">${escapeHtml(value)}</span>`;
+      const progressBar = value == null
+        ? `<div class="progress-bar"><div style="width:0%;"></div></div>`
+        : `<div class="progress-bar"><div class="${zone.barClass}" style="width:${escapeHtml(value)}%;"></div></div>`;
+      const zoneText = value == null
+        ? `<div class="score-zone">нет данных</div>`
+        : `<div class="score-zone ${zone.className}">${escapeHtml(zone.label)}</div>`;
+      return `<div class="score-card">
+        <div class="score-head">
+          <span class="score-name">${escapeHtml(label)}</span>
+          ${valueDisplay}
+        </div>
+        ${progressBar}
+        ${zoneText}
+        <div class="score-note">${escapeHtml(note)}</div>
+      </div>`;
+    }
+
+    function renderTrainingTab(card) {
+      const el = byId('trainingContent');
+      const dialogs = card.training_bot_dialogs || [];
+      const manualInputs = card.manual_inputs || [];
+      const completeness = card.completeness || { items: [] };
+      const trainingComplete = (completeness.items || []).find(i => i.code === 'training_bot_dialogs');
+
+      if (!dialogs.length) {
+        el.innerHTML = renderEmptyState('Учебные агенты', 'Диалоги ещё не загружены',
+          trainingComplete && trainingComplete.status === 'ready'
+            ? 'Диалоги импортированы, но не отображаются в viewer card.'
+            : 'Импортируйте бот учебки через админку (Импорт → Импорт бота учебки).');
+        return;
+      }
+
+      const html = [`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
+        <h3>Сводка по диалогам</h3>
+        <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+          <div class="qs-cell">
+            <div class="qs-label">Всего диалогов</div>
+            <div class="qs-value">${escapeHtml(dialogs.length)}</div>
+          </div>
+        </div>
+      </div>`];
+
+      // Table of dialogs
+      html.push(`<div class="card">
+        <h3>Диалоги</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Role ID</th>
+              <th>Роль / клиент</th>
+              <th>Результат</th>
+              <th>Аналитика</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dialogs.map(d => {
+              const roleClient = d.role_client || d.role_client_name || '';
+              const roleBusiness = d.role_business || d.role_company || '';
+              const roleStr = [roleClient, roleBusiness].filter(Boolean).join(' / ');
+              const analysis = d.analysis_json || d.analysis || (d.result_payload && d.result_payload.summary);
+              const analysisState = analysis
+                ? `<span class="status-badge ready">есть</span>`
+                : `<span class="status-badge unknown">не рассчитана</span>`;
+              return `<tr>
+                <td>${escapeHtml(d.dialog_date || '—')}</td>
+                <td>${escapeHtml(d.role_id || '—')}</td>
+                <td>${escapeHtml(roleStr || '—')}</td>
+                <td>${escapeHtml(d.result || '—')}</td>
+                <td>${analysisState}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`);
+
+      // Note about analytics
+      const anyAnalysis = dialogs.some(d => d.analysis_json || d.analysis);
+      if (!anyAnalysis) {
+        html.push(`<div class="card">
+          <h3>Аналитика по диалогам</h3>
+          <div class="empty-state">
+            <div class="es-icon">!</div>
+            <div class="es-title">Диалоги загружены, аналитика ещё не рассчитана</div>
+            <div class="es-sub">Аналитика по учебным агентам появится в Phase 3C (AI-анализ по рубрикам).</div>
+          </div>
+        </div>`);
+      }
+
+      el.innerHTML = html.join('');
+    }
+
+    function renderOpsTab(card) {
+      const el = byId('opsContent');
+      const s = card.scores || {};
+      const manualInputs = card.manual_inputs || [];
+      const completeness = card.completeness || { items: [] };
+
+      const opsSections = [
+        { code: 'phone_metrics', title: 'Время на трубке' },
+        { code: 'ops_xsales', title: 'XSALES' },
+        { code: 'ops_overdue_goals', title: 'Просрочки клиентских целей' },
+        { code: 'ops_statuses', title: 'Статусы' },
+        { code: 'ops_comments', title: 'Комментарии' },
+      ];
+
+      const html = [];
+
+      // Scores headline
+      html.push(`<div class="scores-grid" style="margin-bottom:14px;">
+        ${renderScoreMiniCard('Ops score', s.ops_score, 'Трубка, XSALES, просрочки, статусы, комментарии')}
+        ${renderScoreMiniCard('Discipline score', s.discipline_score, 'Погружение, операционка, сроки, статусы')}
+      </div>`);
+
+      // Ops sections
+      const anyOpsData = opsSections.some(sec => manualInputs.find(m => m.section === sec.code));
+      if (anyOpsData) {
+        html.push(`<div class="card">
+          <h3>Состояние по разделам операционки</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Раздел</th><th>Статус</th><th>Комментарий</th></tr>
+            </thead>
+            <tbody>
+              ${opsSections.map(sec => {
+                const m = manualInputs.find(x => x.section === sec.code);
+                const p = m && m.payload ? m.payload : null;
+                const status = p && p.status ? p.status : 'not_checked';
+                const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
+                const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
+                const comment = p && p.comment ? p.comment : '—';
+                return `<tr>
+                  <td>${escapeHtml(sec.title)}</td>
+                  <td><span class="status-badge ${statusCls}">${escapeHtml(statusRu)}</span></td>
+                  <td>${escapeHtml(comment)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`);
+      } else {
+        // Show placeholder completeness for ops
+        const opsComplete = (completeness.items || []).filter(i =>
+          i.code.startsWith('ops_') || i.code === 'phone_metrics'
+        );
+        if (opsComplete.length) {
+          html.push(`<div class="card">
+            <h3>Готовность данных по операционке</h3>
+            <div class="completeness-list">
+              ${opsComplete.map(item => `<div class="completeness-row">
+                <span class="cr-title">${escapeHtml(item.title)}</span>
+                <span class="cr-status ${item.status === 'ready' ? 'ready' : 'not_ready'}">${escapeHtml(item.status === 'ready' ? 'готово' : 'не готово')}</span>
+              </div>`).join('')}
+            </div>
+          </div>`);
+        } else {
+          html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
+            'Заполните manual_inputs.ops_xsales / ops_overdue_goals / ops_statuses / ops_comments / phone_metrics через админку.'));
+        }
+      }
+
+      el.innerHTML = html.join('');
+    }
+
+    function renderRecommendationsTab(card) {
+      const s = card.scores || {};
+      const list = (items, emptyMsg) => {
+        const safe = Array.isArray(items) ? items : [];
+        if (!safe.length) return `<div class="empty-state">
+          <div class="es-icon">—</div>
+          <div class="es-title">${escapeHtml(emptyMsg)}</div>
+        </div>`;
+        return `<ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.6;">
+          ${safe.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+        </ul>`;
+      };
+
+      const rec = s.recommendation;
+      byId('finalRecommendation').innerHTML = rec
+        ? `<div class="recommendation-block">
+            <div class="label">Итоговая рекомендация</div>
+            <div class="text">${escapeHtml(rec)}</div>
+          </div>`
+        : `<div class="empty-state">
+            <div class="es-icon">!</div>
+            <div class="es-title">Рекомендация ещё не заполнена</div>
+            <div class="es-sub">Тренер может заполнить её в админке (секция «Итоговые оценки»).</div>
+          </div>`;
+
+      byId('recStrengths').innerHTML = list(s.strengths, 'Сильные стороны ещё не зафиксированы');
+      byId('recGrowth').innerHTML = list(s.growth_zones, 'Зоны роста ещё не зафиксированы');
+      byId('recRedFlags').innerHTML = list(s.red_flags, 'Красных флагов нет');
+      byId('recCoach').innerHTML = list(s.coach_recommendations, 'Рекомендации тренеру ещё не зафиксированы');
+
+      // Auto-derive "what to control first 1-2 weeks"
+      const firstWeeks = [];
+      if (s.red_flags && s.red_flags.length) {
+        firstWeeks.push('Контролировать красные флаги: ' + s.red_flags.slice(0, 3).join('; '));
+      }
+      if (s.growth_zones && s.growth_zones.length) {
+        firstWeeks.push('Фокус на зонах роста: ' + s.growth_zones.slice(0, 3).join('; '));
+      }
+      if (s.risk_score != null && s.risk_score >= 56) {
+        firstWeeks.push('Высокий риск (' + s.risk_score + '/100) — плотный контроль тимлида.');
+      }
+      if (s.discipline_score != null && s.discipline_score < 50) {
+        firstWeeks.push('Дисциплина ниже 50 — ежедневная проверка операционки и прохождения маршрута.');
+      }
+      if (s.call_quality_score != null && s.call_quality_score < 50) {
+        firstWeeks.push('Качество звонков ниже 50 — прослушивание звонков и разбор с тренером.');
+      }
+      if (s.final_status === 'ready_with_control') {
+        firstWeeks.push('Статус «готов с контролем» — уточнить план контроля после выпуска.');
+      }
+      if (s.final_status === 'needs_practice') {
+        firstWeeks.push('Статус «нужна доработка» — не выпускать без повторной оценки.');
+      }
+      byId('recFirstWeeks').innerHTML = firstWeeks.length
+        ? `<ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.6;">${firstWeeks.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
+        : `<div class="empty-state">
+            <div class="es-icon">✓</div>
+            <div class="es-title">Явных точек контроля не выявлено</div>
+            <div class="es-sub">Заполните оценки и red flags — точки контроля появятся автоматически.</div>
+          </div>`;
+    }
+
+    function renderEmptyState(title, sub, hint) {
+      return `<div class="empty-state">
+        <div class="es-icon">?</div>
+        <div class="es-title">${escapeHtml(title)}</div>
+        <div class="es-sub">${escapeHtml(sub)}</div>
+        ${hint ? `<div class="es-sub" style="margin-top:8px; font-style:italic;">${escapeHtml(hint)}</div>` : ''}
+      </div>`;
+    }
+
+    // ====================================================================
+    // Tab switching
+    // ====================================================================
+
+    function initTabs() {
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const target = tab.dataset.tab;
+          tabs.forEach(t => t.classList.toggle('active', t === tab));
+          document.querySelectorAll('.tab-content').forEach(tc => {
+            tc.classList.toggle('active', tc.id === `tab-${target}`);
+          });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    // ====================================================================
+    // Main flow
+    // ====================================================================
+
+    async function loadReport(baseKey) {
+      showError('');
+      byId('loadingState').style.display = 'block';
+      byId('reportContainer').style.display = 'none';
+      try {
+        const card = await requestJson(`${VIEWER_BASE}/candidates/${encodeURIComponent(baseKey)}/card`);
+        if (!card || !card.candidate) {
+          showError('Кандидат не найден. Проверьте base_key.');
+          byId('loadingState').style.display = 'none';
+          return;
+        }
+        renderHero(card);
+        renderQuickSlice(card);
+        renderOverviewRecommendation(card);
+        renderCompleteness(card);
+        renderScoresGrid(card);
+        renderCallsTab(card);
+        renderInterviewTab(card);
+        renderTrainingTab(card);
+        renderOpsTab(card);
+        renderRecommendationsTab(card);
+        byId('loadingState').style.display = 'none';
+        byId('reportContainer').style.display = 'block';
+      } catch (err) {
+        byId('loadingState').style.display = 'none';
+        if (err.status === 401) {
+          showError('Неверный VIEWER_KEY. Скопируйте значение из .env и попробуйте снова.');
+        } else if (err.status === 404) {
+          showError('Кандидат не найден. Проверьте base_key.');
+        } else if (err.status === 503) {
+          showError('Viewer отключён на сервере (VIEWER_KEY не задан).');
+        } else {
+          showError(err.message || 'Ошибка загрузки отчёта.');
+        }
+      }
+    }
+
+    function init() {
+      // Restore viewer key from sessionStorage
+      const savedKey = loadViewerKey();
+      if (savedKey) byId('viewerKey').value = savedKey;
+
+      // base_key from URL or empty
+      const urlBaseKey = getQueryParam('base_key');
+      if (urlBaseKey) byId('baseKeyInput').value = urlBaseKey;
+
+      // Auto-load if both present
+      const hasKeyInUrl = Boolean(urlBaseKey);
+
+      byId('openReportBtn').addEventListener('click', () => {
+        const key = byId('viewerKey').value.trim();
+        const baseKey = byId('baseKeyInput').value.trim();
+        if (!key) { showError('Введите VIEWER_KEY.'); return; }
+        if (!baseKey) { showError('Введите base_key новичка.'); return; }
+        saveViewerKey(key);
+        loadReport(baseKey);
+      });
+
+      // Auto-load if both viewer key (from session) and base_key (from URL) present
+      if (savedKey && hasKeyInUrl) {
+        loadReport(urlBaseKey);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

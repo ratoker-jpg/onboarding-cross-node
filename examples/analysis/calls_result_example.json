@@ -1,0 +1,55 @@
+{
+  "schema_version": "analysis_result_v1",
+  "base_key": "EXAMPLE01",
+  "analysis_type": "calls",
+  "rubric_id": "calls_automanual_binary_v1",
+  "rubric_version": "1.0.0",
+  "question_results": [
+    { "question_id": "contact_01", "answer": "no", "evidence": "Оператор не уточнил удобство разговора.", "quote": "добрый день, это банк Точка, звоню по предложению", "source": "call_transcript", "source_ref": "calls_start:line:1" },
+    { "question_id": "contact_02", "answer": "yes", "evidence": "Поздоровался.", "quote": "добрый день", "source": "call_transcript", "source_ref": "calls_start:line:1" },
+    { "question_id": "contact_03", "answer": "yes", "evidence": "Представился именем.", "quote": "меня зовут Иван", "source": "call_transcript", "source_ref": "calls_start:line:2" },
+    { "question_id": "contact_04", "answer": "yes", "evidence": "Назвал банк.", "quote": "звоню из Банка Точка", "source": "call_transcript", "source_ref": "calls_start:line:2" },
+    { "question_id": "contact_05", "answer": "yes", "evidence": "Сообщил причину.", "quote": "по поводу предложения для вашего бизнеса", "source": "call_transcript", "source_ref": "calls_start:line:3" },
+
+    { "question_id": "needs_01", "answer": "yes", "evidence": "Спросил про бизнес.", "quote": "каким бизнесом занимаетесь?", "source": "call_transcript", "source_ref": "calls_start:line:5" },
+    { "question_id": "needs_02", "answer": "yes", "evidence": "Спросил про проблемы.", "quote": "с какими трудностями сталкиваетесь?", "source": "call_transcript", "source_ref": "calls_start:line:8" },
+    { "question_id": "needs_03", "answer": "no", "evidence": "Не уточнил частоту.", "quote": "(нет вопроса про регулярность)", "source": "call_transcript", "source_ref": "" },
+    { "question_id": "needs_04", "answer": "yes", "evidence": "Уточнил текущее решение.", "quote": "как вы сейчас решаете этот вопрос?", "source": "call_transcript", "source_ref": "calls_start:line:12" },
+    { "question_id": "needs_05", "answer": "no", "evidence": "Не уточнил ресурсы.", "quote": "(нет вопроса про деньги/время)", "source": "call_transcript", "source_ref": "" },
+
+    { "question_id": "presentation_01", "answer": "yes", "evidence": "Презентовал продукт.", "quote": "мы предлагаем овердрафт для бизнеса", "source": "call_transcript", "source_ref": "calls_middle:line:3" },
+    { "question_id": "presentation_02", "answer": "no", "evidence": "Не спрашивал мнение.", "quote": "(оператор только презентует, не проверяет реакцию)", "source": "call_transcript", "source_ref": "" },
+    { "question_id": "presentation_03", "answer": "yes", "evidence": "Подкрепил расчётом.", "quote": "разница около 300 тысяч в месяц", "source": "call_transcript", "source_ref": "calls_middle:line:7" },
+    { "question_id": "presentation_04", "answer": "yes", "evidence": "Связал с озвученной проблемой.", "quote": "учитывая кассовый разрыв, овердрафт покрывает его", "source": "call_transcript", "source_ref": "calls_middle:line:9" },
+
+    { "question_id": "objections_01", "answer": "yes", "evidence": "Уточнил причину возражения.", "quote": "подскажите, что именно смущает?", "source": "call_transcript", "source_ref": "calls_middle:line:15" },
+    { "question_id": "objections_02", "answer": "no", "evidence": "Не уточнил, остались ли сомнения.", "quote": "(нет вопроса о снятии сомнения)", "source": "call_transcript", "source_ref": "" },
+    { "question_id": "objections_03", "answer": "yes", "evidence": "Привёл пример.", "quote": "у другого клиента похожая ситуация была", "source": "call_transcript", "source_ref": "calls_middle:line:20" },
+    { "question_id": "objections_04", "answer": "no", "evidence": "Не сравнил с конкурентами.", "quote": "(нет сравнения с другими банками)", "source": "call_transcript", "source_ref": "" },
+    { "question_id": "objections_05", "answer": "yes", "evidence": "Клиент выразил возражение по релевантности.", "quote": "не вижу смысла в овердрафте для нас", "source": "call_transcript", "source_ref": "calls_middle:line:13" },
+
+    { "question_id": "close_01", "answer": "yes", "evidence": "Предложил действие.", "quote": "давайте оформим заявку", "source": "call_transcript", "source_ref": "calls_final:line:3" },
+    { "question_id": "close_02", "answer": "yes", "evidence": "Договорился о сроке.", "quote": "я перезвоню в пятницу до обеда", "source": "call_transcript", "source_ref": "calls_final:line:5" },
+    { "question_id": "close_03", "answer": "not_applicable", "evidence": "Сценарий не предполагает списание со счёта.", "quote": "", "source": "call_transcript", "source_ref": "" },
+    { "question_id": "close_04", "answer": "not_applicable", "evidence": "Сценарий не предполагает списание.", "quote": "", "source": "call_transcript", "source_ref": "" }
+  ],
+  "summary": "Звонок структурно правильный: контакт, выявление, презентация с расчётом, обработка возражения, закрытие со сроком. Просадки: не уточнял частоту проблемы и ресурсы клиента, не проверял мнение клиента по продукту, не сравнивал с конкурентами, не уточнял остаток сомнений после обработки возражения.",
+  "strengths": [
+    "Связывает продукт с озвученной болью клиента",
+    "Подкрепляет выгоду расчётом",
+    "Закрывает с конкретным сроком"
+  ],
+  "growth_zones": [
+    "Уточнять частоту проблемы и ресурсы клиента при выявлении",
+    "Проверять реакцию клиента на продукт после презентации",
+    "Уточнять остаток сомнений после обработки возражения",
+    "Сравнивать с конкурентами при обработке возражений"
+  ],
+  "red_flags": [],
+  "coach_recommendations": [
+    "Дать чек-лист выявления: бизнес → проблемы → частота → текущее решение → ресурсы",
+    "Отработать вопрос 'что думаете?' после презентации",
+    "Закрепить скрипт проверки снятия сомнения"
+  ],
+  "risk_flags": []
+}

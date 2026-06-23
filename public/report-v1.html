@@ -309,8 +309,8 @@
   <div class="page">
     <!-- Auth bar -->
     <div class="auth-bar">
-      <label>Ключ просмотра (VIEWER_KEY)
-        <input id="viewerKey" type="password" placeholder="Введите VIEWER_KEY" />
+      <label>Ключ просмотра
+        <input id="viewerKey" type="password" placeholder="Введите ключ просмотра" />
       </label>
       <label>Ключ новичка
         <input id="baseKeyInput" type="text" placeholder="GTRAIN01" />
@@ -902,7 +902,7 @@
         const valRu = val === 'yes' ? 'да' : val === 'no' ? 'нет' : 'недостаточно данных';
         metadataHtml = `<div style="background:var(--panel-soft); padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:13px;">
           <b>Возражение по релевантности продукта:</b> ${escapeHtml(valRu)}
-          <span style="color:var(--muted); margin-left:8px;">(metadata, не оценка качества оператора)</span>
+          <span style="color:var(--muted); margin-left:8px;">(метаданные, не оценка качества оператора)</span>
         </div>`;
       }
 
@@ -1304,7 +1304,7 @@
             </div>`);
           } else {
             html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
-              'Заполните manual_inputs.ops_xsales / ops_overdue_goals / ops_statuses / ops_comments / phone_metrics через админку.'));
+              'Заполните в админке данные по XSales, просрочкам, статусам, комментариям и времени на трубке.'));
           }
         }
       } else {
@@ -1357,7 +1357,7 @@
             </div>`);
           } else {
             html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
-              'Заполните manual_inputs.ops_xsales / ops_overdue_goals / ops_statuses / ops_comments / phone_metrics через админку.'));
+              'Заполните в админке данные по XSales, просрочкам, статусам, комментариям и времени на трубке.'));
           }
         }
       }
@@ -1423,7 +1423,7 @@
         : `<div class="empty-state">
             <div class="es-icon">✓</div>
             <div class="es-title">Явных точек контроля не выявлено</div>
-            <div class="es-sub">Заполните оценки и red flags — точки контроля появятся автоматически.</div>
+            <div class="es-sub">Заполните оценки и красные флаги — точки контроля появятся автоматически.</div>
           </div>`;
 
       // Phase 3E1: append Codex-source recommendations (interview + calls)
@@ -1494,7 +1494,7 @@
       try {
         const card = await requestJson(`${VIEWER_BASE}/candidates/${encodeURIComponent(baseKey)}/card`);
         if (!card || !card.candidate) {
-          showError('Кандидат не найден. Проверьте base_key.');
+          showError('Кандидат не найден. Проверьте ключ новичка.');
           byId('loadingState').style.display = 'none';
           return;
         }
@@ -1513,11 +1513,11 @@
       } catch (err) {
         byId('loadingState').style.display = 'none';
         if (err.status === 401) {
-          showError('Неверный VIEWER_KEY. Скопируйте значение из .env и попробуйте снова.');
+          showError('Неверный ключ просмотра. Проверьте значение в настройках сервера и попробуйте снова.');
         } else if (err.status === 404) {
-          showError('Кандидат не найден. Проверьте base_key.');
+          showError('Кандидат не найден. Проверьте ключ новичка.');
         } else if (err.status === 503) {
-          showError('Viewer отключён на сервере (VIEWER_KEY не задан).');
+          showError('Просмотр отчётов отключён на сервере: ключ просмотра не задан.');
         } else {
           showError(err.message || 'Ошибка загрузки отчёта.');
         }
@@ -1541,8 +1541,8 @@
       byId('openReportBtn').addEventListener('click', () => {
         const key = byId('viewerKey').value.trim();
         const baseKey = byId('baseKeyInput').value.trim();
-        if (!key) { showError('Введите VIEWER_KEY.'); return; }
-        if (!baseKey) { showError('Введите base_key новичка.'); return; }
+        if (!key) { showError('Введите ключ просмотра.'); return; }
+        if (!baseKey) { showError('Введите ключ новичка.'); return; }
         saveViewerKey(key);
         loadReport(baseKey);
       });

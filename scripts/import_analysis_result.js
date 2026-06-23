@@ -226,6 +226,41 @@ function applyCriticalErrorCaps(patch, riskFlags) {
 
 function nowIso() { return new Date().toISOString(); }
 
+/**
+ * Enrich rubricResult.units[].question_details[] with evidence/quote/source/
+ * source_ref from the original Codex document's question_results.
+ *
+ * calculateRubricScore() only stores { question_id, answer, weight,
+ * applicable, contributes_to_score } in question_details — the human-readable
+ * evidence fields are in doc.question_results and need to be merged in so the
+ * viewer card and report-v1.html can show them.
+ *
+ * This is a pure enrichment — it does NOT change scores, weights, or any
+ * computed field. It only adds string fields to existing question_detail
+ * objects.
+ */
+function enrichRubricResultWithQuestionEvidence(rubricResult, questionResults) {
+  if (!rubricResult || !Array.isArray(questionResults)) return rubricResult;
+  const byId = new Map();
+  for (const q of questionResults) {
+    if (!q || !q.question_id) continue;
+    byId.set(q.question_id, q);
+  }
+  const units = Array.isArray(rubricResult.units) ? rubricResult.units : [];
+  for (const unit of units) {
+    const details = Array.isArray(unit.question_details) ? unit.question_details : [];
+    for (const detail of details) {
+      const src = byId.get(detail.question_id);
+      if (!src) continue;
+      detail.evidence = src.evidence || '';
+      detail.quote = src.quote || '';
+      detail.source = src.source || '';
+      detail.source_ref = src.source_ref || '';
+    }
+  }
+  return rubricResult;
+}
+
 function persistResult(doc, rubricResult, scoresPatch, adminKey) {
   const db = getPhase1Db();
   const candidatesRepo = createCandidatesRepo(db);
@@ -293,6 +328,15 @@ function persistResult(doc, rubricResult, scoresPatch, adminKey) {
       output_payload_json: JSON.stringify({
         rubric_result: rubricResult,
         scores_patch: scoresPatch,
+        // Phase 3E1 fixup: persist Codex summary/lists at top level so the
+        // viewer card projection (projectAnalysisRunForViewer) can read them
+        // without needing to dig into rubric_result or scores_patch.
+        summary: doc.summary || '',
+        strengths: Array.isArray(doc.strengths) ? doc.strengths : [],
+        growth_zones: Array.isArray(doc.growth_zones) ? doc.growth_zones : [],
+        red_flags: Array.isArray(doc.red_flags) ? doc.red_flags : [],
+        coach_recommendations: Array.isArray(doc.coach_recommendations) ? doc.coach_recommendations : [],
+        risk_flags: Array.isArray(doc.risk_flags) ? doc.risk_flags : [],
       }),
       error_text: null,
       created_at: now,
@@ -357,7 +401,13 @@ function main() {
 
   // 3. Load rubric + compute score
   const rubric = validation.rubric || loadRubric(doc.rubric_id);
-  const rubricResult = calculateRubricScore(rubric, doc.question_results);
+  const rawRubricResult = calculateRubricScore(rubric, doc.question_results);
+  // Phase 3E1 fixup: enrich question_details with evidence/quote/source/source_ref
+  // from the original Codex document. calculateRubricScore only stores
+  // { question_id, answer, weight, applicable, contributes_to_score } — the
+  // evidence fields are in doc.question_results and need to be merged in so
+  // the viewer card can show them.
+  const rubricResult = enrichRubricResultWithQuestionEvidence(rawRubricResult, doc.question_results);
   console.log('');
   console.log(`3. Rubric scoring:`);
   console.log(`   overall_score_percent: ${rubricResult.overall_score_percent}`);
@@ -366,7 +416,8 @@ function main() {
   console.log(`   risk_flags from conflicts: ${rubricResult.risk_flags.length}`);
   if (rubricResult.units) {
     for (const u of rubricResult.units) {
-      console.log(`   unit ${u.unit_id}: score=${u.score_percent} confidence=${u.confidence} status=${u.status}`);
+      const evCount = (u.question_details || []).filter(qd => qd.evidence).length;
+      console.log(`   unit ${u.unit_id}: score=${u.score_percent} confidence=${u.confidence} status=${u.status} evidence=${evCount}/${(u.question_details || []).length}`);
     }
   }
 

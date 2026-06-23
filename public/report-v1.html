@@ -370,7 +370,7 @@
       <section class="tab-content" id="tab-scores">
         <div class="card">
           <h2>Оценка по этапам</h2>
-          <p class="subtle">Итоговые scores из candidate_scores. Для обычных scores: выше — лучше. Для risk_score: выше — хуже.</p>
+          <p class="subtle">Итоговые оценки из candidate_scores. Для обычных оценок: выше — лучше. Для риска: выше — хуже.</p>
           <div class="scores-grid" id="scoresGrid"></div>
         </div>
       </section>
@@ -521,14 +521,14 @@
 
     const SCORE_CARDS = [
       { field: 'hard_score',         label: 'Hard skills',        note: 'Тестовый день, учебные агенты, звонки, выпускной тест' },
-      { field: 'soft_score',         label: 'Soft skills',        note: 'Собеседование, учебные агенты, реальные звонки' },
+      { field: 'soft_score',         label: 'Софт-навыки',        note: 'Собеседование, учебные агенты, реальные звонки' },
       { field: 'learning_score',     label: 'Обучаемость',        note: 'Погружение, принятие ОС, динамика звонков, рефлексия' },
       { field: 'discipline_score',   label: 'Дисциплина',         note: 'Погружение, операционка, сроки, статусы' },
       { field: 'call_quality_score', label: 'Качество звонков',   note: 'Учебные агенты + реальные звонки' },
       { field: 'ops_score',          label: 'Операционка',        note: 'Трубка, XSALES, просрочки, статусы, комментарии' },
       { field: 'final_test_score',   label: 'Выпускной тест',     note: 'Балл / процент / критичные ошибки' },
-      { field: 'risk_score',         label: 'Risk score',         note: 'Красные флаги + слабые scores (выше = хуже)', isRisk: true },
-      { field: 'overall_score',      label: 'Overall',            note: 'Агрегированный итог (hard/soft/learning/discipline/calls/final)' },
+      { field: 'risk_score',         label: 'Риск',               note: 'Красные флаги + слабые оценки (выше = хуже)', isRisk: true },
+      { field: 'overall_score',      label: 'Общий балл',         note: 'Агрегированный итог (hard/soft/learning/discipline/calls/final)' },
     ];
 
     const STATUS_RU = {
@@ -603,11 +603,11 @@
     function renderQuickSlice(card) {
       const s = card.scores || {};
       const cells = [
-        { label: 'Overall', value: s.overall_score },
-        { label: 'Call quality', value: s.call_quality_score },
-        { label: 'Learning', value: s.learning_score },
-        { label: 'Discipline', value: s.discipline_score },
-        { label: 'Risk', value: s.risk_score, isRisk: true },
+        { label: 'Общий балл', value: s.overall_score },
+        { label: 'Качество звонков', value: s.call_quality_score },
+        { label: 'Обучаемость', value: s.learning_score },
+        { label: 'Дисциплина', value: s.discipline_score },
+        { label: 'Риск', value: s.risk_score, isRisk: true },
       ];
       byId('quickSlice').innerHTML = cells.map(cell => {
         const v = cell.value;
@@ -702,28 +702,28 @@
         let partialBadge = '';
         if (sc.field === 'soft_score' || sc.field === 'hard_score' || sc.field === 'learning_score') {
           if (latest.interview) {
-            sourceBadge = `<span class="status-badge ready" style="font-size:10px;">Codex interview</span>`;
+            sourceBadge = `<span class="status-badge ready" style="font-size:10px;">Анализ собеседования</span>`;
             if (latest.interview.rubric_result.overall_confidence === 'low' || latest.interview.rubric_result.overall_status === 'partial') {
               partialBadge = `<span class="status-badge unknown" style="font-size:10px; margin-left:4px;">частичная оценка</span>`;
             }
           } else if (value != null) {
-            sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">manual</span>`;
+            sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">Ручной ввод</span>`;
           }
         } else if (sc.field === 'call_quality_score') {
           if (latest.calls) {
-            sourceBadge = `<span class="status-badge ready" style="font-size:10px;">Codex calls</span>`;
+            sourceBadge = `<span class="status-badge ready" style="font-size:10px;">Анализ звонков</span>`;
             if (latest.calls.rubric_result.overall_confidence === 'low' || latest.calls.rubric_result.overall_status === 'partial') {
               partialBadge = `<span class="status-badge unknown" style="font-size:10px; margin-left:4px;">частичная оценка</span>`;
             }
           } else if (value != null) {
-            sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">manual</span>`;
+            sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">Ручной ввод</span>`;
           }
         } else if (sc.field === 'risk_score') {
-          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">derived</span>`;
+          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">Рассчитано из других показателей</span>`;
         } else if (sc.field === 'overall_score') {
-          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">computed</span>`;
+          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">Рассчитано системой</span>`;
         } else if (value != null) {
-          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">manual</span>`;
+          sourceBadge = `<span class="status-badge unknown" style="font-size:10px;">Ручной ввод</span>`;
         }
 
         return `<div class="score-card">
@@ -758,13 +758,13 @@
 
       // Call quality headline — show source if Codex analysis exists
       const sourceBadge = latestCalls
-        ? `<span class="status-badge ready" style="margin-left:10px;">Codex calls analysis</span>`
-        : (s.call_quality_score != null ? `<span class="status-badge unknown" style="margin-left:10px;">manual</span>` : '');
+        ? `<span class="status-badge ready" style="margin-left:10px;">Анализ звонков</span>`
+        : (s.call_quality_score != null ? `<span class="status-badge unknown" style="margin-left:10px;">Ручной ввод</span>` : '');
       html.push(`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
         <h3>Итог по звонкам</h3>
         <div class="quick-slice" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
           <div class="qs-cell">
-            <div class="qs-label">Call quality score ${sourceBadge}</div>
+            <div class="qs-label">Качество звонков ${sourceBadge}</div>
             <div class="qs-value ${s.call_quality_score == null ? 'empty' : ''}">${s.call_quality_score == null ? '—' : escapeHtml(s.call_quality_score)}</div>
           </div>
         </div>
@@ -911,19 +911,19 @@
         if (!u) return '';
         const score = u.score_percent;
         const isNull = score == null;
-        const zone = isNull ? { barClass: '', className: '', label: 'не применимо / недостаточно данных / не проверялось' } : zoneForScore(score);
+        const zone = isNull ? { barClass: '', className: '', label: 'недостаточно данных / не применимо / не проверялось' } : zoneForScore(score);
         const progressBar = isNull
           ? `<div class="progress-bar"><div style="width:0%;"></div></div>`
           : `<div class="progress-bar"><div class="${zone.barClass}" style="width:${escapeHtml(score)}%;"></div></div>`;
         const zoneText = isNull
           ? `<div class="score-zone" style="color:var(--muted);">${escapeHtml(zone.label)}</div>`
           : `<div class="score-zone ${zone.className}">${escapeHtml(zone.label)}</div>`;
-        const confidenceBadge = u.confidence === 'low' ? `<span class="status-badge unknown" style="margin-left:6px;">low confidence</span>` : '';
-        const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px;">${escapeHtml(u.status)}</span>` : '';
+        const confidenceBadge = u.confidence === 'low' ? `<span class="status-badge unknown" style="margin-left:6px;">низкая уверенность</span>` : '';
+        const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px;">${escapeHtml(analysisStatusRu(u.status))}</span>` : '';
         // Evidence details
         const qd = Array.isArray(u.question_details) ? u.question_details : [];
         const detailsHtml = qd.length ? `<details style="margin-top:8px;">
-          <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Вопросы и evidence (${qd.length})</summary>
+          <summary style="cursor:pointer; font-size:13px; color:var(--muted);">Вопросы и обоснование (${qd.length})</summary>
           <div style="margin-top:8px;">
             ${qd.map(q => renderQuestionEvidence(q)).join('')}
           </div>
@@ -956,15 +956,31 @@
         <h3>${escapeHtml(title)}</h3>
         <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">
           Рубрика: <code>${escapeHtml(rr.rubric_id || '—')}</code> v${escapeHtml(rr.rubric_version || '—')} ·
-          overall: <b>${rr.overall_score_percent == null ? '—' : escapeHtml(rr.overall_score_percent)}</b> ·
-          confidence: <b>${escapeHtml(confidence || '—')}</b> ·
-          status: <b>${escapeHtml(status || '—')}</b>
+          общий балл: <b>${rr.overall_score_percent == null ? '—' : escapeHtml(rr.overall_score_percent)}</b> ·
+          уверенность: <b>${escapeHtml(analysisConfidenceRu(confidence))}</b> ·
+          статус: <b>${escapeHtml(analysisStatusRu(status))}</b>
         </div>
         ${warning}
         ${metadataHtml}
         <div class="scores-grid">${unitsHtml}</div>
         ${listsHtml}
       </div>`;
+    }
+
+    function analysisConfidenceRu(confidence) {
+      const map = { normal: 'обычная', low: 'низкая' };
+      return map[confidence] || confidence || '—';
+    }
+
+    function analysisStatusRu(status) {
+      const map = {
+        applicable: 'применимо',
+        not_enough_data: 'недостаточно данных',
+        not_applicable: 'не применимо',
+        has_conflict: 'конфликт данных',
+        partial: 'частичная оценка',
+      };
+      return map[status] || status || '—';
     }
 
     function renderQuestionEvidence(q) {
@@ -980,9 +996,9 @@
           <code>${escapeHtml(q.question_id)}</code>
           <span class="status-badge ${answerCls}">${escapeHtml(answerRu)}</span>
         </div>
-        ${q.evidence ? `<div style="margin-top:4px; color:var(--text);"><b>Evidence:</b> ${escapeHtml(q.evidence)}</div>` : ''}
+        ${q.evidence ? `<div style="margin-top:4px; color:var(--text);"><b>Обоснование:</b> ${escapeHtml(q.evidence)}</div>` : ''}
         ${q.quote ? `<div style="margin-top:2px; color:var(--muted); font-style:italic;">«${escapeHtml(q.quote)}»</div>` : ''}
-        ${(q.source || q.source_ref) ? `<div style="margin-top:2px; color:var(--muted); font-size:11px;">source: ${escapeHtml(q.source || '—')} · ref: ${escapeHtml(q.source_ref || '—')}</div>` : ''}
+        ${(q.source || q.source_ref) ? `<div style="margin-top:2px; color:var(--muted); font-size:11px;">источник: ${escapeHtml(q.source || '—')} · ссылка: ${escapeHtml(q.source_ref || '—')}</div>` : ''}
       </div>`;
     }
 
@@ -1041,13 +1057,13 @@
 
       // Aggregate scores — show source badge if Codex analysis exists
       const sourceBadge = latestInterview
-        ? `<span class="status-badge ready" style="margin-left:10px;">Codex interview analysis</span>`
+        ? `<span class="status-badge ready" style="margin-left:10px;">Анализ собеседования</span>`
         : '';
       html.push(`<div class="scores-grid" style="margin-bottom:14px;">
-        ${renderScoreMiniCard('Soft (interview)', s.soft_score, 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : ''))}
-        ${renderScoreMiniCard('Hard / sales fit', s.hard_score, 'Включая segment_understanding и roleplay')}
-        ${renderScoreMiniCard('Learning potential', s.learning_score, 'Из soft_flexibility + antifragility + proactivity')}
-        ${renderScoreMiniCard('Risk (interview)', s.risk_score, 'Красные флаги + conflict', true)}
+        ${renderScoreMiniCard('Софт-навыки', s.soft_score, 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : ''))}
+        ${renderScoreMiniCard('Hard skills / продажи', s.hard_score, 'Включая понимание сегмента и ролевую практику')}
+        ${renderScoreMiniCard('Потенциал обучения', s.learning_score, 'Из гибкости + антихрупкости + проактивности')}
+        ${renderScoreMiniCard('Риск', s.risk_score, 'Красные флаги + конфликт данных', true)}
       </div>`);
 
       // Codex interview analysis breakdown
@@ -1406,10 +1422,10 @@
       const latest = card.latest_analysis || {};
       const codexSections = [];
       if (latest.interview && (latest.interview.summary || (latest.interview.strengths && latest.interview.strengths.length) || (latest.interview.growth_zones && latest.interview.growth_zones.length) || (latest.interview.coach_recommendations && latest.interview.coach_recommendations.length) || (latest.interview.red_flags && latest.interview.red_flags.length))) {
-        codexSections.push({ title: 'Рекомендации по собеседованию (Codex interview analysis)', analysis: latest.interview });
+        codexSections.push({ title: 'Рекомендации по собеседованию (анализ Codex)', analysis: latest.interview });
       }
       if (latest.calls && (latest.calls.summary || (latest.calls.strengths && latest.calls.strengths.length) || (latest.calls.growth_zones && latest.calls.growth_zones.length) || (latest.calls.coach_recommendations && latest.calls.coach_recommendations.length) || (latest.calls.red_flags && latest.calls.red_flags.length))) {
-        codexSections.push({ title: 'Рекомендации по звонкам (Codex calls analysis)', analysis: latest.calls });
+        codexSections.push({ title: 'Рекомендации по звонкам (анализ Codex)', analysis: latest.calls });
       }
       // Append after recFirstWeeks
       const firstWeeksEl = byId('recFirstWeeks');

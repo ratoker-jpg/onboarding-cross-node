@@ -2075,6 +2075,9 @@ function projectAnalysisRunForViewer(run) {
   if (run.status !== 'success') return null;
   const output = run.output_payload || {};
   const rubricResult = output.rubric_result || {};
+  // Fallback for old analysis_runs that don't have top-level summary/lists
+  // in output_payload — try scores_patch (which has recommendation/strengths/etc).
+  const scoresPatch = output.scores_patch || {};
 
   // Truncate evidence fields inside unit question_details
   const units = Array.isArray(rubricResult.units)
@@ -2085,6 +2088,7 @@ function projectAnalysisRunForViewer(run) {
               ...qd,
               evidence: truncateForViewer(qd.evidence),
               quote: truncateForViewer(qd.quote),
+              source: truncateForViewer(qd.source, 120),
               source_ref: truncateForViewer(qd.source_ref, 120),
             }))
           : [],
@@ -2110,11 +2114,22 @@ function projectAnalysisRunForViewer(run) {
     },
     // Summary + list fields come from the import script's output_payload
     // (saved alongside rubric_result). They are top-level in output_payload.
-    summary: typeof output.summary === 'string' ? truncateForViewer(output.summary, 1000) : null,
-    strengths: Array.isArray(output.strengths) ? output.strengths : [],
-    growth_zones: Array.isArray(output.growth_zones) ? output.growth_zones : [],
-    coach_recommendations: Array.isArray(output.coach_recommendations) ? output.coach_recommendations : [],
-    red_flags: Array.isArray(output.red_flags) ? output.red_flags : [],
+    // Fallback to scores_patch for old runs that don't have them at top level.
+    summary: (typeof output.summary === 'string' && output.summary)
+      ? truncateForViewer(output.summary, 1000)
+      : (scoresPatch.recommendation ? truncateForViewer(scoresPatch.recommendation, 1000) : null),
+    strengths: Array.isArray(output.strengths) && output.strengths.length
+      ? output.strengths
+      : (Array.isArray(scoresPatch.strengths) ? scoresPatch.strengths : []),
+    growth_zones: Array.isArray(output.growth_zones) && output.growth_zones.length
+      ? output.growth_zones
+      : (Array.isArray(scoresPatch.growth_zones) ? scoresPatch.growth_zones : []),
+    coach_recommendations: Array.isArray(output.coach_recommendations) && output.coach_recommendations.length
+      ? output.coach_recommendations
+      : (Array.isArray(scoresPatch.coach_recommendations) ? scoresPatch.coach_recommendations : []),
+    red_flags: Array.isArray(output.red_flags) && output.red_flags.length
+      ? output.red_flags
+      : (Array.isArray(scoresPatch.red_flags) ? scoresPatch.red_flags : []),
   };
 }
 

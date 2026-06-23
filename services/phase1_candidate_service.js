@@ -1352,12 +1352,32 @@ function getViewerCandidateCard(baseKey) {
   const completeness = buildCompleteness(candidate, repos);
   const scores = repos.candidateScoresRepo.getByCandidateId(candidate.id);
   const importSummary = repos.importRunsRepo.listByBaseKey(baseKey);
+  const manualInputsRaw = repos.manualInputsRepo.listByCandidateId(candidate.id);
+  const trainingDialogsRaw = repos.snapshotsRepo.listTrainingBotDialogsByCandidateId(candidate.id);
+
+  // Safe projection of manual inputs for viewer
+  const viewerManualInputs = manualInputsRaw.map(mapManualInputForViewer);
+
+  // Normalized blocks derived from manual inputs
+  const callStats = buildCallStats(viewerManualInputs);
+  const opsSummary = buildOpsSummary(viewerManualInputs);
+  const interviewSummary = buildInterviewSummary(viewerManualInputs);
+
+  // Safe projection of training bot dialogs for viewer
+  const viewerTrainingDialogs = trainingDialogsRaw.map(mapTrainingDialogForViewer);
+
   return {
     candidate,
     completeness,
     scores,
     import_summary: importSummary,
     has_legacy_ai_profile: Boolean(repos.aiProfileRepo.getByCandidateId(candidate.id)),
+    // Phase 3D1: rich report feeds
+    manual_inputs: viewerManualInputs,
+    training_bot_dialogs: viewerTrainingDialogs,
+    call_stats: callStats,
+    ops_summary: opsSummary,
+    interview_summary: interviewSummary,
   };
 }
 
@@ -1368,6 +1388,227 @@ function getViewerHealth() {
     viewer_enabled: config.viewerEnabled,
     admin_enabled: config.enabled,
   };
+}
+
+// ============================================================
+// Phase 3D1: viewer card normalizers (private)
+// ============================================================
+
+// Sections safe to expose to viewer. Anything outside this set stays in DB.
+const VIEWER_MANUAL_SECTIONS = new Set([
+  'interview',
+  'interview_transcript',
+  'phone_metrics',
+  'calls_start',
+  'calls_middle',
+  'calls_final',
+  'operations',
+  'ops_xsales',
+  'ops_overdue_goals',
+  'ops_statuses',
+  'ops_comments',
+  'final_test',
+]);
+
+// Cap payload size for viewer to avoid shipping huge transcripts over the wire.
+// Larger payloads are truncated to a preview + length metadata.
+const VIEWER_PAYLOAD_PREVIEW_LIMIT = 2000;
+const VIEWER_INTERVIEW_PREVIEW_LIMIT = 800;
+
+function truncatePayloadForViewer(payload) {
+  // Returns { payload, truncated, length } where `payload` is the safe value
+  // to ship. Strings longer than the limit are replaced with a preview object.
+  if (payload == null) {
+    return { payload: null, truncated: false, length: 0 };
+  }
+  if (typeof payload === 'string') {
+    if (payload.length <= VIEWER_PAYLOAD_PREVIEW_LIMIT) {
+      return { payload, truncated: false, length: payload.length };
+    }
+    return {
+      payload: {
+        preview: payload.slice(0, VIEWER_PAYLOAD_PREVIEW_LIMIT),
+        truncated: true,
+        length: payload.length,
+      },
+      truncated: true,
+      length: payload.length,
+    };
+  }
+  if (typeof payload === 'object') {
+    // For objects we ship as-is, but flag large string fields inside
+    // (e.g. transcript text_content) by truncating them in-place on a clone.
+    const clone = Array.isArray(payload) ? [...payload] : { ...payload };
+    for (const key of Object.keys(clone)) {
+      if (typeof clone[key] === 'string' && clone[key].length > VIEWER_PAYLOAD_PREVIEW_LIMIT) {
+        const full = clone[key];
+        clone[key] = {
+          preview: full.slice(0, VIEWER_PAYLOAD_PREVIEW_LIMIT),
+          truncated: true,
+          length: full.length,
+        };
+      }
+    }
+    return { payload: clone, truncated: false, length: JSON.stringify(clone).length };
+  }
+  return { payload, truncated: false, length: 0 };
+}
+
+function mapManualInputForViewer(raw) {
+  if (!raw) return null;
+  if (!VIEWER_MANUAL_SECTIONS.has(raw.section)) return null;
+  const { payload: safePayload } = truncatePayloadForViewer(raw.payload);
+  return {
+    section: raw.section,
+    payload: safePayload,
+    updated_at: raw.updated_at || null,
+  };
+}
+
+function mapTrainingDialogForViewer(raw) {
+  if (!raw) return null;
+  // Pick only the minimal, non-secret fields needed by report-v1.html.
+  // transcript_text is intentionally omitted — too large and not needed for
+  // the report card. analysis_json is included (already small JSON or null).
+  return {
+    session_key: raw.training_key || null,
+    dialog_date: raw.dialog_date || null,
+    role_id: raw.role_id || null,
+    role_client: raw.role_client || raw.role_client_name || null,
+    role_business: raw.role_business || raw.role_company || null,
+    product: raw.role_title || null,
+    result: raw.result || null,
+    analysis_json: raw.analysis_json || null,
+  };
+}
+
+function buildCallStats(manualInputs) {
+  const out = {
+    talk_time_minutes: null,
+    calls_total: null,
+    reached_calls: null,
+    calls_over_2min: null,
+    calls_over_2min_percent: null,
+    calls_over_10min: null,
+    effective_minutes: null,
+    days: [],
+  };
+  const phoneMetrics = manualInputs.find(m => m && m.section === 'phone_metrics');
+  if (!phoneMetrics || !phoneMetrics.payload) return out;
+  const p = phoneMetrics.payload;
+  const days = Array.isArray(p.days) ? p.days : [];
+  if (!days.length) return out;
+
+  let talkTime = 0;
+  let callsTotal = 0;
+  let reachedCalls = 0;
+  let callsOver2min = 0;
+  let callsOver10min = 0;
+  let effectiveMinutes = 0;
+  let callsOver2minPercentSum = 0;
+  let daysWithPercent = 0;
+
+  for (const d of days) {
+    const minutes = Number(d.minutes) || 0;
+    const callsCount = Number(d.calls_count) || 0;
+    const pct = Number(d.calls_over_2min_percent);
+    talkTime += minutes;
+    callsTotal += callsCount;
+    reachedCalls += callsCount; // no separate field; assume calls_count == reached
+    callsOver2min += Math.round((callsCount * (Number.isFinite(pct) ? pct : 0)) / 100);
+    effectiveMinutes += minutes; // no separate field; use minutes as proxy
+    if (Number.isFinite(pct)) {
+      callsOver2minPercentSum += pct;
+      daysWithPercent += 1;
+    }
+    if (typeof d.calls_over_10min === 'number') {
+      callsOver10min += d.calls_over_10min;
+    }
+  }
+
+  out.talk_time_minutes = talkTime || null;
+  out.calls_total = callsTotal || null;
+  out.reached_calls = reachedCalls || null;
+  out.calls_over_2min = callsOver2min || null;
+  out.calls_over_2min_percent = daysWithPercent
+    ? Math.round((callsOver2minPercentSum / daysWithPercent) * 10) / 10
+    : null;
+  out.calls_over_10min = callsOver10min || null;
+  out.effective_minutes = effectiveMinutes || null;
+  out.days = days.map((d, idx) => ({
+    day: d.day != null ? d.day : idx + 1,
+    minutes: Number(d.minutes) || 0,
+    calls_count: Number(d.calls_count) || 0,
+    calls_over_2min_percent: Number.isFinite(Number(d.calls_over_2min_percent))
+      ? Number(d.calls_over_2min_percent)
+      : null,
+  }));
+  return out;
+}
+
+const OPS_SECTION_META = {
+  ops_xsales: { code: 'ops_xsales', title: 'XSALES' },
+  ops_overdue_goals: { code: 'ops_overdue_goals', title: 'Просрочки клиентских целей' },
+  ops_statuses: { code: 'ops_statuses', title: 'Статусы' },
+  ops_comments: { code: 'ops_comments', title: 'Комментарии' },
+  phone_metrics: { code: 'phone_metrics', title: 'Время на трубке' },
+};
+
+function buildOpsSummary(manualInputs) {
+  const sections = [];
+  for (const [code, meta] of Object.entries(OPS_SECTION_META)) {
+    const m = manualInputs.find(x => x && x.section === code);
+    const payload = m && m.payload ? m.payload : null;
+    const status = payload && payload.status
+      ? payload.status
+      : (m ? 'not_checked' : 'not_checked');
+    const comment = payload && payload.comment ? String(payload.comment) : '';
+    sections.push({
+      code: meta.code,
+      title: meta.title,
+      status,
+      comment,
+      updated_at: m && m.updated_at ? m.updated_at : null,
+    });
+  }
+  return { sections };
+}
+
+function buildInterviewSummary(manualInputs) {
+  const interviewManual = manualInputs.find(m => m && m.section === 'interview');
+  const transcriptManual = manualInputs.find(m => m && m.section === 'interview_transcript');
+
+  const out = {
+    has_interview: Boolean(interviewManual),
+    has_transcript: Boolean(transcriptManual),
+    preview: '',
+    length: 0,
+    updated_at: null,
+  };
+
+  // Prefer transcript section text; fallback to interview section text_content.
+  let text = '';
+  let updatedAt = null;
+  if (transcriptManual && transcriptManual.payload) {
+    const p = transcriptManual.payload;
+    text = typeof p === 'string' ? p : (p.text_content || p.transcript || p.text || '');
+    updatedAt = transcriptManual.updated_at || null;
+  }
+  if (!text && interviewManual && interviewManual.payload) {
+    const p = interviewManual.payload;
+    text = typeof p === 'string' ? p : (p.text_content || p.transcript || p.text || '');
+    updatedAt = updatedAt || interviewManual.updated_at || null;
+  }
+
+  if (text) {
+    const full = String(text);
+    out.length = full.length;
+    out.preview = full.length > VIEWER_INTERVIEW_PREVIEW_LIMIT
+      ? full.slice(0, VIEWER_INTERVIEW_PREVIEW_LIMIT)
+      : full;
+    out.updated_at = updatedAt;
+  }
+  return out;
 }
 
 module.exports = {

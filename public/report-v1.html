@@ -711,6 +711,7 @@
       const el = byId('callsContent');
       const s = card.scores || {};
       const manualInputs = card.manual_inputs || [];
+      const callStats = card.call_stats || null; // Phase 3D1 normalized block
       const phoneMetrics = manualInputs.find(m => m.section === 'phone_metrics');
       const callsStart = manualInputs.find(m => m.section === 'calls_start');
       const callsMiddle = manualInputs.find(m => m.section === 'calls_middle');
@@ -733,19 +734,56 @@
         </div>
       </div>`);
 
-      // Phone metrics — placeholder grid
-      html.push(`<div class="card" style="margin-bottom:14px;">
-        <h3>Метрики трубки</h3>
-        <div class="metrics-grid">
-          ${renderMetricPlaceholder('talk_time_minutes', 'Время на трубке, мин', phoneMetrics)}
-          ${renderMetricPlaceholder('calls_total', 'Всего звонков', phoneMetrics)}
-          ${renderMetricPlaceholder('reached_calls', 'Дозвонов', phoneMetrics)}
-          ${renderMetricPlaceholder('calls_over_2min', 'Звонков > 2 мин', phoneMetrics)}
-          ${renderMetricPlaceholder('calls_over_2min_percent', 'Звонков > 2 мин, %', phoneMetrics)}
-          ${renderMetricPlaceholder('calls_over_10min', 'Звонков > 10 мин', phoneMetrics)}
-          ${renderMetricPlaceholder('effective_minutes', 'Эффективные минуты', phoneMetrics)}
-        </div>
-      </div>`);
+      // Phone metrics — prefer call_stats (Phase 3D1), fallback to manual_inputs.phone_metrics
+      const hasCallStats = callStats && (
+        callStats.talk_time_minutes != null ||
+        callStats.calls_total != null ||
+        callStats.calls_over_2min_percent != null
+      );
+      if (hasCallStats) {
+        html.push(`<div class="card" style="margin-bottom:14px;">
+          <h3>Метрики трубки</h3>
+          <div class="metrics-grid">
+            ${renderMetricCell('talk_time_minutes', 'Время на трубке, мин', callStats.talk_time_minutes)}
+            ${renderMetricCell('calls_total', 'Всего звонков', callStats.calls_total)}
+            ${renderMetricCell('reached_calls', 'Дозвонов', callStats.reached_calls)}
+            ${renderMetricCell('calls_over_2min', 'Звонков > 2 мин', callStats.calls_over_2min)}
+            ${renderMetricCell('calls_over_2min_percent', 'Звонков > 2 мин, %', callStats.calls_over_2min_percent)}
+            ${renderMetricCell('calls_over_10min', 'Звонков > 10 мин', callStats.calls_over_10min)}
+            ${renderMetricCell('effective_minutes', 'Эффективные минуты', callStats.effective_minutes)}
+          </div>
+          ${callStats.days && callStats.days.length ? `
+            <h3 style="margin-top:18px;">По дням</h3>
+            <table class="data-table">
+              <thead>
+                <tr><th>День</th><th>Минуты</th><th>Звонков</th><th>Звонков > 2 мин, %</th></tr>
+              </thead>
+              <tbody>
+                ${callStats.days.map(d => `<tr>
+                  <td>${escapeHtml(d.day)}</td>
+                  <td>${escapeHtml(d.minutes)}</td>
+                  <td>${escapeHtml(d.calls_count)}</td>
+                  <td>${d.calls_over_2min_percent == null ? '—' : escapeHtml(d.calls_over_2min_percent)}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          ` : ''}
+        </div>`);
+      } else {
+        // Backward-compat fallback: derive from manual_inputs.phone_metrics
+        html.push(`<div class="card" style="margin-bottom:14px;">
+          <h3>Метрики трубки</h3>
+          <div class="metrics-grid">
+            ${renderMetricPlaceholder('talk_time_minutes', 'Время на трубке, мин', phoneMetrics)}
+            ${renderMetricPlaceholder('calls_total', 'Всего звонков', phoneMetrics)}
+            ${renderMetricPlaceholder('reached_calls', 'Дозвонов', phoneMetrics)}
+            ${renderMetricPlaceholder('calls_over_2min', 'Звонков > 2 мин', phoneMetrics)}
+            ${renderMetricPlaceholder('calls_over_2min_percent', 'Звонков > 2 мин, %', phoneMetrics)}
+            ${renderMetricPlaceholder('calls_over_10min', 'Звонков > 10 мин', phoneMetrics)}
+            ${renderMetricPlaceholder('effective_minutes', 'Эффективные минуты', phoneMetrics)}
+          </div>
+        </div>`);
+      }
 
       // Start/middle/final dynamics
       const dynamicsRows = [
@@ -781,14 +819,27 @@
           </table>
         </div>`);
       } else {
-        html.push(renderEmptyState('Звонки', 'Данные по звонкам ещё не загружены', 'Загрузите транскрипты или сохраните manual_inputs.calls_start / calls_middle / calls_final через админку.'));
+        html.push(renderEmptyState('Звонки', 'Динамика start/middle/final ещё не загружена', 'Загрузите транскрипты или сохраните manual_inputs.calls_start / calls_middle / calls_final через админку.'));
       }
 
       el.innerHTML = html.join('');
     }
 
+    function renderMetricCell(fieldName, label, value) {
+      if (value != null) {
+        return `<div class="metric-cell">
+          <div class="m-label">${escapeHtml(label)}</div>
+          <div class="m-value">${escapeHtml(value)}</div>
+        </div>`;
+      }
+      return `<div class="metric-cell">
+        <div class="m-label">${escapeHtml(label)}</div>
+        <div class="m-value placeholder">данных нет</div>
+      </div>`;
+    }
+
     function renderMetricPlaceholder(fieldName, label, phoneMetrics) {
-      // Try to extract a real value from phone_metrics payload (current format: { days: [...], comment })
+      // Legacy fallback: derive from manual_inputs.phone_metrics when call_stats is absent.
       let value = null;
       if (phoneMetrics && phoneMetrics.payload) {
         const p = phoneMetrics.payload;
@@ -806,22 +857,14 @@
           if (total > 0) value = Math.round((over2 / total) * 1000) / 10;
         }
       }
-      if (value != null) {
-        return `<div class="metric-cell">
-          <div class="m-label">${escapeHtml(label)}</div>
-          <div class="m-value">${escapeHtml(value)}</div>
-        </div>`;
-      }
-      return `<div class="metric-cell">
-        <div class="m-label">${escapeHtml(label)}</div>
-        <div class="m-value placeholder">данных нет</div>
-      </div>`;
+      return renderMetricCell(fieldName, label, value);
     }
 
     function renderInterviewTab(card) {
       const el = byId('interviewContent');
       const s = card.scores || {};
       const manualInputs = card.manual_inputs || [];
+      const interviewSummary = card.interview_summary || null; // Phase 3D1
       const interviewManual = manualInputs.find(m => m.section === 'interview' || m.section === 'interview_transcript');
       const completeness = card.completeness || { items: [] };
       const interviewComplete = (completeness.items || []).find(i => i.code === 'interview_transcript');
@@ -836,14 +879,29 @@
         ${renderScoreMiniCard('Risk (interview)', s.risk_score, 'Красные флаги + conflict', true)}
       </div>`);
 
-      // Transcript / notes
-      if (interviewManual && interviewManual.payload) {
+      // Transcript / notes — prefer interview_summary (Phase 3D1), fallback to manual_inputs
+      let previewText = '';
+      let transcriptLength = 0;
+      let transcriptUpdatedAt = null;
+      if (interviewSummary && (interviewSummary.has_interview || interviewSummary.has_transcript)) {
+        previewText = interviewSummary.preview || '';
+        transcriptLength = interviewSummary.length || 0;
+        transcriptUpdatedAt = interviewSummary.updated_at || null;
+      } else if (interviewManual && interviewManual.payload) {
         const p = interviewManual.payload;
         const text = p.text_content || p.transcript || p.comment || '';
-        const preview = text.slice(0, 400) + (text.length > 400 ? '…' : '');
+        previewText = text.slice(0, 400) + (text.length > 400 ? '…' : '');
+        transcriptLength = text.length;
+        transcriptUpdatedAt = interviewManual.updated_at || null;
+      }
+
+      if (previewText) {
+        const truncated = transcriptLength > previewText.length;
         html.push(`<div class="card">
           <h3>Текст собеседования (фрагмент)</h3>
-          <div style="font-size:13px; line-height:1.55; color:var(--text); white-space:pre-wrap;">${escapeHtml(preview) || '<span class="empty-list">—</span>'}</div>
+          <div style="font-size:13px; line-height:1.55; color:var(--text); white-space:pre-wrap;">${escapeHtml(previewText)}</div>
+          ${truncated ? `<div class="score-note" style="margin-top:10px;">Показан фрагмент ${escapeHtml(previewText.length)} из ${escapeHtml(transcriptLength)} символов. Полный текст — в админке.</div>` : ''}
+          ${transcriptUpdatedAt ? `<div class="score-note">Обновлено: ${escapeHtml(transcriptUpdatedAt)}</div>` : ''}
         </div>`);
       } else {
         html.push(renderEmptyState('Собеседование', 'Текст собеседования ещё не загружен',
@@ -909,25 +967,33 @@
           <thead>
             <tr>
               <th>Дата</th>
+              <th>Session key</th>
               <th>Role ID</th>
               <th>Роль / клиент</th>
+              <th>Продукт</th>
               <th>Результат</th>
               <th>Аналитика</th>
             </tr>
           </thead>
           <tbody>
             ${dialogs.map(d => {
+              // Phase 3D1 normalized fields: role_client, role_business, product.
+              // Backward compat: also check role_client_name / role_company / role_title
+              // for older card responses that may ship the full row.
               const roleClient = d.role_client || d.role_client_name || '';
               const roleBusiness = d.role_business || d.role_company || '';
               const roleStr = [roleClient, roleBusiness].filter(Boolean).join(' / ');
+              const product = d.product || d.role_title || '';
               const analysis = d.analysis_json || d.analysis || (d.result_payload && d.result_payload.summary);
               const analysisState = analysis
                 ? `<span class="status-badge ready">есть</span>`
                 : `<span class="status-badge unknown">не рассчитана</span>`;
               return `<tr>
                 <td>${escapeHtml(d.dialog_date || '—')}</td>
+                <td>${escapeHtml(d.session_key || d.training_key || '—')}</td>
                 <td>${escapeHtml(d.role_id || '—')}</td>
                 <td>${escapeHtml(roleStr || '—')}</td>
+                <td>${escapeHtml(product || '—')}</td>
                 <td>${escapeHtml(d.result || '—')}</td>
                 <td>${analysisState}</td>
               </tr>`;
@@ -956,15 +1022,8 @@
       const el = byId('opsContent');
       const s = card.scores || {};
       const manualInputs = card.manual_inputs || [];
+      const opsSummary = card.ops_summary || null; // Phase 3D1
       const completeness = card.completeness || { items: [] };
-
-      const opsSections = [
-        { code: 'phone_metrics', title: 'Время на трубке' },
-        { code: 'ops_xsales', title: 'XSALES' },
-        { code: 'ops_overdue_goals', title: 'Просрочки клиентских целей' },
-        { code: 'ops_statuses', title: 'Статусы' },
-        { code: 'ops_comments', title: 'Комментарии' },
-      ];
 
       const html = [];
 
@@ -974,50 +1033,105 @@
         ${renderScoreMiniCard('Discipline score', s.discipline_score, 'Погружение, операционка, сроки, статусы')}
       </div>`);
 
-      // Ops sections
-      const anyOpsData = opsSections.some(sec => manualInputs.find(m => m.section === sec.code));
-      if (anyOpsData) {
-        html.push(`<div class="card">
-          <h3>Состояние по разделам операционки</h3>
-          <table class="data-table">
-            <thead>
-              <tr><th>Раздел</th><th>Статус</th><th>Комментарий</th></tr>
-            </thead>
-            <tbody>
-              ${opsSections.map(sec => {
-                const m = manualInputs.find(x => x.section === sec.code);
-                const p = m && m.payload ? m.payload : null;
-                const status = p && p.status ? p.status : 'not_checked';
-                const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
-                const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
-                const comment = p && p.comment ? p.comment : '—';
-                return `<tr>
-                  <td>${escapeHtml(sec.title)}</td>
-                  <td><span class="status-badge ${statusCls}">${escapeHtml(statusRu)}</span></td>
-                  <td>${escapeHtml(comment)}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>`);
-      } else {
-        // Show placeholder completeness for ops
-        const opsComplete = (completeness.items || []).filter(i =>
-          i.code.startsWith('ops_') || i.code === 'phone_metrics'
-        );
-        if (opsComplete.length) {
+      // Ops sections — prefer ops_summary (Phase 3D1), fallback to manual_inputs
+      if (opsSummary && opsSummary.sections && opsSummary.sections.length) {
+        const anyFilled = opsSummary.sections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
+        if (anyFilled) {
           html.push(`<div class="card">
-            <h3>Готовность данных по операционке</h3>
-            <div class="completeness-list">
-              ${opsComplete.map(item => `<div class="completeness-row">
-                <span class="cr-title">${escapeHtml(item.title)}</span>
-                <span class="cr-status ${item.status === 'ready' ? 'ready' : 'not_ready'}">${escapeHtml(item.status === 'ready' ? 'готово' : 'не готово')}</span>
-              </div>`).join('')}
-            </div>
+            <h3>Состояние по разделам операционки</h3>
+            <table class="data-table">
+              <thead>
+                <tr><th>Раздел</th><th>Статус</th><th>Комментарий</th><th>Обновлено</th></tr>
+              </thead>
+              <tbody>
+                ${opsSummary.sections.map(sec => {
+                  const status = sec.status || 'not_checked';
+                  const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
+                  const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
+                  const comment = sec.comment || '—';
+                  const updated = sec.updated_at || '—';
+                  return `<tr>
+                    <td>${escapeHtml(sec.title)}</td>
+                    <td><span class="status-badge ${statusCls}">${escapeHtml(statusRu)}</span></td>
+                    <td>${escapeHtml(comment)}</td>
+                    <td>${escapeHtml(updated)}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
           </div>`);
         } else {
-          html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
-            'Заполните manual_inputs.ops_xsales / ops_overdue_goals / ops_statuses / ops_comments / phone_metrics через админку.'));
+          // ops_summary returned all not_checked — show completeness fallback
+          const opsComplete = (completeness.items || []).filter(i =>
+            i.code.startsWith('ops_') || i.code === 'phone_metrics'
+          );
+          if (opsComplete.length) {
+            html.push(`<div class="card">
+              <h3>Готовность данных по операционке</h3>
+              <div class="completeness-list">
+                ${opsComplete.map(item => `<div class="completeness-row">
+                  <span class="cr-title">${escapeHtml(item.title)}</span>
+                  <span class="cr-status ${item.status === 'ready' ? 'ready' : 'not_ready'}">${escapeHtml(item.status === 'ready' ? 'готово' : 'не готово')}</span>
+                </div>`).join('')}
+              </div>
+            </div>`);
+          } else {
+            html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
+              'Заполните manual_inputs.ops_xsales / ops_overdue_goals / ops_statuses / ops_comments / phone_metrics через админку.'));
+          }
+        }
+      } else {
+        // Legacy fallback: derive from manual_inputs directly
+        const opsSections = [
+          { code: 'phone_metrics', title: 'Время на трубке' },
+          { code: 'ops_xsales', title: 'XSALES' },
+          { code: 'ops_overdue_goals', title: 'Просрочки клиентских целей' },
+          { code: 'ops_statuses', title: 'Статусы' },
+          { code: 'ops_comments', title: 'Комментарии' },
+        ];
+        const anyOpsData = opsSections.some(sec => manualInputs.find(m => m.section === sec.code));
+        if (anyOpsData) {
+          html.push(`<div class="card">
+            <h3>Состояние по разделам операционки</h3>
+            <table class="data-table">
+              <thead>
+                <tr><th>Раздел</th><th>Статус</th><th>Комментарий</th></tr>
+              </thead>
+              <tbody>
+                ${opsSections.map(sec => {
+                  const m = manualInputs.find(x => x.section === sec.code);
+                  const p = m && m.payload ? m.payload : null;
+                  const status = p && p.status ? p.status : 'not_checked';
+                  const statusCls = status === 'ok' ? 'ready' : status === 'partial' ? 'ready_with_control' : status === 'problem' ? 'needs_practice' : 'unknown';
+                  const statusRu = { ok: 'ок', partial: 'частично', problem: 'есть проблема', not_checked: 'не проверено' }[status] || status;
+                  const comment = p && p.comment ? p.comment : '—';
+                  return `<tr>
+                    <td>${escapeHtml(sec.title)}</td>
+                    <td><span class="status-badge ${statusCls}">${escapeHtml(statusRu)}</span></td>
+                    <td>${escapeHtml(comment)}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>`);
+        } else {
+          const opsComplete = (completeness.items || []).filter(i =>
+            i.code.startsWith('ops_') || i.code === 'phone_metrics'
+          );
+          if (opsComplete.length) {
+            html.push(`<div class="card">
+              <h3>Готовность данных по операционке</h3>
+              <div class="completeness-list">
+                ${opsComplete.map(item => `<div class="completeness-row">
+                  <span class="cr-title">${escapeHtml(item.title)}</span>
+                  <span class="cr-status ${item.status === 'ready' ? 'ready' : 'not_ready'}">${escapeHtml(item.status === 'ready' ? 'готово' : 'не готово')}</span>
+                </div>`).join('')}
+              </div>
+            </div>`);
+          } else {
+            html.push(renderEmptyState('Операционка', 'Данные по операционке ещё не загружены',
+              'Заполните manual_inputs.ops_xsales / ops_overdue_goals / ops_statuses / ops_comments / phone_metrics через админку.'));
+          }
         }
       }
 

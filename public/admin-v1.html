@@ -1170,11 +1170,17 @@
     document.querySelectorAll('[data-call-save]').forEach(button => button.addEventListener('click', async () => {
       const baseKey = selectedBaseKey();
       const stage = button.dataset.callSave;
+      const transcript = byId(button.dataset.text).value;
+      // Guard: do not send empty paste call
+      if (!transcript.trim()) {
+        show('callsResult', 'Вставьте транскрибацию или загрузите TXT');
+        return;
+      }
       try {
         const data = await requestJson(phase1Api(`/candidates/${encodeURIComponent(baseKey)}/calls/${stage}`), {
           method: 'POST',
           body: JSON.stringify({
-            transcript: byId(button.dataset.text).value,
+            transcript,
             call_date: byId(button.dataset.date).value || null,
             product: byId(button.dataset.product).value,
             coach_comment: byId(button.dataset.comment).value,
@@ -1262,18 +1268,6 @@
     byId('uploadOpsFileBtn').addEventListener('click', async () => {
       try { await uploadFile(byId('opsFileSection').value, 'opsFile', null, 'opsResult', 'evidence'); } catch (err) { show('opsResult', err.message); }
     });
-    document.querySelectorAll('[data-call-save]').forEach(button => button.addEventListener('click', async () => {
-      try {
-        await saveManual(button.dataset.callSave, {
-          transcript: byId(button.dataset.text).value,
-          call_date: byId(button.dataset.date).value || null,
-          product: byId(button.dataset.product).value,
-          coach_comment: byId(button.dataset.comment).value,
-        }, 'callsResult');
-      } catch (err) {
-        show('callsResult', err.message);
-      }
-    }));
     byId('saveFinalBtn').addEventListener('click', async () => {
       try {
         await saveManual('final_test', {

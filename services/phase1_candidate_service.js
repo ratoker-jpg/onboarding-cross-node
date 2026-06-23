@@ -1680,11 +1680,60 @@ const IMPORT_LABEL_RU = {
  * Returns { ok, has_link, source_code, required_legacy_key_hint, message }.
  * Does NOT throw — caller (admin UI) uses this to render a friendly hint
  * before the user clicks import.
+ *
+ * For importType='all', checks the three real candidate-level sources:
+ * web_mvp, onboarding_route, bot_training. Returns ok=false with a `missing`
+ * array if any are absent. interview-questions / manual-questions are NOT
+ * checked inside 'all' because importAll does not require them.
  */
 function checkImportSourceLink(baseKey, importType) {
   const db = ensureDb();
   const repos = buildRepos(db);
   const candidate = getCandidateOrThrow(repos, baseKey);
+
+  if (importType === 'all') {
+    const subChecks = ['test-day', 'immersion', 'training-bot'].map(t => {
+      const requiredSource = IMPORT_REQUIRED_SOURCE[t];
+      return { import_type: t, source_code: requiredSource };
+    });
+    const links = repos.sourceLinksRepo.listByCandidateId(candidate.id);
+    const missing = [];
+    const foundLinks = [];
+    for (const sc of subChecks) {
+      const link = links.find(l => l.source_code === sc.source_code);
+      if (!link) {
+        missing.push({
+          import_type: sc.import_type,
+          source_code: sc.source_code,
+          message: `Нет связи ${sc.source_code} для этого новичка.`,
+          required_legacy_key_hint: `Сначала сохраните source link: ${sc.source_code} → legacy key (старый ключ кандидата).`,
+        });
+      } else {
+        foundLinks.push({
+          import_type: sc.import_type,
+          source_code: sc.source_code,
+          legacy_key: link.legacy_key || null,
+        });
+      }
+    }
+    if (missing.length > 0) {
+      return {
+        ok: false,
+        import_type: 'all',
+        has_link: false,
+        missing,
+        message: `Не хватает связей для импорта: ${missing.map(m => m.source_code).join(', ')}`,
+      };
+    }
+    return {
+      ok: true,
+      import_type: 'all',
+      has_link: true,
+      links: foundLinks,
+      message: 'Все необходимые связи найдены (web_mvp, onboarding_route, bot_training).',
+    };
+  }
+
   const requiredSource = IMPORT_REQUIRED_SOURCE[importType];
   if (!requiredSource) {
     return {
@@ -1766,6 +1815,10 @@ function buildImportSummary(importType, result) {
 function appendCallToManualInput(baseKey, section, callItem, adminKey) {
   if (!['calls_start', 'calls_middle', 'calls_final'].includes(section)) {
     throw createError('INVALID_MANUAL_INPUT_SECTION', 'invalid_manual_input_section');
+  }
+  // Guard: do not append a call with empty transcript
+  if (!String(callItem.transcript || '').trim()) {
+    throw createError('EMPTY_CALL_TRANSCRIPT', 'empty_call_transcript');
   }
   const db = ensureDb();
   const repos = buildRepos(db);
@@ -1859,7 +1912,9 @@ function saveCandidateFileWithManualInput(baseKey, payload, adminKey) {
   let manualInput = null;
   let callsCount = null;
   if (manualMode === 'replace_text' && manualSection) {
-    // interview_transcript: replace text_content, preserve other fields
+    // interview_transcript: replace text_content, preserve other fields.
+    // Allow empty text_content here — the file itself is evidence, and the
+    // user may upload a binary file (image, audio) without extractable text.
     const existingManual = repos.manualInputsRepo.listByCandidateId(candidate.id)
       .find(m => m.section === manualSection);
     const existingPayload = existingManual && existingManual.payload ? existingManual.payload : {};
@@ -1881,6 +1936,17 @@ function saveCandidateFileWithManualInput(baseKey, payload, adminKey) {
     });
     appendAuditLog(db, adminKey, 'phase1_manual_input_saved', 'candidate', candidate.id, baseKey, { section: manualSection, source: 'txt_upload' });
   } else if (manualMode === 'append_call' && manualSection) {
+    // Guard: do not append a call with empty transcript (no extractable text)
+    if (!textContent.trim()) {
+      // File is still saved (above), but no call is appended.
+      return {
+        file,
+        manual_input: null,
+        manual_section: null,
+        calls_count: null,
+        warning: 'Файл сохранён, но текст пустой — звонок не добавлен. Для бинарных файлов используйте обычный файловый upload без append_call.',
+      };
+    }
     const callItem = {
       call_date: payload.call_date || null,
       product: payload.call_product || null,

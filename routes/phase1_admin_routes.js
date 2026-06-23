@@ -77,6 +77,7 @@ function createPhase1Routes(options) {
     if (err && err.code === 'INVALID_SOURCE_CODE') return sendError(res, 400, { error: 'invalid_source_code', source });
     if (err && err.code === 'INVALID_SCORE_VALUE') return sendError(res, 400, { error: 'invalid_score_value', field: err.field });
     if (err && err.code === 'INVALID_SCORE_RANGE') return sendError(res, 400, { error: 'invalid_score_range', field: err.field });
+    if (err && err.code === 'EMPTY_CALL_TRANSCRIPT') return sendError(res, 400, { error: 'empty_call_transcript' });
     if (err && err.code === 'CANDIDATE_NOT_FOUND') return sendError(res, 404, { error: 'candidate_not_found', source });
     if (err && err.code === 'SOURCE_LINK_NOT_FOUND') return sendError(res, 404, { error: err.message, source, import_run: importRun });
     if (err && err.code === 'PHASE1_SOURCE_CONFIG_MISSING') return sendError(res, 503, { error: err.message, source, import_run: importRun });

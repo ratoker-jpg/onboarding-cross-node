@@ -221,6 +221,11 @@ function validateEvidenceForAnswer(answer, evidence) {
 /**
  * Calculate score for one block (interview) or one stage (calls).
  *
+ * `answerGroups` is optional; if omitted, ANSWER_GROUPS_DEFAULTS is used.
+ * `calculateRubricScore` passes `rubric.answer_groups` so that rubrics with
+ * non-standard answer sets (e.g. a future rubric that uses `ok` instead of
+ * `yes`) are honoured.
+ *
  * Returns:
  *   {
  *     unit_id, unit_name, stage (for interview),
@@ -238,11 +243,9 @@ function validateEvidenceForAnswer(answer, evidence) {
  *     question_details: [{ question_id, answer, weight, applicable, contributes_to_score, evidence }]
  *   }
  */
-function calculateBlockScore(rubricBlock, questionResults) {
+function calculateBlockScore(rubricBlock, questionResults, answerGroups = ANSWER_GROUPS_DEFAULTS) {
   const results = normalizeQuestionResults(questionResults);
-  const groups = getAnswerGroups({ answer_groups: ANSWER_GROUPS_DEFAULTS });
-  // Note: we use rubric defaults here; rubric-specific groups are validated
-  // in validateRubric and could be plumbed through if needed.
+  const groups = getAnswerGroups({ answer_groups: answerGroups });
   const unitId = getUnitId(rubricBlock);
   const unitName = getUnitName(rubricBlock);
 
@@ -406,8 +409,9 @@ function calculateRubricScore(rubric, questionResults) {
   }
   const units = getUnitCollection(rubric);
   const results = normalizeQuestionResults(questionResults);
+  const answerGroups = rubric.answer_groups || ANSWER_GROUPS_DEFAULTS;
 
-  const unitResults = units.map(unit => calculateBlockScore(unit, results));
+  const unitResults = units.map(unit => calculateBlockScore(unit, results, answerGroups));
 
   // Group by stage (for interview) — for calls, stage_id IS the unit_id
   const stages = {};
@@ -508,6 +512,7 @@ function calculateRubricScore(rubric, questionResults) {
     candidate_scores_mapping_preview: mapRubricResultToCandidateScores({
       rubric_id: rubric.rubric_id,
       stages,
+      units: unitResults,
       metadata: allMetadata,
       overall_score_percent: overallScore,
       risk_flags: allRiskFlags,

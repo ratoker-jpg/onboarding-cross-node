@@ -400,6 +400,161 @@ test('confidence low when >50% of block weight is not_checked', () => {
 });
 
 // ----------------------------------------------------------------------
+// 11. Fixup: candidate_scores_mapping_preview receives units
+// ----------------------------------------------------------------------
+
+test('interview full rubric all-yes → mapping_preview.learning_score === 100 (not null)', () => {
+  // Before fixup: calculateRubricScore() called mapRubricResultToCandidateScores
+  // without `units`, so learning_score could not be computed from per-block
+  // scores and was null. After fixup: units are passed through.
+  const r = loadRubric('interview_binary_v1');
+  const answers = {};
+  for (const block of r.blocks) {
+    for (const q of block.questions) {
+      if (q.metadata) {
+        answers[q.question_id] = { answer: 'yes' };
+      } else {
+        answers[q.question_id] = { answer: 'yes', evidence: 'evidence for ' + q.question_id };
+      }
+    }
+  }
+  const result = calculateRubricScore(r, answers);
+  const preview = result.candidate_scores_mapping_preview;
+  assert.ok(preview, 'mapping preview must be present');
+  assert.strictEqual(preview.derived_fields.soft_score, 100);
+  assert.strictEqual(preview.derived_fields.hard_score, 100);
+  assert.strictEqual(preview.derived_fields.learning_score, 100,
+    'learning_score must be 100 (not null) when units are passed through');
+});
+
+test('interview full rubric with soft_flexibility/antifragility/proactivity partial → learning_score from available components', () => {
+  // If only antifragility has answers (yes), and flexibility + proactivity are
+  // not_checked, learning_score should still be computable from the one
+  // available component (single-component weighted avg = that component's score).
+  const r = loadRubric('interview_binary_v1');
+  const answers = {};
+  for (const block of r.blocks) {
+    for (const q of block.questions) {
+      if (q.metadata) {
+        answers[q.question_id] = { answer: 'yes' };
+        continue;
+      }
+      if (block.block_id === 'soft_flexibility' || block.block_id === 'soft_proactivity') {
+        answers[q.question_id] = { answer: 'not_checked' };
+      } else {
+        answers[q.question_id] = { answer: 'yes', evidence: 'e' };
+      }
+    }
+  }
+  const result = calculateRubricScore(r, answers);
+  const preview = result.candidate_scores_mapping_preview;
+  // soft_flexibility and soft_proactivity blocks → null score (all not_checked)
+  // soft_antifragility → 100
+  // learning_score = 100 (from antifragility alone, single-component avg)
+  assert.strictEqual(preview.derived_fields.learning_score, 100);
+  assert.ok(preview.notes.some(n => n.includes('partial components')),
+    'notes should warn about partial components');
+});
+
+// ----------------------------------------------------------------------
+// 12. Fixup: rubric-specific answer_groups honoured via calculateRubricScore
+// ----------------------------------------------------------------------
+
+test('calculateRubricScore uses rubric.answer_groups (custom "ok" treated as numerator)', () => {
+  // Build a tiny synthetic rubric where the answer that contributes to the
+  // numerator is "ok" (not "yes"). validateRubric() requires a full schema,
+  // so we bypass it by constructing the rubric object and calling
+  // calculateRubricScore() directly — the function does not re-validate.
+  const syntheticRubric = {
+    rubric_id: 'synthetic_test_v1',
+    rubric_version: '0.0.1',
+    evaluation_unit: 'block',
+    allowed_answers: ['ok', 'no', 'not_checked', 'conflict'],
+    answer_groups: {
+      contributes_to_numerator: ['ok'],
+      contributes_to_denominator_only: ['no'],
+      excluded_from_calculation: ['not_checked', 'conflict'],
+      raises_risk_flag: ['conflict'],
+      lowers_confidence: ['not_checked'],
+    },
+    score_formula: { block_score: 'ok_weight / applicable_weight' },
+    stage_weights: { test: 1.0 },
+    blocks: [
+      {
+        block_id: 'test_block',
+        block_name: 'Test',
+        stage: 'test',
+        block_weight: 1.0,
+        questions: [
+          { question_id: 'q1', text: 'q1', weight: 0.50 },
+          { question_id: 'q2', text: 'q2', weight: 0.50 },
+        ],
+      },
+    ],
+    candidate_scores_mapping: {},
+    evidence_schema: { required_fields: ['evidence'] },
+  };
+
+  // Both answers = ok → 100%
+  const answersOk = {
+    q1: { answer: 'ok', evidence: 'e1' },
+    q2: { answer: 'ok', evidence: 'e2' },
+  };
+  const resultOk = calculateRubricScore(syntheticRubric, answersOk);
+  assert.strictEqual(resultOk.units[0].score_percent, 100,
+    'ok answers should produce 100% when ok is in contributes_to_numerator');
+  assert.strictEqual(resultOk.units[0].yes_weight, 1.0,
+    'yes_weight should accumulate ok weights (1.0)');
+
+  // One ok + one no → 50%
+  const answersMixed = {
+    q1: { answer: 'ok', evidence: 'e1' },
+    q2: { answer: 'no', evidence: 'e2' },
+  };
+  const resultMixed = calculateRubricScore(syntheticRubric, answersMixed);
+  assert.strictEqual(resultMixed.units[0].score_percent, 50,
+    'ok(0.50) + no(0.50) → 0.50/1.00 = 50%');
+  assert.strictEqual(resultMixed.units[0].applicable_weight, 1.0);
+
+  // not_checked → excluded from denominator
+  const answersSkip = {
+    q1: { answer: 'ok', evidence: 'e1' },
+    q2: { answer: 'not_checked' },
+  };
+  const resultSkip = calculateRubricScore(syntheticRubric, answersSkip);
+  // applicable = 0.50 (q1), ok = 0.50 → 100%
+  assert.strictEqual(resultSkip.units[0].score_percent, 100);
+  assert.strictEqual(resultSkip.units[0].applicable_weight, 0.50);
+
+  // conflict → risk flag, excluded from denominator
+  const answersConflict = {
+    q1: { answer: 'ok', evidence: 'e1' },
+    q2: { answer: 'conflict', evidence: 'sources contradict' },
+  };
+  const resultConflict = calculateRubricScore(syntheticRubric, answersConflict);
+  assert.strictEqual(resultConflict.units[0].score_percent, 100);
+  assert.strictEqual(resultConflict.units[0].risk_flags.length, 1);
+  assert.strictEqual(resultConflict.units[0].risk_flags[0].question_id, 'q2');
+});
+
+test('calculateBlockScore default param still works (no answer_groups passed)', () => {
+  // Existing direct callers of calculateBlockScore that don't pass a 3rd arg
+  // should continue to work with ANSWER_GROUPS_DEFAULTS.
+  const r = loadRubric('interview_binary_v1');
+  const block = r.blocks.find(b => b.block_id === 'soft_responsibility');
+  const answers = {
+    soft_responsibility_01: { answer: 'yes', evidence: 'e1' },  // 0.30
+    soft_responsibility_02: { answer: 'yes', evidence: 'e2' },  // 0.25
+    soft_responsibility_03: { answer: 'yes', evidence: 'e3' },  // 0.25
+    soft_responsibility_04: { answer: 'no', evidence: 'e4' },   // 0.20
+  };
+  // No 3rd argument — must use defaults.
+  // applicable = 1.00, yes = 0.30+0.25+0.25 = 0.80 → 80%
+  const result = calculateBlockScore(block, answers);
+  assert.strictEqual(result.score_percent, 80);
+});
+
+// ----------------------------------------------------------------------
 // Summary
 // ----------------------------------------------------------------------
 

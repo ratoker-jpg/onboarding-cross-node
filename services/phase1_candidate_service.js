@@ -1377,6 +1377,9 @@ function getViewerCandidateCard(baseKey) {
     .map(mapTrainingDialogForViewer)
     .filter(Boolean);
 
+  // Phase 3E1: latest Codex analysis runs (interview + calls) for rich report
+  const latestAnalysis = buildLatestAnalysis(baseKey, repos.analysisRunsRepo);
+
   return {
     candidate,
     completeness,
@@ -1389,6 +1392,8 @@ function getViewerCandidateCard(baseKey) {
     call_stats: callStats,
     ops_summary: opsSummary,
     interview_summary: interviewSummary,
+    // Phase 3E1: latest Codex analysis visibility
+    latest_analysis: latestAnalysis,
   };
 }
 
@@ -1480,7 +1485,9 @@ function mapTrainingDialogForViewer(raw) {
   if (!raw) return null;
   // Pick only the minimal, non-secret fields needed by report-v1.html.
   // transcript_text is intentionally omitted — too large and not needed for
-  // the report card. analysis_json is included (already small JSON or null).
+  // the report card. analysis_json + result_payload are included so the
+  // report can render imported bot-training results without falling back to
+  // the misleading "аналитика появится в Phase 3C" placeholder.
   return {
     session_key: raw.training_key || null,
     dialog_date: raw.dialog_date || null,
@@ -1490,6 +1497,7 @@ function mapTrainingDialogForViewer(raw) {
     product: raw.role_title || null,
     result: raw.result || null,
     analysis_json: raw.analysis_json || null,
+    result_payload: raw.result_payload || null,
   };
 }
 
@@ -2022,6 +2030,126 @@ function getCandidateIntakeView(baseKey) {
     total_manual_inputs: manualInputs.length,
     total_files: files.length,
   };
+}
+
+// ============================================================
+// Phase 3E1: latest Codex analysis visibility for rich report
+// ============================================================
+
+// Cap for any single evidence/quote/source_ref string shipped to viewer.
+// Long transcripts / quotes are truncated to keep the card payload small and
+// prevent dumping large raw text into the browser.
+const VIEWER_EVIDENCE_LIMIT = 500;
+
+function truncateForViewer(value, limit = VIEWER_EVIDENCE_LIMIT) {
+  if (value == null) return null;
+  const s = String(value);
+  if (s.length <= limit) return s;
+  return s.slice(0, limit) + `… (+${s.length - limit} симв.)`;
+}
+
+/**
+ * Safe projection of one analysis_run's output_payload for the viewer card.
+ * Returns null if the run is missing, failed, or has no usable output.
+ *
+ * Shape:
+ *   {
+ *     id, analysis_type, source, status, created_at, finished_at,
+ *     rubric_result: {
+ *       rubric_id, rubric_version,
+ *       overall_score_percent, overall_confidence, overall_status,
+ *       risk_flags: [...], metadata: {...}, units: [...]
+ *     },
+ *     summary, strengths, growth_zones, coach_recommendations, red_flags
+ *   }
+ *
+ * Safety:
+ *   - input_payload is NEVER included (contains question_results with quotes).
+ *   - output_payload.rubric_result is included but evidence/quote/source_ref
+ *     in each unit's question_details are truncated to VIEWER_EVIDENCE_LIMIT.
+ *   - raw bundle is never included.
+ *   - unknown top-level keys from Codex are filtered.
+ */
+function projectAnalysisRunForViewer(run) {
+  if (!run) return null;
+  if (run.status !== 'success') return null;
+  const output = run.output_payload || {};
+  const rubricResult = output.rubric_result || {};
+  // Fallback for old analysis_runs that don't have top-level summary/lists
+  // in output_payload — try scores_patch (which has recommendation/strengths/etc).
+  const scoresPatch = output.scores_patch || {};
+
+  // Truncate evidence fields inside unit question_details
+  const units = Array.isArray(rubricResult.units)
+    ? rubricResult.units.map(u => ({
+        ...u,
+        question_details: Array.isArray(u.question_details)
+          ? u.question_details.map(qd => ({
+              ...qd,
+              evidence: truncateForViewer(qd.evidence),
+              quote: truncateForViewer(qd.quote),
+              source: truncateForViewer(qd.source, 120),
+              source_ref: truncateForViewer(qd.source_ref, 120),
+            }))
+          : [],
+      }))
+    : [];
+
+  return {
+    id: run.id,
+    analysis_type: run.analysis_type,
+    source: run.source,
+    status: run.status,
+    created_at: run.created_at,
+    finished_at: run.finished_at,
+    rubric_result: {
+      rubric_id: rubricResult.rubric_id || null,
+      rubric_version: rubricResult.rubric_version || null,
+      overall_score_percent: rubricResult.overall_score_percent ?? null,
+      overall_confidence: rubricResult.overall_confidence || null,
+      overall_status: rubricResult.overall_status || null,
+      risk_flags: Array.isArray(rubricResult.risk_flags) ? rubricResult.risk_flags : [],
+      metadata: rubricResult.metadata && typeof rubricResult.metadata === 'object' ? rubricResult.metadata : {},
+      units,
+    },
+    // Summary + list fields come from the import script's output_payload
+    // (saved alongside rubric_result). They are top-level in output_payload.
+    // Fallback to scores_patch for old runs that don't have them at top level.
+    summary: (typeof output.summary === 'string' && output.summary)
+      ? truncateForViewer(output.summary, 1000)
+      : (scoresPatch.recommendation ? truncateForViewer(scoresPatch.recommendation, 1000) : null),
+    strengths: Array.isArray(output.strengths) && output.strengths.length
+      ? output.strengths
+      : (Array.isArray(scoresPatch.strengths) ? scoresPatch.strengths : []),
+    growth_zones: Array.isArray(output.growth_zones) && output.growth_zones.length
+      ? output.growth_zones
+      : (Array.isArray(scoresPatch.growth_zones) ? scoresPatch.growth_zones : []),
+    coach_recommendations: Array.isArray(output.coach_recommendations) && output.coach_recommendations.length
+      ? output.coach_recommendations
+      : (Array.isArray(scoresPatch.coach_recommendations) ? scoresPatch.coach_recommendations : []),
+    red_flags: Array.isArray(output.red_flags) && output.red_flags.length
+      ? output.red_flags
+      : (Array.isArray(scoresPatch.red_flags) ? scoresPatch.red_flags : []),
+  };
+}
+
+/**
+ * Build the latest_analysis block for the viewer card.
+ * Returns { interview: <projection>|null, calls: <projection>|null }.
+ *
+ * For each type, picks the most recent successful codex analysis_run.
+ */
+function buildLatestAnalysis(baseKey, analysisRunsRepo) {
+  const types = ['interview', 'calls'];
+  const out = { interview: null, calls: null };
+  for (const t of types) {
+    const runs = analysisRunsRepo.listByBaseKeyType(baseKey, t);
+    // Filter to codex + success, then take the most recent (repo already
+    // orders by created_at DESC, id DESC).
+    const latest = runs.find(r => r.source === 'codex' && r.status === 'success');
+    out[t] = projectAnalysisRunForViewer(latest);
+  }
+  return out;
 }
 
 module.exports = {

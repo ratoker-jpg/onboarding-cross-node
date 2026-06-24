@@ -65,22 +65,16 @@ A bundle JSON file (`*_calls_bundle.json`) containing:
    `docs/15_CALLS_AUTOMANUAL_BINARY_RUBRIC.md §3`: "Если действие обязательно
    для этапа и его нет в транскрибации, ставим no."
 5. **`not_applicable`** is for questions that genuinely do not apply (e.g.
-   `objections_*` when client raised no objections; `close_03/04` when
-   product scenario does not involve debit).
+   objections questions when client raised no objections).
 6. **`not_enough_data`** is for questions where the transcript exists but
    does not let you verify the action (e.g. product-dictionary-dependent
    questions when dictionary is unavailable).
 7. **`conflict`** requires evidence describing the contradiction.
-8. **`objections_05` is metadata-only inside the rubric.** Still return it
-   as a normal `question_result` with `question_id="objections_05"`. The
-   scoring engine will expose it in `rubric_result.metadata.relevance_objection_present`.
-   Do NOT add a top-level `metadata` object to the output — the validator
-   rejects unknown top-level keys.
-9. **Do not skip questions.** Every question in every stage must appear in
+8. **Do not skip questions.** Every question in every stage must appear in
    `question_results[]`.
-10. **Do not write a free-text report.** JSON only.
-11. **Do not modify code, DB, or files.**
-12. **Honour `rubric.model_prohibitions`** — including "не засчитывать
+9. **Do not write a free-text report.** JSON only.
+10. **Do not modify code, DB, or files.**
+11. **Honour `rubric.model_prohibitions`** — including "не засчитывать
     продукт без проверки по словарю", "не считать 'вам актуально?' полноценным
     выявлением потребности", "не штрафовать блок возражений, если клиент не
     возражал".
@@ -121,10 +115,10 @@ The import script will apply score caps based on these.
   "rubric_version": "<from bundle.rubric.rubric_version>",
   "question_results": [
     {
-      "question_id": "contact_01",
+      "question_id": "contact_call_reason",
       "answer": "yes",
-      "evidence": "Оператор в начале звонка спросил: удобно ли говорить.",
-      "quote": "Вам удобно сейчас разговаривать?",
+      "evidence": "Оператор сообщил причину звонка.",
+      "quote": "звоню по поводу предложения для вашего бизнеса",
       "source": "call_transcript",
       "source_ref": "calls_start:line:3"
     }
@@ -148,7 +142,7 @@ The import script will apply score caps based on these.
 - `rubric_id`: always `"calls_automanual_binary_v1"` for this prompt.
 - `rubric_version`: copy from `bundle.rubric.rubric_version`.
 - `question_results[]`: one entry per rubric question (across all stages,
-  INCLUDING `objections_05` which is metadata).
+  — every question in the rubric must appear).
   - `question_id` must exist in `bundle.rubric.stages[].questions[]`.
   - `answer` must be in `bundle.rubric.allowed_answers`.
   - For metadata questions (`metadata: true`), `answer` must be in the
@@ -168,18 +162,27 @@ The import script will apply score caps based on these.
 
 ## Source references for calls
 
-Use these `source` values:
-- `call_transcript` — for content from `manual_inputs.calls_start/middle/final`
-  or `training_bot_dialogs[].transcript_text`.
-- `base_manual` — for rule references (rarely needed in evidence).
-- `segment_manual` — if segment-specific behaviour is observed.
-- `product_dictionary` — when checking product validity.
-- `client_card_or_role` — for client context from `training_bot_dialogs[].role_*`.
+Use only sources from `real_calls[]`.
 
-`source_ref` format: `<section>:line:<N>` for manual_inputs, or
-`dialog:<dedup_key>:line:<N>` for training_bot_dialogs.
+Allowed `source` values:
+- `call_transcript` — for content from `real_calls[].transcript`;
+- `base_manual` — for rule references, rarely needed;
+- `segment_manual` — if segment-specific behaviour is observed;
+- `product_dictionary` — when checking product validity;
+- `client_card_or_role` — only for candidate/client context included in the calls bundle, not from training agents.
 
-Example: `"calls_start:line:3"`, `"dialog:GTRAIN01-OB-01:line:15"`.
+Allowed `source_ref` format:
+- use exactly `real_calls[].source_ref`, for example:
+  - `candidate_files.calls_start:6#call_1`
+  - `candidate_files.calls_middle:7#call_2`
+  - `candidate_files.calls_final:5#call_3`
+
+Forbidden `source_ref` values:
+- `dialog:*`
+- `ROLE-*`
+- `training_bot*`
+- `training_bot_dialogs*`
+- `result_payload*`
 
 ## What the import script will do (for your context)
 
@@ -201,7 +204,4 @@ You do NOT do any of these. Only produce the JSON.
 
 ## Refusal protocol
 
-If no call transcripts are in the bundle (all `calls_*` sections missing
-and `training_bot_dialogs` empty), return JSON with all answers
-`not_enough_data`, `summary = "Нет транскриптов звонков для анализа."`,
-empty arrays.
+If `real_calls[]` is empty, return JSON with all answers `not_enough_data`, summary = "Нет транскриптов реальных звонков для анализа.", empty arrays. Do not use training agents as fallback.

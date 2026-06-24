@@ -1326,6 +1326,13 @@ function getViewerCandidates(filters = {}) {
         seller_segment: candidate.seller_segment,
         direction: candidate.direction,
         status: candidate.status,
+        // REPORT-CANDIDATE-PICKER-V1: immersion_started_at is the primary
+        // date shown in the picker card ("Начало погружения"). test_day_started_at
+        // is also returned so the UI can fall back to it ONLY internally for
+        // sorting when immersion_started_at is missing — it must never be
+        // labelled as "Начало погружения" in the UI (per spec).
+        immersion_started_at: candidate.immersion_started_at || null,
+        test_day_started_at: candidate.test_day_started_at || null,
         created_at: candidate.created_at,
         updated_at: candidate.updated_at,
         scores: scores || null,

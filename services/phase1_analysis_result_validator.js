@@ -40,6 +40,8 @@ const ALLOWED_TOP_LEVEL_KEYS = new Set([
   'schema_version', 'base_key', 'analysis_type', 'rubric_id', 'rubric_version',
   'question_results', 'summary', 'strengths', 'growth_zones', 'red_flags',
   'coach_recommendations', 'risk_flags',
+  // Phase 3E3E: calls-only optional fields for stage dynamics
+  'stage_dynamics', 'call_results',
 ]);
 
 /**

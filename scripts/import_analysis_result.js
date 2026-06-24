@@ -328,15 +328,15 @@ function persistResult(doc, rubricResult, scoresPatch, adminKey) {
       output_payload_json: JSON.stringify({
         rubric_result: rubricResult,
         scores_patch: scoresPatch,
-        // Phase 3E1 fixup: persist Codex summary/lists at top level so the
-        // viewer card projection (projectAnalysisRunForViewer) can read them
-        // without needing to dig into rubric_result or scores_patch.
         summary: doc.summary || '',
         strengths: Array.isArray(doc.strengths) ? doc.strengths : [],
         growth_zones: Array.isArray(doc.growth_zones) ? doc.growth_zones : [],
         red_flags: Array.isArray(doc.red_flags) ? doc.red_flags : [],
         coach_recommendations: Array.isArray(doc.coach_recommendations) ? doc.coach_recommendations : [],
         risk_flags: Array.isArray(doc.risk_flags) ? doc.risk_flags : [],
+        // Phase 3E3E: persist stage_dynamics and call_results for calls type
+        stage_dynamics: doc.stage_dynamics || null,
+        call_results: Array.isArray(doc.call_results) ? doc.call_results : null,
       }),
       error_text: null,
       created_at: now,

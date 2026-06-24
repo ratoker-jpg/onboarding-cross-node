@@ -280,7 +280,14 @@ function runCallsSemanticChecks(doc, rubric, rubricResult) {
       + (extra.length ? `; unexpected: ${extra.join(', ')}` : ''));
   }
 
-  // 2. call_results — must exist, be a non-empty array, each with a score.
+  // 2. call_results — must exist, be a non-empty array, each with a score, AND
+  //    contain one entry per real call. The expected count comes from
+  //    doc.expected_real_calls_count (copied by Codex from the bundle's
+  //    real_calls count). Fallback: if that field is absent we cannot verify
+  //    the exact count, so we only enforce non-empty + scored and emit a note —
+  //    a result that omits the field cannot guarantee call_results matches the
+  //    real call count. The Codex prompt requires the field, so real output has
+  //    it and "1 call_result instead of 9" is rejected.
   const callResults = Array.isArray(doc.call_results) ? doc.call_results : null;
   let callScores = [];
   if (!callResults || callResults.length === 0) {
@@ -292,6 +299,17 @@ function runCallsSemanticChecks(doc, rubric, rubricResult) {
     if (unscored > 0) {
       checks.call_results = 'FAIL';
       details.push(`call_results: ${unscored}/${callResults.length} entries have no recognised score (overall_percent / call_quality_score / quality_score / score).`);
+    }
+    const expectedCount = doc.expected_real_calls_count;
+    if (Number.isInteger(expectedCount) && expectedCount > 0) {
+      if (callResults.length !== expectedCount) {
+        checks.call_results = 'FAIL';
+        details.push(`call_results: count mismatch — expected_real_calls_count=${expectedCount} but call_results has ${callResults.length} entr${callResults.length === 1 ? 'y' : 'ies'}.`);
+      } else {
+        details.push(`call_results: ${callResults.length} entries match expected_real_calls_count=${expectedCount}.`);
+      }
+    } else {
+      details.push('call_results: count not cross-checked — expected_real_calls_count is missing (fallback: only non-empty + scored enforced).');
     }
     callScores = scored.filter(s => s != null);
   }

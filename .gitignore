@@ -10,6 +10,7 @@ data/db/
 data/uploads/
 data/reports/
 
+tmp/
 backup/
 .DS_Store
 *.sqlite

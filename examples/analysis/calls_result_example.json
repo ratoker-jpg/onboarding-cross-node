@@ -4,6 +4,7 @@
   "analysis_type": "calls",
   "rubric_id": "calls_automanual_binary_v1",
   "rubric_version": "1.1.0",
+  "expected_real_calls_count": 3,
   "question_results": [
     { "question_id": "contact_bank_tochka", "answer": "yes", "evidence": "Оператор назвал Банк Точка.", "quote": "звоню из Банка Точка", "source": "call_transcript", "source_ref": "calls_start:line:2" },
     { "question_id": "contact_call_reason", "answer": "yes", "evidence": "Оператор сообщил причину звонка.", "quote": "по поводу предложения для вашего бизнеса", "source": "call_transcript", "source_ref": "calls_start:line:3" },

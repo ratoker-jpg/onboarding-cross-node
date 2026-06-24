@@ -13,12 +13,14 @@ import was run, nothing was deployed to the server.
 
 | File | Why |
 |---|---|
-| `scripts/import_analysis_result.js` | Added a **semantic guard** for `analysis_type=calls` (question_results / call_results / stage_dynamics / score consistency / forbidden markers). Prints a `Semantic checks:` block in every run; **aborts live import** when checks fail. |
+| `scripts/import_analysis_result.js` | Added a **semantic guard** for `analysis_type=calls` (question_results / call_results / stage_dynamics / score consistency / forbidden markers). The call_results check verifies the **count against `expected_real_calls_count`**. Prints a `Semantic checks:` block in every run; **aborts live import** when checks fail. |
+| `services/phase1_analysis_result_validator.js` | Allow + validate the optional calls-only field `expected_real_calls_count` (positive integer). |
 | `public/report-v1.html` | Brought the dynamic viewer to the **v5 UI** (overview "Анализ звонков по автомануалу", calls-only stage dynamics, "Всего звонков" yellow zone with management copy, "Красные флаги" → "Риски", removed subjective overview blocks, removed misleading call metrics). Live viewer API (`/api/viewer/phase1/.../card`) is preserved. |
-| `prompts/codex/calls_analysis_v1.md` | `stage_dynamics`, `call_results` and `products_detected` are now **required** (were "optional"); explicit **16 question_results**; explicit "no training_bot mixing" + consistency contract; Russian-only user text. |
-| `examples/analysis/calls_result_example.json` | Added `stage_dynamics`, `call_results` and `products_detected`; example is now self-consistent (call_results average = rubric overall = 87.8) so it passes the new semantic guard. |
+| `prompts/codex/calls_analysis_v1.md` | `stage_dynamics`, `call_results`, `products_detected` and `expected_real_calls_count` are now **required** (were "optional"); explicit **16 question_results**; explicit "no training_bot mixing" + consistency contract; Russian-only user text. |
+| `examples/analysis/calls_result_example.json` | Added `stage_dynamics`, `call_results`, `products_detected` and `expected_real_calls_count: 3`; self-consistent (call_results average = rubric overall = 87.8). |
+| `examples/analysis/calls_result_GTRAIN02_example.json` | **New** sanitized GTRAIN02 fixture (Russian user text, 16 question_results, 9 call_results, `expected_real_calls_count: 9`, stage_dynamics, products_detected). Reproducible dry-run input; overall 78.3, avg call_results 78.33. |
 | `scripts/test_rubric_scoring.js` | Updated the 6 tests that referenced the removed v1.0.0 schema (`contact_01..05`, metadata `objections_05`) to the **v1.1.0** rubric. Suite is now green (24/24). |
-| `tmp/GTRAIN02_calls_result_FINAL_PRODUCTS.json` | Canonical valid GTRAIN02 calls result, committed so the dry-run check is reproducible. No secrets. |
+| `.gitignore` | Ignore `tmp/` — working artifacts must not be committed. |
 
 ---
 
@@ -29,7 +31,12 @@ New `runCallsSemanticChecks(doc, rubric, rubricResult)` runs for calls only,
 after validation + rubric scoring:
 - **question_results** — must be exactly the rubric's 16 questions (no missing/extra).
 - **call_results** — must exist, be non-empty, each with a score
-  (`overall_percent` / `call_quality_score` / `quality_score` / `score`).
+  (`overall_percent` / `call_quality_score` / `quality_score` / `score`), **and
+  the count must equal `expected_real_calls_count`** when that field is present.
+  Fallback: if `expected_real_calls_count` is absent the exact count cannot be
+  cross-checked, so only non-empty + scored is enforced and a note is emitted
+  (the Codex prompt requires the field, so real output carries it — a result
+  with 1 call_result instead of 9 is rejected).
 - **stage_dynamics** — must exist and contain `start` / `middle` / `final`.
 - **score consistency** — `avg(call_results scores)` vs `rubric.overall_score_percent`,
   tolerance **1.0** point (same 0–100 scale).
@@ -103,14 +110,14 @@ node --check scripts/import_analysis_result.js # OK
 
 node scripts/test_rubric_scoring.js            # 24 passed, 0 failed
 
-node scripts/import_analysis_result.js --file tmp/GTRAIN02_calls_result_FINAL_PRODUCTS.json --dry-run
+node scripts/import_analysis_result.js --file examples/analysis/calls_result_GTRAIN02_example.json --dry-run
 #   Validation: PASS
 #   overall_score_percent: 78.3
 #   call_quality_score patch: 78.3 → 78.3
-#   Semantic checks: all PASS (avg call_results 78.33 ≈ 78.3)
+#   Semantic checks: all PASS (9 entries == expected_real_calls_count=9; avg call_results 78.33 ≈ 78.3)
 
 node scripts/import_analysis_result.js --file examples/analysis/calls_result_example.json --dry-run
-#   Validation: PASS; overall 87.8; Semantic checks: all PASS
+#   Validation: PASS; overall 87.8; Semantic checks: all PASS (3 == expected 3)
 ```
 
 ## 5. Rollback

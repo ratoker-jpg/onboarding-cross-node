@@ -148,6 +148,7 @@ The import script will apply score caps based on these.
   "analysis_type": "calls",
   "rubric_id": "calls_automanual_binary_v1",
   "rubric_version": "<from bundle.rubric.rubric_version>",
+  "expected_real_calls_count": 9,
   "question_results": [
     {
       "question_id": "contact_call_reason",
@@ -196,6 +197,11 @@ The import script will apply score caps based on these.
 - `analysis_type`: always `"calls"` for this prompt.
 - `rubric_id`: always `"calls_automanual_binary_v1"` for this prompt.
 - `rubric_version`: copy from `bundle.rubric.rubric_version`.
+- `expected_real_calls_count` (**required for calls**): the number of real calls
+  you analysed — equal to `bundle.real_calls.length` and to the number of
+  `call_results[]` entries you emit. The import semantic guard rejects a result
+  where `call_results.length` does not equal `expected_real_calls_count`, so it
+  must not be guessed: count the real calls in the bundle.
 - `question_results[]`: **exactly one entry per rubric question** — the
   `calls_automanual_binary_v1` v1.1.0 rubric has **16 questions** (contact 2,
   needs 4, presentation 4, objections 4, close 2), so `question_results[]`
@@ -227,10 +233,10 @@ The import script will apply score caps based on these.
   Empty array if no dictionary product was presented in the call.
 
 > **Consistency contract.** `import_analysis_result.js` runs semantic checks
-> for calls: 16 `question_results`, non-empty `call_results` (each with a
-> score), `stage_dynamics` with start/middle/final, the per-call average
-> consistent with the rubric overall score, and no training-bot markers in any
-> semantic field. A document that fails these checks is **rejected on live
+> for calls: 16 `question_results`, `call_results` with one scored entry per
+> real call (`call_results.length` must equal `expected_real_calls_count`),
+> `stage_dynamics` with start/middle/final, the per-call average consistent with
+> the rubric overall score, and no training-bot markers in any semantic field. A document that fails these checks is **rejected on live
 > import** — keep the numbers internally consistent and never mix in
 > `training_bot_dialogs` / учебные agents.
 

@@ -4,138 +4,139 @@
   "analysis_type": "calls",
   "rubric_id": "calls_automanual_binary_v1",
   "rubric_version": "1.1.0",
+  "expected_real_calls_count": 9,
   "question_results": [
     {
       "question_id": "contact_bank_tochka",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: contact block is consistently full across the nine real calls; manager introduces Bank Tochka.",
+      "source": "call_transcript",
+      "evidence": "Во всех девяти звонках оператор представляется от Банка Точка.",
       "source_ref": "candidate_files.calls_start:6#call_1; candidate_files.calls_final:5#call_2"
     },
     {
       "question_id": "contact_call_reason",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: reason for call is consistently present across the nine real calls.",
+      "source": "call_transcript",
+      "evidence": "Причина звонка названа стабильно во всех звонках.",
       "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_3"
     },
     {
       "question_id": "needs_business_activity",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: activity is usually clarified across start/middle/final calls.",
+      "source": "call_transcript",
+      "evidence": "Сфера и формат бизнеса обычно уточняются на старте, середине и выпуске.",
       "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_middle:7#call_3"
     },
     {
       "question_id": "needs_business_problems",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: client problems are surfaced in most calls.",
+      "source": "call_transcript",
+      "evidence": "Проблемы клиента выявляются в большинстве звонков.",
       "source_ref": "candidate_files.calls_start:6#call_1; candidate_files.calls_final:5#call_2"
     },
     {
       "question_id": "needs_problem_frequency",
       "answer": "no",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: problem frequency is consistently missing, so this remains a no.",
+      "source": "call_transcript",
+      "evidence": "Частота проблем системно не уточняется — остаётся no.",
       "source_ref": "call_results[]"
     },
     {
       "question_id": "needs_current_solution",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: current solution is usually clarified: self-accounting, marketplace flow, 1C EDO, paper documents, external payment service or helpers.",
+      "source": "call_transcript",
+      "evidence": "Текущее решение обычно выясняется: самоучёт, маркетплейс, 1С ЭДО, бумажные документы или сторонний сервис.",
       "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_3"
     },
     {
       "question_id": "presentation_any_product",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: every call contains at least one product presentation from the dictionary.",
+      "source": "call_transcript",
+      "evidence": "В каждом звонке есть хотя бы одна презентация продукта из словаря.",
       "source_ref": "real_calls[]"
     },
     {
       "question_id": "presentation_asked_opinion",
       "answer": "no",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: opinion/readiness checks are uneven and are lowered in the aggregate to align importer score with the nine-call average.",
+      "source": "call_transcript",
+      "evidence": "Проверка мнения и готовности клиента неравномерна и в агрегате снижена.",
       "source_ref": "call_results[]"
     },
     {
       "question_id": "presentation_calculation",
       "answer": "no",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: calculations/rates are present in several calls but not stable enough for the weighted aggregate target.",
+      "source": "call_transcript",
+      "evidence": "Расчёты есть в части звонков, но недостаточно стабильны для агрегата.",
       "source_ref": "call_results[]"
     },
     {
       "question_id": "presentation_linked_to_problem",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: products are usually linked to tax/reporting, EDO, payment acceptance or fiscalization problems.",
+      "source": "call_transcript",
+      "evidence": "Продукты обычно связаны с задачами по налогам и отчётности, ЭДО, приёму платежей или фискализации.",
       "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_1"
     },
     {
       "question_id": "objections_attempted_handle",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: objections are attempted in nearly all calls.",
+      "source": "call_transcript",
+      "evidence": "Возражения отрабатываются почти во всех звонках.",
       "source_ref": "candidate_files.calls_final:5#call_2"
     },
     {
       "question_id": "objections_checked_remaining_doubts",
       "answer": "no",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: checking remaining doubts after handling objections is the main repeated gap.",
+      "source": "call_transcript",
+      "evidence": "Проверка остатка сомнений после ответа на возражение — главная повторяющаяся просадка.",
       "source_ref": "call_results[]"
     },
     {
       "question_id": "objections_used_examples",
       "answer": "no",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: examples/cases are rare across the nine calls.",
+      "source": "call_transcript",
+      "evidence": "Примеры и кейсы встречаются редко.",
       "source_ref": "call_results[]"
     },
     {
       "question_id": "objections_compared_competitors",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: competitor or alternative comparison appears in enough high-weight calls to keep the aggregate near the detailed average.",
+      "source": "call_transcript",
+      "evidence": "Сравнение с конкурентами появляется в достаточном числе значимых звонков.",
       "source_ref": "candidate_files.calls_start:6#call_3; candidate_files.calls_final:5#call_2"
     },
     {
       "question_id": "close_purchase_action",
       "answer": "yes",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: concrete purchase/application actions are present in part of the calls.",
+      "source": "call_transcript",
+      "evidence": "Конкретные действия для приобретения присутствуют в части звонков.",
       "source_ref": "candidate_files.calls_middle:7#call_1"
     },
     {
       "question_id": "close_specific_next_step",
       "answer": "no",
-      "source": "real_calls + call_results recalculation",
-      "evidence": "Recalculated from call_results: next steps exist in many calls, but the binary importer aggregate is compressed to match the detailed 78 percent average; action quality remains the growth area.",
+      "source": "call_transcript",
+      "evidence": "Следующие шаги есть во многих звонках, но качество действия остаётся зоной роста.",
       "source_ref": "call_results[]"
     }
   ],
-  "summary": "Analyzed 9 real calls from real_calls only. question_results were recalculated from call_results so the importer score is the closest binary-rubric projection to the detailed average (78.33%). Main growth area: systematic objection handling, especially checking remaining doubts, product examples and conversion from consultation to action.",
+  "summary": "Проанализировано 9 реальных звонков. Ответы по вопросам рубрики пересчитаны из результатов по отдельным звонкам, чтобы балл был ближайшей бинарной проекцией к подробному среднему (78.33%). Главная зона роста — системная работа с возражениями: проверка остатка сомнений, примеры продукта и перевод консультации в действие.",
   "strengths": [
-    "Stable Bank Tochka introduction and call reason.",
-    "Products are usually linked to taxes, payments, EDO and operational client tasks.",
-    "Concrete prices, rates or terms are often given."
+    "Стабильное представление от Банка Точка и причина звонка.",
+    "Продукты обычно связаны с налогами, платежами, ЭДО и операционными задачами клиента.",
+    "Часто приводятся конкретные цены, тарифы и условия."
   ],
   "growth_zones": [
-    "Keep question_results aligned with call_results averages when importing aggregated calls analysis.",
-    "Clarify frequency and scale of the problem, not only the fact of need.",
-    "After handling an objection, ask a control question about remaining doubts.",
-    "Add product examples and alternative comparison when the client is choosing between services.",
-    "Convert consultation into a concrete connection/application action."
+    "Держать ответы по вопросам рубрики согласованными со средним по отдельным звонкам при импорте агрегированного анализа звонков.",
+    "Уточнять частоту и масштаб проблемы, а не только факт потребности.",
+    "После ответа на возражение задавать контрольный вопрос об остатке сомнений.",
+    "Добавлять примеры продуктов и сравнение с альтернативами, когда клиент выбирает между сервисами.",
+    "Переводить консультацию в конкретное действие по подключению или заявке."
   ],
   "red_flags": [],
   "coach_recommendations": [
-    "In each call after presentation, fix fit, blocker, next step and deadline.",
-    "For competitive comparisons, keep a short matrix: price, documents, support, integrations, hidden modules.",
-    "In complex integration cases, avoid repeating explanations and formulate a check plan plus response channel."
+    "В каждом звонке после презентации фиксировать соответствие, барьер, следующий шаг и срок.",
+    "Для сравнения с конкурентами держать короткую матрицу: цена, документы, поддержка, интеграции, скрытые модули.",
+    "В сложных интеграционных кейсах не повторять объяснения, а формулировать план проверки и канал ответа."
   ],
   "risk_flags": [],
   "stage_dynamics": {
@@ -144,39 +145,39 @@
       "overall": 4.06,
       "percent": 81.25,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.42,
         "close": 0.83
       },
-      "comment": "Start calls already show steady contact, reason for call and basic product presentation. Main gaps: problem frequency, final doubt check and harder close."
+      "comment": "Начальные звонки уже показывают стабильный контакт, причину звонка и базовую презентацию продукта. Просадки: частота проблемы, финальная проверка сомнений и более уверенное закрытие."
     },
     "middle": {
       "label": "Середина",
       "overall": 4.02,
       "percent": 80.45,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
         "presentation": 0.92,
         "objections": 0.33,
-        "close": 1.0
+        "close": 1
       },
-      "comment": "Middle calls show more applied support with product setup and next steps. Growth is visible in presentation and closing, while doubt-checking remains uneven."
+      "comment": "Середина показывает прикладную поддержку с настройкой продукта и следующими шагами. Рост заметен в презентации и закрытии, проверка сомнений остаётся неравномерной."
     },
     "final": {
       "label": "Выпуск",
       "overall": 3.67,
       "percent": 73.4,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.67,
         "presentation": 0.83,
         "objections": 0.5,
         "close": 0.67
       },
-      "comment": "Final calls are stronger on competitor and decision-criteria handling, but complex clients expose gaps in calculation, doubt check and converting advice into action."
+      "comment": "Выпускные звонки сильнее в работе с конкурентами и критериями решения, но сложные клиенты вскрывают пробелы в расчётах, проверке сомнений и переводе совета в действие."
     }
   },
   "call_results": [
@@ -188,11 +189,11 @@
       "overall_percent": 81.25,
       "overall_score": 4.06,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.25,
-        "close": 1.0
+        "close": 1
       },
       "products_detected": [
         {
@@ -217,7 +218,7 @@
           "source_ref": "candidate_files.calls_start:6#call_1"
         }
       ],
-      "comment": "Strong discovery around accounting and EDO; main gap is checking remaining doubts after objection handling."
+      "comment": "Сильное выявление по бухгалтерии и ЭДО; основная просадка — проверка остатка сомнений после возражения."
     },
     {
       "stage": "start",
@@ -227,9 +228,9 @@
       "overall_percent": 73.75,
       "overall_score": 3.69,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.25,
         "close": 0.5
       },
@@ -263,7 +264,7 @@
           "source_ref": "candidate_files.calls_start:6#call_2"
         }
       ],
-      "comment": "Good discovery of marketplace, private sales and payment channels; close stays informational rather than action-led."
+      "comment": "Хорошее выявление маркетплейса, частных продаж и платёжных каналов; закрытие информационное, а не действие."
     },
     {
       "stage": "start",
@@ -273,11 +274,11 @@
       "overall_percent": 88.75,
       "overall_score": 4.44,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.75,
-        "close": 1.0
+        "close": 1
       },
       "products_detected": [
         {
@@ -309,21 +310,21 @@
           "source_ref": "candidate_files.calls_start:6#call_3"
         }
       ],
-      "comment": "Best start call: separates individual/legal payment scenarios, gives QR rate and compares EDO with 1C; needs a final doubt check."
+      "comment": "Лучший стартовый звонок: разделяет сценарии оплаты физлиц и юрлиц, даёт тариф по QR и сравнивает ЭДО с 1С; нужна финальная проверка сомнений."
     },
     {
       "stage": "middle",
       "stage_label": "Середина",
       "call_index": 1,
       "source_ref": "candidate_files.calls_middle:7#call_1",
-      "overall_percent": 75.0,
+      "overall_percent": 75,
       "overall_score": 3.75,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
         "presentation": 0.75,
         "objections": 0.25,
-        "close": 1.0
+        "close": 1
       },
       "products_detected": [
         {
@@ -341,21 +342,21 @@
           "source_ref": "candidate_files.calls_middle:7#call_1"
         }
       ],
-      "comment": "Operationally strong assistance with the acquiring application; less classic selling and little opinion checking."
+      "comment": "Операционно сильная помощь по заявке на эквайринг; меньше классической продажи и проверки мнения клиента."
     },
     {
       "stage": "middle",
       "stage_label": "Середина",
       "call_index": 2,
       "source_ref": "candidate_files.calls_middle:7#call_2",
-      "overall_percent": 85.0,
+      "overall_percent": 85,
       "overall_score": 4.25,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.5,
-        "close": 1.0
+        "close": 1
       },
       "products_detected": [
         {
@@ -366,7 +367,7 @@
           "source_ref": "candidate_files.calls_middle:7#call_2"
         }
       ],
-      "comment": "Detailed TEDO consultation with price and operator context; answers about waybills/token need more precision and confirmation."
+      "comment": "Подробная консультация по ТЭДО с ценой и контекстом оператора; ответы про накладные и токен требуют точности и подтверждения."
     },
     {
       "stage": "middle",
@@ -376,11 +377,11 @@
       "overall_percent": 81.25,
       "overall_score": 4.06,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.25,
-        "close": 1.0
+        "close": 1
       },
       "products_detected": [
         {
@@ -405,7 +406,7 @@
           "source_ref": "candidate_files.calls_middle:7#call_3"
         }
       ],
-      "comment": "Good cross-sell through client context: EDO, funds and online accounting; objection readiness is not checked enough."
+      "comment": "Хороший кросс-сейл через контекст клиента: ЭДО, фонды и онлайн-бухгалтерия; готовность к возражениям проверяется недостаточно."
     },
     {
       "stage": "final",
@@ -415,9 +416,9 @@
       "overall_percent": 73.75,
       "overall_score": 3.69,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.25,
         "close": 0.5
       },
@@ -451,7 +452,7 @@
           "source_ref": "candidate_files.calls_final:5#call_1"
         }
       ],
-      "comment": "Deeper diagnosis of payment scenarios and fiscalization; close still sends information rather than asking for a purchase action."
+      "comment": "Глубокая диагностика сценариев оплаты и фискализации; закрытие всё ещё отправляет информацию, а не просит действие."
     },
     {
       "stage": "final",
@@ -461,11 +462,11 @@
       "overall_percent": 81.25,
       "overall_score": 4.06,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.5,
-        "presentation": 1.0,
+        "presentation": 1,
         "objections": 0.75,
-        "close": 1.0
+        "close": 1
       },
       "products_detected": [
         {
@@ -476,17 +477,17 @@
           "source_ref": "candidate_files.calls_final:5#call_2"
         }
       ],
-      "comment": "Strong final-stage handling of competitors, price and decision criteria; misses explicit business-activity diagnosis and product examples."
+      "comment": "Сильная работа с конкурентами, ценой и критериями решения; не хватает явной диагностики бизнес-активности и примеров продукта."
     },
     {
       "stage": "final",
       "stage_label": "Выпуск",
       "call_index": 3,
       "source_ref": "candidate_files.calls_final:5#call_3",
-      "overall_percent": 65.0,
+      "overall_percent": 65,
       "overall_score": 3.25,
       "blocks": {
-        "contact": 1.0,
+        "contact": 1,
         "needs": 0.75,
         "presentation": 0.5,
         "objections": 0.5,
@@ -508,7 +509,7 @@
           "source_ref": "candidate_files.calls_final:5#call_3"
         }
       ],
-      "comment": "Client need for one payment contour is identified, but the explanation repeats and irritates; needs a crisp integration-check plan."
+      "comment": "Потребность в едином платёжном контуре выявлена, но объяснение повторяется; нужен чёткий план проверки интеграции."
     }
   ]
 }

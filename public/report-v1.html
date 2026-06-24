@@ -2000,6 +2000,9 @@
       ];
       const rows = cr.map(c => {
         const b = c.blocks || {};
+        const productsHtml = Array.isArray(c.products_detected) && c.products_detected.length
+          ? c.products_detected.map(p => escapeHtml(p.product_name || p.product_id || '?')).join(', ')
+          : '';
         return `<tr>
           <td>${escapeHtml(c.stage || '—')}</td>
           <td>${escapeHtml(c.call_index || '—')}</td>
@@ -2007,13 +2010,14 @@
           ${BLOCKS.map(bl => `<td>${b[bl.key] != null ? escapeHtml(formatScoreValue(b[bl.key])) : '—'}</td>`).join('')}
           <td style="font-size:11px; color:var(--muted);">${escapeHtml((c.comment || '').slice(0, 80))}</td>
           <td style="font-size:10px; color:var(--muted);">${escapeHtml(c.source_ref || '—')}</td>
+          <td style="font-size:11px;">${productsHtml}</td>
         </tr>`;
       }).join('');
       return `<div class="card" style="margin-bottom:14px;">
         <h3>Разбор отдельных звонков</h3>
         <div style="overflow-x:auto;">
           <table class="data-table" style="font-size:12px;">
-            <thead><tr><th>Период</th><th>№</th><th>Общий</th><th>Контакт</th><th>Выявление</th><th>Презентация</th><th>Возражения</th><th>Завершение</th><th>Комментарий</th><th>Источник</th></tr></thead>
+            <thead><tr><th>Период</th><th>№</th><th>Общий</th><th>Контакт</th><th>Выявление</th><th>Презентация</th><th>Возражения</th><th>Завершение</th><th>Комментарий</th><th>Источник</th><th>Продукты</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>

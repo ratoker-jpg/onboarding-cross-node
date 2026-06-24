@@ -27,6 +27,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { SheetsClient } = require('../sheets_client');
 
 // We need DB access without booting the full HTTP server.
 // loadDotEnv is the same minimal parser used by server.js.
@@ -472,7 +473,173 @@ function simpleHash(str) {
  return String(h);
 }
 
-function exportBundle(baseKey, analysisType) {
+// ============================================================
+// Phase 3E3E: Product dictionary from Google Sheets
+// ============================================================
+
+const PRODUCTS_SHEET_ID = '1grwKJPJ3VH6OE0Ky5v3J4FZVADHm7tJrFPwoppkdakI';
+const PRODUCTS_SHEET_NAME = 'Лист1';
+
+function normalizeStatus(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Normalise boolean-like cell values from Google Sheets.
+ * Accepts: Да/да/YES/yes/true/TRUE/1/1.0 — case-insensitive, ё→е.
+ * Used for product `is_chp` flag where operators type inconsistent forms.
+ */
+function parseBooleanLike(value) {
+  const v = String(value || '').trim().toLowerCase().replace(/ё/g, 'е');
+  return v === 'да' || v === 'yes' || v === 'true' || v === '1';
+}
+
+function isExcludedStatus(status) {
+  const ns = normalizeStatus(status);
+  if (ns === 'не продается' || ns === 'не продают') return true;
+  return false;
+}
+
+function isExcludedDescription(description) {
+  const d = String(description || '').toLowerCase().replace(/ё/g, 'е');
+  return d.includes('кроссы не продают данный продукт') || d.includes('не брать в анализ');
+}
+
+function slugifyProduct(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-zа-я0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 60) || 'unnamed';
+}
+
+/**
+ * Strip Google Sheets edit markers ("Отредактировано <...>") and normalise
+ * whitespace in a product name cell. Operators append these markers when they
+ * update a row, e.g. "Платная онлайн-бухгалтерия Отредактировано Калинкина" —
+ * the suffix must never reach Codex or appear in the report as the product
+ * name. The original cell value is preserved separately as `raw_product_name`
+ * for traceability.
+ *
+ * The marker run stops at common cell separators (newline / comma / semicolon
+ * / pipe) so a marker followed by more content (rare but possible) does not
+ * eat the rest of the cell. Any trailing punctuation left after the marker
+ * removal is trimmed, and whitespace is collapsed to single spaces.
+ */
+function cleanProductName(value) {
+  return String(value || '')
+    .replace(/\s*Отредактировано\s+[^\n\r,;|]+/gi, '')
+    .replace(/[,;|]+\s*$/g, '')   // trim trailing punctuation left by marker stop
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseAliases(aliasStr) {
+  if (!aliasStr) return [];
+  return String(aliasStr)
+    .split(/[,;\n\r]+|\s+-\s+/)
+    .map(s => s.trim().replace(/^-\s*/, '').replace(/^["']|["']$/g, ''))
+    .filter(Boolean);
+}
+
+/**
+ * Load product dictionary from Google Sheets.
+ *
+ * Each product: { product_id, product_name, is_chp, segments, product_type,
+ *                 description, aliases, status, selling_circle, source_ref }
+ *
+ * @param {object}  opts
+ * @param {boolean} [opts.required=false] — when true, the caller (e.g. calls
+ *   export) cannot tolerate an empty/failed dictionary. In that case any
+ *   failure (sheet read error, empty sheet, all rows excluded by status)
+ *   throws an Error with a stable machine-readable prefix:
+ *     - `product_dictionary_failed_to_load:<reason>`   (read error)
+ *     - `product_dictionary_required_but_empty`        (sheet empty after filter)
+ *   When false, errors degrade to a warning + empty array (used by non-calls
+ *   analysis types where the dictionary is not needed).
+ */
+async function loadProductDictionary({ required = false } = {}) {
+  const config = {
+    spreadsheetId: PRODUCTS_SHEET_ID,
+    clientPath: process.env.GOOGLE_OAUTH_CLIENT || path.join(process.env.HOME || '', 'web-server/secrets/google-oauth-client.json'),
+    tokenPath: process.env.GOOGLE_OAUTH_TOKEN || path.join(process.env.HOME || '', 'web-server/secrets/google-oauth-token.json'),
+  };
+  try {
+    const client = new SheetsClient(config);
+    const sheets = await client.batchGet([PRODUCTS_SHEET_NAME]);
+    const rows = sheets[PRODUCTS_SHEET_NAME] || [];
+    if (!rows.length) {
+      if (required) {
+        throw new Error('product_dictionary_required_but_empty');
+      }
+      console.warn('Product dictionary: no rows in sheet');
+      return [];
+    }
+    // First row is header
+    const header = rows[0];
+    const products = [];
+    const seenSlugs = new Set();
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[0]) continue;
+      const rawProductName = String(row[0] || '').trim();
+      if (!rawProductName) continue;
+      // Strip operator edit markers ("Отредактировано ...") and normalise
+      // whitespace. If the cell contained only the marker, skip the row.
+      const productName = cleanProductName(rawProductName);
+      if (!productName) continue;
+      const description = String(row[4] || '').trim();
+      const status = String(row[6] || '').trim();
+      // Exclude non-selling
+      if (isExcludedStatus(status)) continue;
+      if (isExcludedDescription(description)) continue;
+      // Generate stable product_id from the CLEANED name so two rows that
+      // differ only by "Отредактировано X" vs "Отредактировано Y" collapse
+      // to the same slug (the second one gets a _<row> suffix to stay unique
+      // and traceable via raw_product_name + source_ref).
+      let slug = slugifyProduct(productName);
+      if (seenSlugs.has(slug)) {
+        slug = `${slug}_${i}`;
+      }
+      seenSlugs.add(slug);
+      products.push({
+        product_id: slug,
+        product_name: productName,
+        raw_product_name: rawProductName,
+        is_chp: parseBooleanLike(row[1]),
+        segments: String(row[2] || '').trim() || null,
+        product_type: String(row[3] || '').trim() || null,
+        description: description || null,
+        aliases: parseAliases(row[5]),
+        status: status || null,
+        selling_circle: String(row[7] || '').trim() || null,
+        source_ref: `products_sheet:row_${i + 1}`,
+      });
+    }
+    if (!products.length && required) {
+      throw new Error('product_dictionary_required_but_empty');
+    }
+    return products;
+  } catch (err) {
+    if (required) {
+      // Re-throw with a stable prefix so callers / logs can distinguish
+      // the failure mode. Preserve the original message for debugging.
+      if (err.message && err.message.startsWith('product_dictionary_')) {
+        throw err;
+      }
+      throw new Error(`product_dictionary_failed_to_load:${err.message}`);
+    }
+    console.warn(`Product dictionary: failed to load from Google Sheets: ${err.message}`);
+    return [];
+  }
+}
+
+async function exportBundle(baseKey, analysisType) {
   if (!ANALYSIS_TYPE_TO_RUBRIC[analysisType]) {
     throw new Error(`invalid_analysis_type:${analysisType}`);
   }
@@ -645,6 +812,9 @@ function exportBundle(baseKey, analysisType) {
     scores: scores,
     manual_inputs: manualInputs,
     real_calls: realCallsForBundle,
+    product_dictionary: analysisType === 'calls'
+      ? await loadProductDictionary({ required: true })
+      : null,
     call_stats: callStats,
     ops_summary: null,
     interview_summary: interviewSummary,
@@ -680,7 +850,7 @@ function exportBundle(baseKey, analysisType) {
 // Main
 // ----------------------------------------------------------------------
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv);
   if (args.help || !args.baseKey || !args.type || !args.out) {
     printHelp();
@@ -688,7 +858,16 @@ function main() {
   }
 
   try {
-    const bundle = exportBundle(args.baseKey, args.type);
+    const bundle = await exportBundle(args.baseKey, args.type);
+    // Defense in depth: even though loadProductDictionary({required:true})
+    // already throws on empty/failed dictionary for calls, refuse to write
+    // the bundle if for any reason the dictionary ended up empty. An empty
+    // dictionary makes B11/B12/B14/B15-B18 unanalysable.
+    if (args.type === 'calls') {
+      if (!Array.isArray(bundle.product_dictionary) || bundle.product_dictionary.length === 0) {
+        throw new Error('product_dictionary_required_but_empty');
+      }
+    }
     // Secret-leak guard: scan BEFORE writing the file. If a forbidden pattern
     // is found (e.g. an env var accidentally ended up in a manual_input
     // payload), the bundle must not leave the server.
@@ -719,6 +898,9 @@ function main() {
       if (totalDupes) console.log(`  duplicate transcripts skipped: ${totalDupes}`);
     }
     console.log(`  files (metadata only): ${bundle.files.length}`);
+    if (bundle.product_dictionary !== null) {
+      console.log(`  product_dictionary: ${bundle.product_dictionary.length}`);
+    }
     console.log(`  source_refs: ${bundle.source_refs.length}`);
     console.log(`  out: ${args.out} (${size} bytes)`);
   } catch (err) {

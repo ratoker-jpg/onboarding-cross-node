@@ -81,11 +81,46 @@ A bundle JSON file (`*_calls_bundle.json`) containing:
 
 ## Product dictionary
 
-If `bundle.rubric.source_dependencies.product_dictionary` is required for a
-question but the bundle does NOT contain a product dictionary, set that
-question's answer to `not_enough_data` with
-`evidence: "Product dictionary not available in bundle."`. Do NOT guess
-whether a product is sellable.
+The bundle contains `product_dictionary[]` — a list of sellable products
+from the official Точка product sheet. Each entry has:
+- `product_id` — stable slug
+- `product_name` — full name
+- `aliases[]` — abbreviations and colloquial names
+- `description` — product description
+- `status` — selling status (e.g. "Продается", "Продается (минимально)")
+- `segments` — target segments
+- `product_type` — category
+
+### Rules for presentation questions
+
+**B11 / `presentation_any_product`**: `yes` only if operator named a
+product from `product_dictionary` by name or alias, or described it
+specifically enough to match `description`. `no` if operator said
+generic "у нас есть сервисы" or product not in dictionary.
+
+**B12 / `presentation_asked_opinion`**: `yes` only if operator asked
+opinion/interest about a **specific** product found in
+`product_dictionary`. Generic "вам актуально?" without product = `no`.
+
+**B14 / `presentation_linked_to_problem`**: `yes` only if operator
+linked a specific `product_dictionary` product to the client's stated
+problem.
+
+### Rules for objections questions
+
+Objection counts as product-related only if it refers to a product from
+`product_dictionary`. General bank-level doubts without a specific
+product = `not_applicable`.
+
+**B18 / `objections_compared_competitors`**: `yes` only if operator
+compared a `product_dictionary` product's conditions with a competitor's
+equivalent.
+
+### If product_dictionary is empty or missing
+
+If `product_dictionary` is empty or not in the bundle, set all
+`requires_product_dictionary` questions to `not_enough_data` with
+`evidence: "Product dictionary not available in bundle."`
 
 ## Critical errors
 

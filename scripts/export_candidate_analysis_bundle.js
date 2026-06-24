@@ -27,6 +27,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { SheetsClient } = require('../sheets_client');
 
 // We need DB access without booting the full HTTP server.
 // loadDotEnv is the same minimal parser used by server.js.
@@ -472,7 +473,110 @@ function simpleHash(str) {
  return String(h);
 }
 
-function exportBundle(baseKey, analysisType) {
+// ============================================================
+// Phase 3E3E: Product dictionary from Google Sheets
+// ============================================================
+
+const PRODUCTS_SHEET_ID = '1grwKJPJ3VH6OE0Ky5v3J4FZVADHm7tJrFPwoppkdakI';
+const PRODUCTS_SHEET_NAME = 'Лист1';
+
+function normalizeStatus(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/\s+/g, ' ');
+}
+
+function isExcludedStatus(status) {
+  const ns = normalizeStatus(status);
+  if (ns === 'не продается' || ns === 'не продают') return true;
+  return false;
+}
+
+function isExcludedDescription(description) {
+  const d = String(description || '').toLowerCase().replace(/ё/g, 'е');
+  return d.includes('кроссы не продают данный продукт') || d.includes('не брать в анализ');
+}
+
+function slugifyProduct(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-zа-я0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 60) || 'unnamed';
+}
+
+function parseAliases(aliasStr) {
+  if (!aliasStr) return [];
+  return String(aliasStr)
+    .split(/[,;\n\r]+|\s+-\s+/)
+    .map(s => s.trim().replace(/^-\s*/, '').replace(/^["']|["']$/g, ''))
+    .filter(Boolean);
+}
+
+/**
+ * Load product dictionary from Google Sheets.
+ * Returns array of product objects or empty array on error.
+ * Each product: { product_id, product_name, is_chp, segments, product_type,
+ *                 description, aliases, status, selling_circle, source_ref }
+ */
+async function loadProductDictionary() {
+  const config = {
+    spreadsheetId: PRODUCTS_SHEET_ID,
+    clientPath: process.env.GOOGLE_OAUTH_CLIENT || path.join(process.env.HOME || '', 'web-server/secrets/google-oauth-client.json'),
+    tokenPath: process.env.GOOGLE_OAUTH_TOKEN || path.join(process.env.HOME || '', 'web-server/secrets/google-oauth-token.json'),
+  };
+  try {
+    const client = new SheetsClient(config);
+    const sheets = await client.batchGet([PRODUCTS_SHEET_NAME]);
+    const rows = sheets[PRODUCTS_SHEET_NAME] || [];
+    if (!rows.length) {
+      console.warn('Product dictionary: no rows in sheet');
+      return [];
+    }
+    // First row is header
+    const header = rows[0];
+    const products = [];
+    const seenSlugs = new Set();
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[0]) continue;
+      const productName = String(row[0] || '').trim();
+      if (!productName) continue;
+      const description = String(row[4] || '').trim();
+      const status = String(row[6] || '').trim();
+      // Exclude non-selling
+      if (isExcludedStatus(status)) continue;
+      if (isExcludedDescription(description)) continue;
+      // Generate stable product_id
+      let slug = slugifyProduct(productName);
+      if (seenSlugs.has(slug)) {
+        slug = `${slug}_${i}`;
+      }
+      seenSlugs.add(slug);
+      products.push({
+        product_id: slug,
+        product_name: productName,
+        is_chp: String(row[1] || '').trim() === 'Да' || String(row[1] || '').trim().toLowerCase() === 'yes',
+        segments: String(row[2] || '').trim() || null,
+        product_type: String(row[3] || '').trim() || null,
+        description: description || null,
+        aliases: parseAliases(row[5]),
+        status: status || null,
+        selling_circle: String(row[7] || '').trim() || null,
+        source_ref: `products_sheet:row_${i + 1}`,
+      });
+    }
+    return products;
+  } catch (err) {
+    console.warn(`Product dictionary: failed to load from Google Sheets: ${err.message}`);
+    return [];
+  }
+}
+
+async function exportBundle(baseKey, analysisType) {
   if (!ANALYSIS_TYPE_TO_RUBRIC[analysisType]) {
     throw new Error(`invalid_analysis_type:${analysisType}`);
   }
@@ -645,6 +749,7 @@ function exportBundle(baseKey, analysisType) {
     scores: scores,
     manual_inputs: manualInputs,
     real_calls: realCallsForBundle,
+    product_dictionary: analysisType === 'calls' ? (await loadProductDictionary()) : null,
     call_stats: callStats,
     ops_summary: null,
     interview_summary: interviewSummary,
@@ -680,7 +785,7 @@ function exportBundle(baseKey, analysisType) {
 // Main
 // ----------------------------------------------------------------------
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv);
   if (args.help || !args.baseKey || !args.type || !args.out) {
     printHelp();
@@ -688,7 +793,7 @@ function main() {
   }
 
   try {
-    const bundle = exportBundle(args.baseKey, args.type);
+    const bundle = await exportBundle(args.baseKey, args.type);
     // Secret-leak guard: scan BEFORE writing the file. If a forbidden pattern
     // is found (e.g. an env var accidentally ended up in a manual_input
     // payload), the bundle must not leave the server.
@@ -719,6 +824,9 @@ function main() {
       if (totalDupes) console.log(`  duplicate transcripts skipped: ${totalDupes}`);
     }
     console.log(`  files (metadata only): ${bundle.files.length}`);
+    if (bundle.product_dictionary !== null) {
+      console.log(`  product_dictionary: ${bundle.product_dictionary.length}`);
+    }
     console.log(`  source_refs: ${bundle.source_refs.length}`);
     console.log(`  out: ${args.out} (${size} bytes)`);
   } catch (err) {

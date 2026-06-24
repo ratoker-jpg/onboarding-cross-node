@@ -363,16 +363,16 @@
 
     /* === Chat bubbles === */
     .chat-wrap {
-      display: flex; flex-direction: column; gap: 14px;
+      display: flex; flex-direction: column; gap: 10px;
       margin-top: 12px; background: #f7f3ff;
-      padding: 18px; border-radius: var(--radius-md);
+      padding: 14px; border-radius: var(--radius-md);
       max-height: 560px; overflow: auto;
       border: 1px solid var(--line);
     }
     .chat-bubble {
-      max-width: 76%; padding: 12px 15px;
-      border-radius: 18px; font-size: 14px; line-height: 1.65;
-      white-space: pre-wrap; overflow-wrap: anywhere;
+      max-width: 76%; padding: 14px 18px;
+      border-radius: 18px; font-size: 14px; line-height: 1.5;
+      overflow-wrap: anywhere;
       box-shadow: 0 8px 20px rgba(63, 35, 112, 0.06);
     }
     .chat-bubble.seller {
@@ -389,8 +389,9 @@
     }
     .chat-speaker {
       font-size: 10px; font-weight: 800; opacity: 0.66;
-      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px;
     }
+    .chat-text { white-space: pre-wrap; }
 
     /* === Source cards (overview) === */
     .source-card {
@@ -528,6 +529,15 @@
       cursor: pointer; width: fit-content;
     }
     details[open] > .dialog-toggle { background: var(--accent-hover); }
+    .training-blocks-toolbar { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+    .training-blocks.is-collapsed .block-card { padding: 14px 16px; }
+    .training-blocks.is-collapsed .block-comment { display: none; }
+    .trainer-summary-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+    .trainer-summary-card { background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 14px 16px; }
+    .trainer-summary-card .ts-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; }
+    .trainer-summary-card .ts-value { margin-top: 5px; font-size: 15px; line-height: 1.5; font-weight: 650; }
+    .trainer-link-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .trainer-link-row .btn { padding: 8px 12px; font-size: 13px; }
     .dialog-card { background: #fff; border: 1px solid var(--line); box-shadow: none; }
     .dialog-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; font-size: 13px; }
     .call-stage-card { background: linear-gradient(180deg, #fff 0%, #fbf9ff 100%); }
@@ -633,6 +643,11 @@
           <h2>Ключевой вывод</h2>
           <div id="overviewRecommendation"></div>
           <div class="lists-grid" id="overviewLists" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card">
+          <h2>Краткое резюме для тренера</h2>
+          <div id="trainerSummary"></div>
         </div>
 
         <div class="card">
@@ -840,10 +855,42 @@
 
     function getTrainingPayloadValue(payload, key) {
       if (!payload || typeof payload !== 'object') return undefined;
-      if (Object.prototype.hasOwnProperty.call(payload, key)) return payload[key];
-      const lower = key.toLowerCase();
-      if (Object.prototype.hasOwnProperty.call(payload, lower)) return payload[lower];
-      return undefined;
+      const aliases = {
+        SUCCESSFUL: ['SUCCESSFUL', 'successful', 'Успешно', 'успешно'],
+        FAILED: ['FAILED', 'failed', 'Провалено', 'провалено'],
+      };
+      const candidates = aliases[key] || [key, key.toLowerCase()];
+      const entries = Object.entries(payload);
+      for (const candidateKey of candidates) {
+        if (Object.prototype.hasOwnProperty.call(payload, candidateKey)) return payload[candidateKey];
+      }
+      const lowerCandidates = candidates.map(k => String(k).toLowerCase());
+      const match = entries.find(([k]) => lowerCandidates.includes(String(k).toLowerCase()));
+      return match ? match[1] : undefined;
+    }
+
+    function parseTrainingResultValue(value) {
+      if (value == null || value === '') return { hasData: false, display: 'нет данных', truthy: false, count: 0 };
+      if (typeof value === 'boolean') return { hasData: true, display: value ? 'да' : 'нет', truthy: value, count: value ? 1 : 0 };
+      if (typeof value === 'number' && Number.isFinite(value)) return { hasData: true, display: String(value), truthy: value > 0, count: value };
+      const text = String(value).trim();
+      if (!text) return { hasData: false, display: 'нет данных', truthy: false, count: 0 };
+      const numeric = Number(text.replace(',', '.'));
+      if (Number.isFinite(numeric)) return { hasData: true, display: text, truthy: numeric > 0, count: numeric };
+      const normalized = text.toLowerCase();
+      if (['true', 'да', 'yes'].includes(normalized)) return { hasData: true, display: 'да', truthy: true, count: 1 };
+      if (['false', 'нет', 'no'].includes(normalized)) return { hasData: true, display: 'нет', truthy: false, count: 0 };
+      return { hasData: true, display: text, truthy: Boolean(text), count: 0 };
+    }
+
+    function sumTrainingResultValues(groups, key) {
+      let hasData = false;
+      const total = groups.reduce((sum, g) => {
+        const parsed = parseTrainingResultValue(getTrainingPayloadValue(g.aggregatePayload, key));
+        hasData = hasData || parsed.hasData;
+        return sum + parsed.count;
+      }, 0);
+      return hasData ? total : '—';
     }
 
     const SCORE_CARDS = [
@@ -1004,7 +1051,16 @@
         }
         blocks.push({ name, value: numericVal, comment: commentVal, raw: blockVal });
       }
-      return `<div class="block-grid">${blocks.map(b => renderTrainingBlockCard(b)).join('')}</div>`;
+      return `<div class="training-blocks-toolbar"><button type="button" class="btn secondary" onclick="toggleTrainingBlocks(this)">Свернуть блоки оценки</button></div>
+        <div class="block-grid training-blocks">${blocks.map(b => renderTrainingBlockCard(b)).join('')}</div>`;
+    }
+
+    function toggleTrainingBlocks(button) {
+      const toolbar = button.closest('.training-blocks-toolbar');
+      const blocks = toolbar ? toolbar.nextElementSibling : null;
+      if (!blocks) return;
+      const collapsed = blocks.classList.toggle('is-collapsed');
+      button.textContent = collapsed ? 'Развернуть блоки оценки' : 'Свернуть блоки оценки';
     }
 
     function renderTrainingBlockCard(b) {
@@ -1085,10 +1141,7 @@
           return `<div class="chat-bubble plain">${escapeHtml(t.text)}</div>`;
         }
         const speakerLabel = t.speaker === 'seller' ? 'Продавец' : 'Клиент';
-        return `<div class="chat-bubble ${t.speaker}">
-          <div class="chat-speaker">${escapeHtml(speakerLabel)}</div>
-          ${escapeHtml(t.text)}
-        </div>`;
+        return `<div class="chat-bubble ${t.speaker}"><div class="chat-speaker">${escapeHtml(speakerLabel)}</div><div class="chat-text">${escapeHtml(t.text)}</div></div>`;
       }).join('');
     }
 
@@ -1174,6 +1227,89 @@
         </div>`;
       }
       renderListsGrid(byId('overviewLists'), s);
+    }
+
+    function renderTrainerSummary(card) {
+      const el = byId('trainerSummary');
+      const c = card.candidate || {};
+      const s = card.scores || {};
+      const latest = card.latest_analysis || {};
+      const manualInputs = card.manual_inputs || [];
+      const dialogs = card.training_bot_dialogs || [];
+      const completeness = card.completeness || { items: [] };
+      const completeItems = completeness.items || [];
+
+      const firstPresent = (...values) => values.find(v => v != null && String(v).trim() !== '') || null;
+      const findManual = (...sections) => manualInputs.find(m => sections.includes(m.section)) || null;
+      const manualValue = (manualInput, ...keys) => {
+        const p = manualInput && manualInput.payload ? manualInput.payload : null;
+        if (!p || typeof p !== 'object') return null;
+        for (const key of keys) {
+          if (p[key] != null && String(p[key]).trim() !== '') return p[key];
+        }
+        return null;
+      };
+      const callsIn = (section) => {
+        const m = findManual(section);
+        return m && m.payload && Array.isArray(m.payload.calls) ? m.payload.calls.length : 0;
+      };
+      const statusFor = (isCalculated, isLoaded) => isCalculated ? 'рассчитано' : isLoaded ? 'данные загружены' : 'нет данных';
+      const scoreText = (label, value) => value == null ? `${label}: нет данных` : `${label}: ${formatScoreValue(value)}`;
+      const stageDatesManual = findManual('stage_dates', 'training_dates', 'immersion_dates');
+      const dates = [
+        { label: 'Тестовый день', value: firstPresent(c.test_day_started_at, c.test_day_date, manualValue(stageDatesManual, 'test_day_started_at', 'test_day_date', 'test_day')) },
+        { label: 'Первый день погружения', value: firstPresent(c.immersion_started_at, c.immersion_start_date, manualValue(stageDatesManual, 'immersion_started_at', 'immersion_start_date', 'immersion_start')) },
+        { label: 'Завершение погружения', value: firstPresent(c.immersion_finished_at, c.immersion_ended_at, c.immersion_end_date, manualValue(stageDatesManual, 'immersion_finished_at', 'immersion_ended_at', 'immersion_end_date', 'immersion_end')) },
+      ];
+      const datesHtml = dates.map(d => `<div>${escapeHtml(d.label)}: <b>${escapeHtml(d.value || 'нет данных')}</b></div>`).join('');
+
+      const interviewManual = findManual('interview', 'interview_transcript');
+      const interviewText = firstPresent(
+        card.interview_summary && (card.interview_summary.preview || card.interview_summary.summary),
+        latest.interview && latest.interview.summary,
+        manualValue(interviewManual, 'experience', 'summary', 'text_content', 'transcript', 'comment')
+      );
+      const experienceHtml = interviewText
+        ? String(interviewText).split(/[.!?]\s+|\n+/).map(x => x.trim()).filter(Boolean).slice(0, 4).map(x => `<p style="margin:0 0 6px;">${escapeHtml(x)}${/[.!?]$/.test(x) ? '' : '.'}</p>`).join('')
+        : 'Опыт не выделен из собеседования. Данные можно уточнить в блоке «Собеседование».';
+
+      const opsSummary = card.ops_summary || null;
+      const opsSections = opsSummary && Array.isArray(opsSummary.sections) ? opsSummary.sections : [];
+      const opsLoaded = opsSections.length > 0 && opsSections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
+      const callDataLoaded = Boolean(card.call_stats) || callsIn('calls_start') + callsIn('calls_middle') + callsIn('calls_final') > 0;
+      const interviewLoaded = Boolean(card.interview_summary && (card.interview_summary.has_interview || card.interview_summary.has_transcript)) || Boolean(interviewText);
+      const finalTestReady = completeItems.some(i => i.code === 'final_test' && i.status === 'ready');
+      const summaryRows = [
+        { title: 'Собеседование', status: statusFor(Boolean(latest.interview), interviewLoaded), score: [scoreText('Софт', s.soft_score), scoreText('Hard', s.hard_score)].join(' · '), note: 'Soft/hard/evidence смотрите во вкладке «Собеседование».' },
+        { title: 'Звонки', status: statusFor(Boolean(latest.calls), callDataLoaded), score: scoreText('Качество', s.call_quality_score), note: 'Реальные звонки и автомануал — во вкладке «Звонки».' },
+        { title: 'Учебные агенты', status: dialogs.length ? 'импортировано' : 'нет данных', score: `${dialogs.length || 0} диалогов`, note: 'Тестовый день и учебные диалоги — во вкладке «Учебные агенты».' },
+        { title: 'Операционка', status: statusFor(false, opsLoaded), score: [scoreText('Операционка', s.ops_score), scoreText('Дисциплина', s.discipline_score)].join(' · '), note: 'Дисциплина, статусы и комментарии — во вкладке «Операционка».' },
+        { title: 'Выпускной тест', status: s.final_test_score != null || finalTestReady ? 'рассчитано' : 'нет данных', score: scoreText('Балл', s.final_test_score), note: 'Итоговый тест учитывается в общей score-сводке.' },
+      ];
+
+      el.innerHTML = `
+        <div class="trainer-summary-grid">
+          <div class="trainer-summary-card"><div class="ts-label">Даты этапов</div><div class="ts-value">${datesHtml}</div></div>
+          <div class="trainer-summary-card"><div class="ts-label">Опыт кандидата</div><div class="ts-value">${experienceHtml}</div></div>
+        </div>
+        <h3 style="margin:18px 0 10px;">Сводка цифр</h3>
+        <div class="source-grid">
+          ${summaryRows.map(row => `<div class="source-card">
+            <div class="sc-icon ${row.status === 'нет данных' ? 'muted' : 'ok'}">${row.status === 'нет данных' ? '—' : '✓'}</div>
+            <div class="sc-body">
+              <div class="sc-title">${escapeHtml(row.title)}</div>
+              <div class="sc-status">${escapeHtml(row.score)}<br>${escapeHtml(row.note)}</div>
+            </div>
+            <span class="sc-badge ${row.status === 'нет данных' ? 'muted' : 'ok'}">${escapeHtml(row.status)}</span>
+          </div>`).join('')}
+        </div>
+        <h3 style="margin:18px 0 10px;">Где смотреть подробнее</h3>
+        <div class="trainer-link-row">
+          <button type="button" class="btn secondary" onclick="setActiveTab('interview')">Собеседование</button>
+          <button type="button" class="btn secondary" onclick="setActiveTab('training')">Учебные агенты</button>
+          <button type="button" class="btn secondary" onclick="setActiveTab('calls')">Звонки</button>
+          <button type="button" class="btn secondary" onclick="setActiveTab('ops')">Операционка</button>
+        </div>`;
     }
 
     function renderListsGrid(container, scores) {
@@ -1925,8 +2061,8 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         return { ...g, aggregatePayload };
       });
 
-      const successfulTrainings = groupAggregates.filter(g => getTrainingPayloadValue(g.aggregatePayload, 'SUCCESSFUL') === true).length;
-      const failedTrainings = groupAggregates.filter(g => getTrainingPayloadValue(g.aggregatePayload, 'FAILED') === true).length;
+      const successfulTrainings = sumTrainingResultValues(groupAggregates, 'SUCCESSFUL');
+      const failedTrainings = sumTrainingResultValues(groupAggregates, 'FAILED');
 
       const html = [];
 
@@ -1978,12 +2114,10 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         const groupDialogs = group.dialogs;
         const groupTotal = groupDialogs.length;
         const aggregatePayload = group.aggregatePayload;
-        const isSuccessful = getTrainingPayloadValue(aggregatePayload, 'SUCCESSFUL') === true;
-        const isFailed = getTrainingPayloadValue(aggregatePayload, 'FAILED') === true;
-        const successfulYesNo = isSuccessful ? 'да' : 'нет';
-        const failedYesNo = isFailed ? 'да' : 'нет';
-        const successfulCls = isSuccessful ? 'ok' : 'muted';
-        const failedCls = isFailed ? 'warn' : 'muted';
+        const successfulResult = parseTrainingResultValue(getTrainingPayloadValue(aggregatePayload, 'SUCCESSFUL'));
+        const failedResult = parseTrainingResultValue(getTrainingPayloadValue(aggregatePayload, 'FAILED'));
+        const successfulCls = successfulResult.truthy ? 'ok' : 'muted';
+        const failedCls = failedResult.truthy ? 'warn' : 'muted';
 
         html.push(`<div class="card test-day-card ${idx === 0 ? 'is-primary' : ''}" style="margin-bottom:16px;">
           <div class="training-session-head">
@@ -1993,8 +2127,8 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
             </div>
             <div class="summary-pills">
               <div class="summary-pill"><span class="sp-label">Диалогов</span><span class="sp-value">${escapeHtml(groupTotal)}</span></div>
-              <div class="summary-pill ${successfulCls}"><span class="sp-label">Успешно</span><span class="sp-value">${escapeHtml(successfulYesNo)}</span></div>
-              <div class="summary-pill ${failedCls}"><span class="sp-label">Провалено</span><span class="sp-value">${escapeHtml(failedYesNo)}</span></div>
+              <div class="summary-pill ${successfulCls}"><span class="sp-label">Успешно</span><span class="sp-value">${escapeHtml(successfulResult.display)}</span></div>
+              <div class="summary-pill ${failedCls}"><span class="sp-label">Провалено</span><span class="sp-value">${escapeHtml(failedResult.display)}</span></div>
             </div>
           </div>
           <details class="tech-details">
@@ -2461,17 +2595,18 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
     // Tab switching
     // ====================================================================
 
+    function setActiveTab(target) {
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === target));
+      document.querySelectorAll('.tab-content').forEach(tc => {
+        tc.classList.toggle('active', tc.id === `tab-${target}`);
+      });
+    }
+
     function initTabs() {
       const tabs = document.querySelectorAll('.tab');
       tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          const target = tab.dataset.tab;
-          tabs.forEach(t => t.classList.toggle('active', t === tab));
-          document.querySelectorAll('.tab-content').forEach(tc => {
-            tc.classList.toggle('active', tc.id === `tab-${target}`);
-          });
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
+        tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
       });
     }
 
@@ -2494,6 +2629,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         renderSourcesConsidered(card);
         renderQuickSlice(card);
         renderOverviewRecommendation(card);
+        renderTrainerSummary(card);
         renderNextStepForLead(card);
         renderCompleteness(card);
         renderScoresGrid(card);

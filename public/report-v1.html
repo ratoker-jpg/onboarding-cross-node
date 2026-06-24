@@ -74,6 +74,87 @@
     .btn.dark { background: var(--black); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    /* === Candidate picker (REPORT-CANDIDATE-PICKER-V1) === */
+    .picker-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .picker-card h2 { margin: 0 0 6px; font-size: 20px; }
+    .picker-card .picker-sub { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+    .picker-key-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+    .picker-key-row input {
+      flex: 1; min-width: 220px;
+      padding: 11px 14px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      font-size: 14px; font-family: inherit; color: var(--text); background: var(--panel);
+    }
+    .picker-key-row input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+    .picker-filters {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px;
+      margin: 14px 0;
+    }
+    .picker-filters input, .picker-filters select {
+      padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      font-size: 14px; font-family: inherit; color: var(--text); background: var(--panel);
+    }
+    .picker-filters input:focus, .picker-filters select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+    .picker-date-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+    }
+    .picker-date-row label {
+      display: flex; flex-direction: column; gap: 4px;
+      font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .picker-date-row input {
+      padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      font-size: 14px; font-family: inherit; color: var(--text); background: var(--panel);
+    }
+    .picker-list {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+      max-height: 540px; overflow-y: auto; padding: 2px;
+    }
+    .picker-item {
+      background: var(--panel-soft, #faf8fe);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md, 12px);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s, transform .05s;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .picker-item:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(115, 102, 143, .15); }
+    .picker-item:active { transform: translateY(1px); }
+    .picker-item .pi-name { font-weight: 700; font-size: 15px; color: var(--text); }
+    .picker-item .pi-meta { font-size: 13px; color: var(--muted); }
+    .picker-item .pi-date { font-size: 12px; color: var(--muted); }
+    .picker-empty {
+      padding: 32px 20px; text-align: center; color: var(--muted); font-size: 14px;
+      background: var(--panel-soft, #faf8fe); border: 1px dashed var(--line);
+      border-radius: var(--radius-sm);
+    }
+    .picker-empty .pe-title { font-weight: 600; color: var(--text); margin-bottom: 6px; font-size: 15px; }
+    .picker-selected {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .picker-selected .ps-text { font-size: 14px; }
+    .picker-selected .ps-text b { font-weight: 700; }
+    .picker-selected .ps-text .ps-meta { color: var(--muted); }
+    .picker-loading { padding: 28px; text-align: center; color: var(--muted); }
+    @media (max-width: 760px) {
+      .picker-filters { grid-template-columns: 1fr 1fr; }
+      .picker-date-row { grid-template-columns: 1fr; }
+      .picker-list { grid-template-columns: 1fr; }
+    }
+
     /* === Error banner === */
     .error-banner {
       padding: 14px 18px; border-radius: var(--radius-sm);
@@ -788,17 +869,57 @@
 </head>
 <body>
   <div class="page">
-    <!-- Auth bar -->
-    <div class="auth-bar">
-      <label>Ключ просмотра
-        <input id="viewerKey" type="password" placeholder="Введите ключ просмотра" />
-      </label>
-      <label>Ключ новичка
-        <input id="baseKeyInput" type="text" placeholder="GTRAIN01" />
-      </label>
-      <div class="auth-actions">
-        <button id="openReportBtn" type="button" class="btn dark">Открыть отчёт</button>
+    <!-- Hidden viewer-key input kept for requestJson() backward compat.
+         The picker UI writes the viewer key here AND to sessionStorage.
+         Users never need to interact with this directly. -->
+    <input id="viewerKey" type="hidden" />
+    <input id="baseKeyInput" type="hidden" />
+
+    <!-- REPORT-CANDIDATE-PICKER-V1: Step 1 — viewer key entry.
+         Shown only when sessionStorage has no onboarding_viewer_key.
+         After success the picker list replaces this card. -->
+    <div id="pickerKeyCard" class="picker-card" style="display:none;">
+      <h2>Введите ключ просмотра</h2>
+      <div class="picker-sub">Ключ доступа выдаёт администратор. Он сохраняется в этом браузере на время сессии.</div>
+      <div class="picker-key-row">
+        <input id="pickerKeyInput" type="password" placeholder="Ключ просмотра" autocomplete="current-password" />
+        <button id="pickerKeySubmit" type="button" class="btn dark">Продолжить</button>
       </div>
+    </div>
+
+    <!-- REPORT-CANDIDATE-PICKER-V1: Step 2 — candidate picker.
+         Shown after viewer key is verified. Hidden while a report is open. -->
+    <div id="pickerListCard" class="picker-card" style="display:none;">
+      <h2>Выберите новичка</h2>
+      <div class="picker-sub">Поиск по ФИО, сегменту, направлению и дате начала погружения.</div>
+      <div class="picker-filters">
+        <input id="pickerSearch" type="search" placeholder="Поиск по ФИО" autocomplete="off" />
+        <select id="pickerSegment"><option value="">Сегмент (все)</option></select>
+        <select id="pickerDirection"><option value="">Направление (все)</option></select>
+        <select id="pickerStatus"><option value="">Статус (все)</option></select>
+      </div>
+      <div class="picker-date-row">
+        <label>Начало погружения с
+          <input id="pickerDateFrom" type="date" />
+        </label>
+        <label>Начало погружения по
+          <input id="pickerDateTo" type="date" />
+        </label>
+      </div>
+      <div id="pickerListContainer">
+        <div class="picker-loading">Загружаем список новичков…</div>
+      </div>
+    </div>
+
+    <!-- REPORT-CANDIDATE-PICKER-V1: Step 3 — collapsed selected state.
+         Shown above the report once a candidate is opened.
+         base_key is NEVER displayed here — only ФИО · Направление · Сегмент. -->
+    <div id="pickerSelectedBar" class="picker-selected" style="display:none;">
+      <div class="ps-text">
+        Открыт отчёт: <b id="psName"></b>
+        <span class="ps-meta" id="psMeta"></span>
+      </div>
+      <button id="pickerChangeBtn" type="button" class="btn secondary">Сменить новичка</button>
     </div>
 
     <div id="errorBanner" class="error-banner"></div>
@@ -1166,7 +1287,6 @@
       const resultFile = `tmp/${baseKey}_${analysisType}_result.json`;
       return [
         `Анализ: ${analysisType === 'interview' ? 'собеседование' : 'звонки'}`,
-        `Ключ новичка: ${baseKey}`,
         `Рубрика: ${rubricId}`,
         ``,
         `Шаги:`,
@@ -1539,7 +1659,7 @@
           <div class="os-label">Фокус контроля</div>
           <div class="os-text">${escapeHtml(firstControl)}</div>
         </div>
-        <div class="os-note">Ключ новичка не отображается в отчёте. Персональные данные в демо обезличены.</div>
+        <div class="os-note">Персональные данные в демо обезличены.</div>
       </aside>`;
     }
 
@@ -1558,7 +1678,7 @@
       if (callsInfo.hasLoadedCalls) {
         el.innerHTML = `<div class="notice-block" style="margin-top:0;">
           <div class="nb-text">Звонки загружены, но анализ по автомануалу ещё не рассчитан.</div>
-          <div style="margin-top:10px;">${baseKey ? renderCopyPromptButton(baseKey, 'calls', 'Скопировать промпт для Codex') : '<span class="status-badge unknown">Ключ новичка недоступен — промпт недоступен.</span>'}</div>
+          <div style="margin-top:10px;">${baseKey ? renderCopyPromptButton(baseKey, 'calls', 'Скопировать промпт для Codex') : '<span class="status-badge unknown">Промпт недоступен — данные новичка не загружены.</span>'}</div>
         </div>`;
         return;
       }
@@ -3391,9 +3511,25 @@
       try {
         const card = await requestJson(`${VIEWER_BASE}/candidates/${encodeURIComponent(baseKey)}/card`);
         if (!card || !card.candidate) {
-          showError('Кандидат не найден. Проверьте ключ новичка.');
+          showError('Новичок не найден. Выберите другого из списка.');
           byId('loadingState').style.display = 'none';
           return;
+        }
+        // REPORT-CANDIDATE-PICKER-V1: collapse the picker and show the
+        // "Открыт отчёт: ФИО · Направление · Сегмент" bar BEFORE rendering
+        // tabs — so even if a tab renderer throws, the user still sees
+        // which candidate is open and can switch back to the picker.
+        // base_key is NEVER displayed — only the human-readable fields.
+        showSelectedBar(card.candidate);
+        // Persist the selected candidate so a refresh reopens the same report
+        // (without putting base_key in the visible URL).
+        try { sessionStorage.setItem('onboarding_selected_candidate_key', baseKey); } catch (_) {}
+        // Strip ?base_key=… from the URL so the technical id is not visible
+        // in the address bar / shared links. Backward compat: the old URL
+        // still works on first load (we read it in init() before cleaning).
+        if (window.history && window.history.replaceState) {
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, cleanUrl);
         }
         renderHero(card);
         renderOverviewPersonCard(card);
@@ -3413,43 +3549,314 @@
       } catch (err) {
         byId('loadingState').style.display = 'none';
         if (err.status === 401) {
-          showError('Неверный ключ просмотра. Проверьте значение в настройках сервера и попробуйте снова.');
+          showError('Ключ просмотра неверный.');
+          // Force re-entry of the viewer key on next picker open.
+          clearViewerKeyAndRestart();
         } else if (err.status === 404) {
-          showError('Кандидат не найден. Проверьте ключ новичка.');
+          showError('Новичок не найден. Выберите другого из списка.');
         } else if (err.status === 503) {
           showError('Просмотр отчётов отключён на сервере: ключ просмотра не задан.');
         } else {
-          showError(err.message || 'Ошибка загрузки отчёта.');
+          showError('Не удалось загрузить данные. Попробуйте обновить страницу.');
+          console.error('loadReport error:', err);
         }
       }
+    }
+
+    // --------------------------------------------------------------------
+    // REPORT-CANDIDATE-PICKER-V1: picker state + UI
+    // --------------------------------------------------------------------
+
+    // In-memory cache of the candidates list. base_key lives only here and
+    // in sessionStorage — never in the visible DOM.
+    let pickerCandidates = [];
+    let pickerLastSelectedKey = '';
+
+    function pickerShow(cardId) {
+      byId('pickerKeyCard').style.display = 'none';
+      byId('pickerListCard').style.display = 'none';
+      byId('pickerSelectedBar').style.display = 'none';
+      if (cardId) byId(cardId).style.display = 'block';
+    }
+
+    function showPickerKeyCard() {
+      pickerShow('pickerKeyCard');
+      // Focus the input for fast entry.
+      setTimeout(() => { const inp = byId('pickerKeyInput'); if (inp) inp.focus(); }, 0);
+    }
+
+    function showPickerListCard() {
+      pickerShow('pickerListCard');
+      // Lazy-load the list the first time the card is shown.
+      if (pickerCandidates.length === 0) {
+        loadPickerCandidates();
+      } else {
+        renderPickerList();
+      }
+    }
+
+    function showSelectedBar(candidate) {
+      pickerShow('pickerSelectedBar');
+      const name = candidate.full_name || 'Без ФИО';
+      const parts = [];
+      if (candidate.direction) parts.push(candidate.direction);
+      if (candidate.seller_segment) parts.push(candidate.seller_segment);
+      byId('psName').textContent = name;
+      byId('psMeta').textContent = parts.length ? ' · ' + parts.join(' · ') : '';
+    }
+
+    function clearViewerKeyAndRestart() {
+      try { sessionStorage.removeItem('onboarding_viewer_key'); } catch (_) {}
+      byId('viewerKey').value = '';
+      byId('pickerKeyInput').value = '';
+      showPickerKeyCard();
+    }
+
+    /**
+     * Verify the viewer key by hitting the candidates endpoint. On success,
+     * persist the key, mirror it into the hidden #viewerKey input (so
+     * requestJson keeps working unchanged), and show the picker list — OR,
+     * if a base_key was queued from an old ?base_key=… URL, open that
+     * candidate's report directly (backward-compat flow).
+     */
+    async function submitPickerKey() {
+      const key = byId('pickerKeyInput').value.trim();
+      if (!key) {
+        showError('Введите ключ просмотра.');
+        return;
+      }
+      showError('');
+      // Mirror into the hidden input so requestJson() can read it.
+      byId('viewerKey').value = key;
+      try {
+        // Test the key against the candidates list (cheap read-only call).
+        const list = await requestJson(`${VIEWER_BASE}/candidates`);
+        saveViewerKey(key);
+        pickerCandidates = Array.isArray(list) ? list : [];
+        // Backward-compat: if the page was opened via an old ?base_key=…
+        // link without a stored viewer key, auto-open that candidate now.
+        const queuedBaseKey = byId('baseKeyInput').value.trim();
+        if (queuedBaseKey) {
+          loadReport(queuedBaseKey);
+        } else {
+          showPickerListCard();
+        }
+      } catch (err) {
+        if (err.status === 401) {
+          showError('Ключ просмотра неверный.');
+        } else if (err.status === 503) {
+          showError('Просмотр отчётов отключён на сервере.');
+        } else {
+          showError('Не удалось загрузить данные. Попробуйте обновить страницу.');
+          console.error('submitPickerKey error:', err);
+        }
+        byId('viewerKey').value = '';
+      }
+    }
+
+    async function loadPickerCandidates() {
+      byId('pickerListContainer').innerHTML = '<div class="picker-loading">Загружаем список новичков…</div>';
+      try {
+        const list = await requestJson(`${VIEWER_BASE}/candidates`);
+        pickerCandidates = Array.isArray(list) ? list : [];
+        populatePickerFilters();
+        renderPickerList();
+      } catch (err) {
+        if (err.status === 401) {
+          showError('Ключ просмотра неверный.');
+          clearViewerKeyAndRestart();
+        } else {
+          byId('pickerListContainer').innerHTML =
+            '<div class="picker-empty"><div class="pe-title">Не удалось загрузить данные</div>Попробуйте обновить страницу.</div>';
+          console.error('loadPickerCandidates error:', err);
+        }
+      }
+    }
+
+    function populatePickerFilters() {
+      const segments = new Set();
+      const directions = new Set();
+      const statuses = new Set();
+      for (const c of pickerCandidates) {
+        if (c.seller_segment) segments.add(c.seller_segment);
+        if (c.direction) directions.add(c.direction);
+        // Status priority: scores.final_status (computed) → candidate.status (raw)
+        const st = (c.scores && c.scores.final_status) || c.status;
+        if (st) statuses.add(st);
+      }
+      const fillSelect = (id, set, labelAll) => {
+        const sel = byId(id);
+        const current = sel.value;
+        // Keep the first "all" option, replace the rest.
+        sel.innerHTML = `<option value="">${labelAll}</option>` +
+          Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'))
+            .map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+        sel.value = current;
+      };
+      fillSelect('pickerSegment', segments, 'Сегмент (все)');
+      fillSelect('pickerDirection', directions, 'Направление (все)');
+      fillSelect('pickerStatus', statuses, 'Статус (все)');
+    }
+
+    function parsePickerDate(value) {
+      if (!value) return null;
+      // Accept ISO (2026-06-12T…) and date-only (2026-06-12). Return a Date
+      // at local midnight so date-range comparisons are stable.
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function formatImmersionDate(value) {
+      if (!value) return 'нет данных';
+      const d = parsePickerDate(value);
+      if (!d) return 'нет данных';
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}.${mm}.${yyyy}`;
+    }
+
+    function getFilteredCandidates() {
+      const q = byId('pickerSearch').value.trim().toLowerCase();
+      const seg = byId('pickerSegment').value;
+      const dir = byId('pickerDirection').value;
+      const st = byId('pickerStatus').value;
+      const dateFrom = parsePickerDate(byId('pickerDateFrom').value);
+      const dateTo = parsePickerDate(byId('pickerDateTo').value);
+
+      return pickerCandidates.filter(c => {
+        // Search by ФИО / segment / direction (internal base_key match
+        // allowed but never displayed).
+        if (q) {
+          const hay = [
+            c.full_name || '',
+            c.seller_segment || '',
+            c.direction || '',
+            c.base_key || '', // internal-only match, not shown in UI
+          ].join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        if (seg && c.seller_segment !== seg) return false;
+        if (dir && c.direction !== dir) return false;
+        if (st) {
+          const cs = (c.scores && c.scores.final_status) || c.status;
+          if (cs !== st) return false;
+        }
+        // Date filter on immersion_started_at only (per spec: never fall
+        // back to test_day_started_at for the "Начало погружения" filter).
+        const imm = c.immersion_started_at ? parsePickerDate(c.immersion_started_at) : null;
+        if (dateFrom && (!imm || imm < dateFrom)) return false;
+        if (dateTo && (!imm || imm > dateTo)) return false;
+        return true;
+      });
+    }
+
+    function renderPickerList() {
+      const filtered = getFilteredCandidates();
+      const container = byId('pickerListContainer');
+      if (pickerCandidates.length === 0) {
+        container.innerHTML = '<div class="picker-empty"><div class="pe-title">Новички не найдены</div>Проверьте фильтры или загрузку данных.</div>';
+        return;
+      }
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="picker-empty"><div class="pe-title">По фильтрам ничего не найдено</div>Попробуйте сбросить часть фильтров.</div>';
+        return;
+      }
+      // Sort: newest immersion_started_at first; missing dates go last.
+      const sorted = filtered.slice().sort((a, b) => {
+        const da = a.immersion_started_at ? parsePickerDate(a.immersion_started_at)?.getTime() : 0;
+        const db = b.immersion_started_at ? parsePickerDate(b.immersion_started_at)?.getTime() : 0;
+        return (db || 0) - (da || 0);
+      });
+      container.innerHTML = `<div class="picker-list">${sorted.map(c => {
+        const name = c.full_name || 'Без ФИО';
+        const meta = [c.direction, c.seller_segment].filter(Boolean).join(' · ');
+        const dateStr = formatImmersionDate(c.immersion_started_at);
+        // NOTE: base_key is passed via data-key for the click handler only —
+        // it is NEVER rendered as text in the card.
+        return `<div class="picker-item" data-key="${escapeHtml(c.base_key || '')}" tabindex="0" role="button">
+          <div class="pi-name">${escapeHtml(name)}</div>
+          ${meta ? `<div class="pi-meta">${escapeHtml(meta)}</div>` : ''}
+          <div class="pi-date">Начало погружения: ${escapeHtml(dateStr)}</div>
+        </div>`;
+      }).join('')}</div>`;
+
+      // Wire click + keyboard handlers.
+      container.querySelectorAll('.picker-item').forEach(el => {
+        const key = el.getAttribute('data-key');
+        const onActivate = () => {
+          if (!key) return;
+          pickerLastSelectedKey = key;
+          loadReport(key);
+        };
+        el.addEventListener('click', onActivate);
+        el.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            onActivate();
+          }
+        });
+      });
     }
 
     function init() {
       initTabs();
 
-      // Restore viewer key from sessionStorage
+      // Restore viewer key from sessionStorage → mirror into hidden input
+      // so requestJson() can read it without code changes.
       const savedKey = loadViewerKey();
       if (savedKey) byId('viewerKey').value = savedKey;
 
-      // base_key from URL or empty
-      const urlBaseKey = getQueryParam('base_key');
-      if (urlBaseKey) byId('baseKeyInput').value = urlBaseKey;
-
-      // Auto-load if both present
-      const hasKeyInUrl = Boolean(urlBaseKey);
-
-      byId('openReportBtn').addEventListener('click', () => {
-        const key = byId('viewerKey').value.trim();
-        const baseKey = byId('baseKeyInput').value.trim();
-        if (!key) { showError('Введите ключ просмотра.'); return; }
-        if (!baseKey) { showError('Введите ключ новичка.'); return; }
-        saveViewerKey(key);
-        loadReport(baseKey);
+      // Picker event wiring.
+      byId('pickerKeySubmit').addEventListener('click', submitPickerKey);
+      byId('pickerKeyInput').addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); submitPickerKey(); }
+      });
+      byId('pickerChangeBtn').addEventListener('click', () => {
+        showError('');
+        // Returning to the picker should NOT ask for the viewer key again.
+        showPickerListCard();
       });
 
-      // Auto-load if both viewer key (from session) and base_key (from URL) present
-      if (savedKey && hasKeyInUrl) {
+      // Filter wiring — re-render list on every change.
+      ['input', 'change'].forEach(evt => {
+        byId('pickerSearch').addEventListener(evt, renderPickerList);
+        byId('pickerSegment').addEventListener(evt, renderPickerList);
+        byId('pickerDirection').addEventListener(evt, renderPickerList);
+        byId('pickerStatus').addEventListener(evt, renderPickerList);
+        byId('pickerDateFrom').addEventListener(evt, renderPickerList);
+        byId('pickerDateTo').addEventListener(evt, renderPickerList);
+      });
+
+      // Decide what to show first.
+      const urlBaseKey = getQueryParam('base_key');
+      const hasSavedKey = Boolean(savedKey);
+      const hasUrlBaseKey = Boolean(urlBaseKey);
+      // Restore last-selected candidate from sessionStorage (refresh case).
+      let savedSelectedKey = '';
+      try { savedSelectedKey = sessionStorage.getItem('onboarding_selected_candidate_key') || ''; } catch (_) {}
+
+      if (hasSavedKey && hasUrlBaseKey) {
+        // Backward-compat: old link ?base_key=GTRAIN02 + stored viewer key
+        // → open the report directly. loadReport() will strip base_key
+        // from the URL after success.
         loadReport(urlBaseKey);
+      } else if (hasSavedKey && savedSelectedKey) {
+        // Refresh after a report was open → reopen the same candidate
+        // (without putting base_key back in the URL).
+        loadReport(savedSelectedKey);
+      } else if (hasSavedKey) {
+        // Viewer key already known → straight to the picker list.
+        showPickerListCard();
+      } else if (hasUrlBaseKey) {
+        // Old link without stored viewer key → ask for the key first,
+        // remember the requested base_key so we can auto-open after auth.
+        byId('baseKeyInput').value = urlBaseKey; // internal only, hidden
+        showPickerKeyCard();
+      } else {
+        // Fresh visit → ask for the viewer key.
+        showPickerKeyCard();
       }
     }
 

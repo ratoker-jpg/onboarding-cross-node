@@ -1060,18 +1060,26 @@
 
     function getLoadedCallsInfo(card) {
       const manualInputs = card.manual_inputs || [];
+      const files = card.files || [];
       const stages = ['calls_start', 'calls_middle', 'calls_final'];
-      const count = stages.reduce((sum, section) => {
+      let count = 0;
+      let fileCount = 0;
+      for (const section of stages) {
+        // Source A: manual_inputs.calls[]
         const m = manualInputs.find(x => x.section === section);
         const calls = m && m.payload && Array.isArray(m.payload.calls) ? m.payload.calls : [];
-        return sum + calls.length;
-      }, 0);
+        count += calls.length;
+        // Source B: candidate_files with text_content
+        const cf = files.filter(f => f.section === section && f.has_text_content);
+        fileCount += cf.length;
+      }
       const hasMetrics = Boolean(card.call_stats && (
         card.call_stats.talk_time_minutes != null ||
         card.call_stats.calls_total != null ||
         card.call_stats.calls_over_2min_percent != null
       ));
-      return { count, hasLoadedCalls: count > 0, hasAnyCallData: count > 0 || hasMetrics };
+      const total = count + fileCount;
+      return { count, fileCount, hasLoadedCalls: total > 0, hasAnyCallData: total > 0 || hasMetrics };
     }
 
     // Training result_payload field labels (Russian)

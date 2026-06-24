@@ -501,14 +501,34 @@ function exportBundle(baseKey, analysisType) {
   const rubric = loadRubric(rubricId);
 
   // Source refs collected for traceability
+  // Phase 3E3C micro-fixup: for calls bundles, filter out any source refs
+  // related to training bot / bot_training / ROLE- / result_payload.
+  const FORBIDDEN_CALLS_REF_MARKERS = ['training_bot', 'bot_training', 'ROLE-', 'result_payload'];
+  function isForbiddenCallRef(refStr) {
+    const lower = String(refStr).toLowerCase();
+    return FORBIDDEN_CALLS_REF_MARKERS.some(m => lower.includes(m.toLowerCase()));
+  }
+
   const sourceRefs = [];
   if (interviewSummary) sourceRefs.push('manual_inputs.section=interview_transcript');
   if (callStats) sourceRefs.push('manual_inputs.section=phone_metrics');
-  if (trainingBotDialogs.length) sourceRefs.push('training_bot_dialogs[]');
-  for (const f of files) {
-    if (f.source_ref) sourceRefs.push(f.source_ref);
+  if (trainingBotDialogs.length && analysisType !== 'calls') sourceRefs.push('training_bot_dialogs[]');
+  if (realCallsForBundle) {
+    for (const rc of realCallsForBundle) {
+      if (rc.source_ref) sourceRefs.push(rc.source_ref);
+    }
   }
-  for (const sl of sourceLinks) {
+  for (const f of files) {
+    if (f.source_ref) {
+      if (analysisType === 'calls' && isForbiddenCallRef(f.source_ref)) continue;
+      sourceRefs.push(f.source_ref);
+    }
+  }
+  // Filter source_links for calls bundles — exclude bot_training
+  const filteredSourceLinks = analysisType === 'calls'
+    ? sourceLinks.filter(sl => sl.source_code !== 'bot_training')
+    : sourceLinks;
+  for (const sl of filteredSourceLinks) {
     sourceRefs.push(`source_link:${sl.source_code}:${sl.legacy_key || sl.legacy_id || ''}`);
   }
 
@@ -536,13 +556,12 @@ function exportBundle(baseKey, analysisType) {
     completeness: null, // populated below
     scores: scores,
     manual_inputs: manualInputs,
-    training_bot_dialogs: trainingBotDialogs,
     real_calls: realCallsForBundle,
     call_stats: callStats,
-    ops_summary: null, // not needed for codex prompt — omitted for size
+    ops_summary: null,
     interview_summary: interviewSummary,
     files: files,
-    source_links: sourceLinks.map(sl => ({
+    source_links: filteredSourceLinks.map(sl => ({
       source_code: sl.source_code,
       source_name: sl.source_name,
       legacy_key: sl.legacy_key,

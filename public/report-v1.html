@@ -646,6 +646,11 @@
         </div>
 
         <div class="card">
+          <h2>Звонки</h2>
+          <div id="overviewCallsStatus"></div>
+        </div>
+
+        <div class="card">
           <h2>Краткое резюме для тренера</h2>
           <div id="trainerSummary"></div>
         </div>
@@ -984,6 +989,22 @@
       return `<button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" onclick="copyTextToClipboard(${JSON.stringify(text)}); this.textContent='Скопировано!'; setTimeout(()=>{this.textContent='${buttonLabel}'},2000);">${buttonLabel}</button>`;
     }
 
+    function getLoadedCallsInfo(card) {
+      const manualInputs = card.manual_inputs || [];
+      const stages = ['calls_start', 'calls_middle', 'calls_final'];
+      const count = stages.reduce((sum, section) => {
+        const m = manualInputs.find(x => x.section === section);
+        const calls = m && m.payload && Array.isArray(m.payload.calls) ? m.payload.calls : [];
+        return sum + calls.length;
+      }, 0);
+      const hasMetrics = Boolean(card.call_stats && (
+        card.call_stats.talk_time_minutes != null ||
+        card.call_stats.calls_total != null ||
+        card.call_stats.calls_over_2min_percent != null
+      ));
+      return { count, hasLoadedCalls: count > 0, hasAnyCallData: count > 0 || hasMetrics };
+    }
+
     // Training result_payload field labels (Russian)
     const TRAINING_RESULT_FIELDS_RU = {
       SUCCESSFUL: 'Успешно',
@@ -1229,6 +1250,40 @@
       renderListsGrid(byId('overviewLists'), s);
     }
 
+    function renderOverviewCallsStatus(card) {
+      const el = byId('overviewCallsStatus');
+      const s = card.scores || {};
+      const latestCalls = card.latest_analysis && card.latest_analysis.calls ? card.latest_analysis.calls : null;
+      const baseKey = card.candidate && card.candidate.base_key ? card.candidate.base_key : '';
+      const callsInfo = getLoadedCallsInfo(card);
+
+      if (latestCalls) {
+        const score = s.call_quality_score == null ? 'нет данных' : formatScoreValue(s.call_quality_score);
+        const summary = latestCalls.summary || 'Анализ по автомануалу рассчитан. Подробная динамика доступна во вкладке «Звонки».';
+        el.innerHTML = `<div class="next-step-card">
+          <div class="ns-label">Анализ звонков</div>
+          <div class="ns-text"><b>Качество:</b> ${escapeHtml(score)}</div>
+          <div class="ns-text">${escapeHtml(summary)}</div>
+          <div style="margin-top:12px;"><button type="button" class="btn secondary" onclick="setActiveTab('calls')">Открыть вкладку «Звонки»</button></div>
+        </div>`;
+        return;
+      }
+
+      if (callsInfo.hasLoadedCalls) {
+        el.innerHTML = `<div class="notice-block" style="margin-top:0;">
+          <div class="nb-text">Звонки загружены, но анализ по автомануалу ещё не рассчитан.</div>
+          <div style="margin-top:10px;">${baseKey ? renderCopyPromptButton(baseKey, 'calls', 'Скопировать промпт для Codex') : '<span class="status-badge unknown">Ключ новичка недоступен — промпт недоступен.</span>'}</div>
+        </div>`;
+        return;
+      }
+
+      el.innerHTML = `<div class="empty-state">
+        <div class="es-icon">?</div>
+        <div class="es-title">Реальные звонки пока не загружены.</div>
+        <div class="es-sub">После загрузки звонков здесь появится кнопка для копирования промпта анализа.</div>
+      </div>`;
+    }
+
     function renderTrainerSummary(card) {
       const el = byId('trainerSummary');
       const c = card.candidate || {};
@@ -1276,12 +1331,29 @@
       const opsSummary = card.ops_summary || null;
       const opsSections = opsSummary && Array.isArray(opsSummary.sections) ? opsSummary.sections : [];
       const opsLoaded = opsSections.length > 0 && opsSections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
-      const callDataLoaded = Boolean(card.call_stats) || callsIn('calls_start') + callsIn('calls_middle') + callsIn('calls_final') > 0;
+      const callsInfo = getLoadedCallsInfo(card);
       const interviewLoaded = Boolean(card.interview_summary && (card.interview_summary.has_interview || card.interview_summary.has_transcript)) || Boolean(interviewText);
       const finalTestReady = completeItems.some(i => i.code === 'final_test' && i.status === 'ready');
+      const callsSummary = latest.calls
+        ? {
+            status: 'рассчитано',
+            score: `Качество: ${s.call_quality_score == null ? 'нет данных' : formatScoreValue(s.call_quality_score)}`,
+            note: 'Анализ по автомануалу рассчитан.',
+          }
+        : callsInfo.hasLoadedCalls
+          ? {
+              status: 'данные загружены',
+              score: 'Звонки загружены, анализ не рассчитан',
+              note: 'Подробная динамика появится после анализа.',
+            }
+          : {
+              status: 'нет данных',
+              score: 'Реальные звонки пока не загружены',
+              note: 'Загрузите звонки во вкладке «Звонки».',
+            };
       const summaryRows = [
         { title: 'Собеседование', status: statusFor(Boolean(latest.interview), interviewLoaded), score: [scoreText('Софт', s.soft_score), scoreText('Hard', s.hard_score)].join(' · '), note: 'Soft/hard/evidence смотрите во вкладке «Собеседование».' },
-        { title: 'Звонки', status: statusFor(Boolean(latest.calls), callDataLoaded), score: scoreText('Качество', s.call_quality_score), note: 'Реальные звонки и автомануал — во вкладке «Звонки».' },
+        { title: 'Звонки', status: callsSummary.status, score: callsSummary.score, note: callsSummary.note },
         { title: 'Учебные агенты', status: dialogs.length ? 'импортировано' : 'нет данных', score: `${dialogs.length || 0} диалогов`, note: 'Тестовый день и учебные диалоги — во вкладке «Учебные агенты».' },
         { title: 'Операционка', status: statusFor(false, opsLoaded), score: [scoreText('Операционка', s.ops_score), scoreText('Дисциплина', s.discipline_score)].join(' · '), note: 'Дисциплина, статусы и комментарии — во вкладке «Операционка».' },
         { title: 'Выпускной тест', status: s.final_test_score != null || finalTestReady ? 'рассчитано' : 'нет данных', score: scoreText('Балл', s.final_test_score), note: 'Итоговый тест учитывается в общей score-сводке.' },
@@ -1544,23 +1616,21 @@
       const callsFinalReady = completeItems.find(i => i.code === 'calls_final');
 
       const callsInStage = (mi) => (mi && mi.payload && Array.isArray(mi.payload.calls)) ? mi.payload.calls : [];
-      const callsLoaded =
-        callsInStage(callsStart).length > 0 ||
-        callsInStage(callsMiddle).length > 0 ||
-        callsInStage(callsFinal).length > 0;
+      const callsLoaded = getLoadedCallsInfo(card).hasLoadedCalls;
 
       const html = [];
 
       // Call quality headline — KPI card with source badge
       const sourceBadge = latestCalls
         ? `<span class="status-badge ready" style="margin-left:10px;">Анализ звонков</span>`
-        : (s.call_quality_score != null ? `<span class="status-badge unknown" style="margin-left:10px;">Ручной ввод</span>` : '');
-      const callQualityBand = scoreBand(s.call_quality_score);
+        : `<span class="status-badge unknown" style="margin-left:10px;">анализ не рассчитан</span>`;
+      const callQualityValue = latestCalls ? s.call_quality_score : null;
+      const callQualityBand = scoreBand(callQualityValue);
       html.push(`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
         <h3>Итог по звонкам ${sourceBadge}</h3>
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-value" style="color:${callQualityBand.color};">${s.call_quality_score == null ? '—' : escapeHtml(callQualityBand.percent)}</div>
+            <div class="kpi-value" style="color:${callQualityBand.color};">${callQualityValue == null ? '—' : escapeHtml(callQualityBand.percent)}</div>
             <div class="kpi-label">Качество звонков</div>
             <span class="score-band-label" style="background:${callQualityBand.bg}; color:${callQualityBand.color}; margin-top:8px;">${escapeHtml(callQualityBand.label)}</span>
           </div>
@@ -1631,6 +1701,7 @@
 
       // Codex calls analysis breakdown — 5 stage cards (contact/needs/presentation/objections/close)
       if (latestCalls) {
+        html.push(renderCallsManualProgression(latestCalls));
         html.push(renderCodexAnalysisBlock('Анализ звонков по автомануалу', latestCalls, [
           'contact', 'needs', 'presentation', 'objections', 'close'
         ]));
@@ -1648,9 +1719,8 @@
           <h3>Анализ звонков по автомануалу</h3>
           <div class="empty-state">
             <div class="es-icon">!</div>
-            <div class="es-title">Анализ звонков ещё не рассчитан</div>
-            <div class="es-sub">Загрузите реальные звонки по этапам и передайте их на анализ в Codex.</div>
-            <div style="margin-top:14px;">${baseKey ? renderCopyPromptButton(baseKey, 'calls', 'Скопировать промпт для Codex') : '<span class="status-badge unknown">Ключ новичка недоступен — промпт недоступен.</span>'}</div>
+            <div class="es-title">Реальные звонки пока не загружены.</div>
+            <div class="es-sub">После загрузки звонков можно будет скопировать промпт и запустить анализ по автомануалу.</div>
             <details class="tech-details" style="margin-top:12px;"><summary>Технические данные</summary><pre>node scripts/export_candidate_analysis_bundle.js --type calls
 node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
           </div>
@@ -1672,6 +1742,155 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         <div class="kpi-value muted">—</div>
         <div class="kpi-label">${escapeHtml(label)}</div>
       </div>`;
+    }
+
+    function renderCallsManualProgression(latestCalls) {
+      const stages = extractCallsManualProgression(latestCalls);
+      if (!stages.length) {
+        return `<div class="card" style="margin-bottom:14px;">
+          <h3>Оценка звонков по автомануалу</h3>
+          <div class="notice-block" style="margin-top:0;">
+            <div class="nb-text">Анализ звонков рассчитан, но динамика по этапам start/middle/final пока недоступна.</div>
+          </div>
+        </div>`;
+      }
+
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>Оценка звонков по автомануалу</h3>
+        <div class="block-grid">
+          ${stages.map(stage => renderCallManualStageCard(stage)).join('')}
+        </div>
+      </div>`;
+    }
+
+    function extractCallsManualProgression(latestCalls) {
+      if (!latestCalls || typeof latestCalls !== 'object') return [];
+      const possibleContainers = [
+        latestCalls.stage_dynamics,
+        latestCalls.call_stage_dynamics,
+        latestCalls.dynamics,
+        latestCalls.stages,
+        latestCalls.by_stage,
+        latestCalls.stage_results,
+        latestCalls.calls_by_stage,
+        latestCalls.rubric_result && latestCalls.rubric_result.stage_results,
+        latestCalls.rubric_result && latestCalls.rubric_result.by_stage,
+      ].filter(Boolean);
+
+      const stageKeys = [
+        { key: 'start', aliases: ['start', 'calls_start', 'beginning', 'начало'], label: 'Начало' },
+        { key: 'middle', aliases: ['middle', 'calls_middle', 'середина'], label: 'Середина' },
+        { key: 'final', aliases: ['final', 'calls_final', 'finish', 'release', 'выпуск'], label: 'Выпуск' },
+      ];
+
+      const stages = [];
+      for (const meta of stageKeys) {
+        const raw = findCallStageData(possibleContainers, meta.aliases);
+        if (!raw) continue;
+        const normalized = normalizeCallStageData(raw, meta);
+        if (normalized.hasData) stages.push(normalized);
+      }
+      return stages;
+    }
+
+    function findCallStageData(containers, aliases) {
+      const lowerAliases = aliases.map(a => String(a).toLowerCase());
+      for (const container of containers) {
+        if (Array.isArray(container)) {
+          const found = container.find(item => {
+            if (!item || typeof item !== 'object') return false;
+            const id = String(item.stage || item.stage_id || item.stage_key || item.phase || item.name || '').toLowerCase();
+            return lowerAliases.includes(id);
+          });
+          if (found) return found;
+        } else if (container && typeof container === 'object') {
+          for (const [key, value] of Object.entries(container)) {
+            if (lowerAliases.includes(String(key).toLowerCase())) return value;
+            if (value && typeof value === 'object') {
+              const id = String(value.stage || value.stage_id || value.stage_key || value.phase || value.name || '').toLowerCase();
+              if (lowerAliases.includes(id)) return value;
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function normalizeCallStageData(raw, meta) {
+      const data = raw && raw.rubric_result ? { ...raw.rubric_result, ...raw } : raw;
+      const score = firstNumeric(
+        data.overall_score_percent,
+        data.score_percent,
+        data.call_quality_score,
+        data.quality_score,
+        data.score
+      );
+      const unitsSource = data.units || data.stage_units || data.sales_stages || data.breakdown || [];
+      const units = normalizeCallStageUnits(unitsSource);
+      const comment = data.comment || data.summary || data.conclusion || data.note || '';
+      return {
+        key: meta.key,
+        label: meta.label,
+        score,
+        units,
+        comment,
+        hasData: score != null || units.length > 0 || Boolean(comment),
+      };
+    }
+
+    function normalizeCallStageUnits(source) {
+      const expected = [
+        { id: 'contact', aliases: ['contact', 'establish_contact', 'установление контакта'], label: 'Установление контакта' },
+        { id: 'needs', aliases: ['needs', 'need', 'needs_identification', 'выявление потребности', 'выявление потребностей'], label: 'Выявление потребности' },
+        { id: 'presentation', aliases: ['presentation', 'product_presentation', 'презентация', 'презентация продукта'], label: 'Презентация продукта' },
+        { id: 'objections', aliases: ['objections', 'objection_handling', 'работа с возражениями'], label: 'Работа с возражениями' },
+        { id: 'close', aliases: ['close', 'closing', 'deal_test', 'тест на сделку', 'завершение'], label: 'Тест на сделку / завершение' },
+      ];
+      const list = Array.isArray(source)
+        ? source
+        : (source && typeof source === 'object' ? Object.entries(source).map(([k, v]) => ({ id: k, ...(v && typeof v === 'object' ? v : { score: v }) })) : []);
+      return expected.map(meta => {
+        const lowerAliases = meta.aliases.map(a => String(a).toLowerCase());
+        const raw = list.find(item => {
+          if (!item || typeof item !== 'object') return false;
+          const id = String(item.unit_id || item.id || item.key || item.name || item.unit_name || '').toLowerCase();
+          return lowerAliases.includes(id);
+        });
+        if (!raw) return { label: meta.label, score: null };
+        return {
+          label: meta.label,
+          score: firstNumeric(raw.score_percent, raw.score, raw.value),
+        };
+      });
+    }
+
+    function renderCallManualStageCard(stage) {
+      const band = scoreBand(stage.score);
+      const valueDisplay = stage.score == null ? '—' : formatScoreValue(stage.score);
+      return `<div class="block-card">
+        <div class="block-head">
+          <span class="block-name">${escapeHtml(stage.label)}</span>
+          <span class="block-score" style="color:${band.color};">${escapeHtml(valueDisplay)}</span>
+        </div>
+        <div class="score-band-bar"><div class="fill" style="width:${band.percent}%; background:${band.color};"></div></div>
+        <span class="score-band-label" style="background:${band.bg}; color:${band.color};">${escapeHtml(band.label)}</span>
+        <div style="margin-top:12px; display:grid; gap:6px;">
+          ${stage.units.map(unit => `<div style="display:flex; justify-content:space-between; gap:10px; font-size:12px;">
+            <span>${escapeHtml(unit.label)}</span>
+            <b>${unit.score == null ? 'нет данных' : escapeHtml(formatScoreValue(unit.score))}</b>
+          </div>`).join('')}
+        </div>
+        ${stage.comment ? `<div class="block-comment">${escapeHtml(stage.comment)}</div>` : ''}
+      </div>`;
+    }
+
+    function firstNumeric(...values) {
+      for (const value of values) {
+        if (value == null || value === '') continue;
+        const n = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
+        if (Number.isFinite(n)) return n;
+      }
+      return null;
     }
 
     // Derive a single phone-metric value from the legacy manual_inputs.phone_metrics
@@ -2629,6 +2848,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         renderSourcesConsidered(card);
         renderQuickSlice(card);
         renderOverviewRecommendation(card);
+        renderOverviewCallsStatus(card);
         renderTrainerSummary(card);
         renderNextStepForLead(card);
         renderCompleteness(card);

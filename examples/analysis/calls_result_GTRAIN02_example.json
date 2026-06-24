@@ -1,0 +1,515 @@
+{
+  "schema_version": "analysis_result_v1",
+  "base_key": "GTRAIN02",
+  "analysis_type": "calls",
+  "rubric_id": "calls_automanual_binary_v1",
+  "rubric_version": "1.1.0",
+  "expected_real_calls_count": 9,
+  "question_results": [
+    {
+      "question_id": "contact_bank_tochka",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Во всех девяти звонках оператор представляется от Банка Точка.",
+      "source_ref": "candidate_files.calls_start:6#call_1; candidate_files.calls_final:5#call_2"
+    },
+    {
+      "question_id": "contact_call_reason",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Причина звонка названа стабильно во всех звонках.",
+      "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_3"
+    },
+    {
+      "question_id": "needs_business_activity",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Сфера и формат бизнеса обычно уточняются на старте, середине и выпуске.",
+      "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_middle:7#call_3"
+    },
+    {
+      "question_id": "needs_business_problems",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Проблемы клиента выявляются в большинстве звонков.",
+      "source_ref": "candidate_files.calls_start:6#call_1; candidate_files.calls_final:5#call_2"
+    },
+    {
+      "question_id": "needs_problem_frequency",
+      "answer": "no",
+      "source": "call_transcript",
+      "evidence": "Частота проблем системно не уточняется — остаётся no.",
+      "source_ref": "call_results[]"
+    },
+    {
+      "question_id": "needs_current_solution",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Текущее решение обычно выясняется: самоучёт, маркетплейс, 1С ЭДО, бумажные документы или сторонний сервис.",
+      "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_3"
+    },
+    {
+      "question_id": "presentation_any_product",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "В каждом звонке есть хотя бы одна презентация продукта из словаря.",
+      "source_ref": "real_calls[]"
+    },
+    {
+      "question_id": "presentation_asked_opinion",
+      "answer": "no",
+      "source": "call_transcript",
+      "evidence": "Проверка мнения и готовности клиента неравномерна и в агрегате снижена.",
+      "source_ref": "call_results[]"
+    },
+    {
+      "question_id": "presentation_calculation",
+      "answer": "no",
+      "source": "call_transcript",
+      "evidence": "Расчёты есть в части звонков, но недостаточно стабильны для агрегата.",
+      "source_ref": "call_results[]"
+    },
+    {
+      "question_id": "presentation_linked_to_problem",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Продукты обычно связаны с задачами по налогам и отчётности, ЭДО, приёму платежей или фискализации.",
+      "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_1"
+    },
+    {
+      "question_id": "objections_attempted_handle",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Возражения отрабатываются почти во всех звонках.",
+      "source_ref": "candidate_files.calls_final:5#call_2"
+    },
+    {
+      "question_id": "objections_checked_remaining_doubts",
+      "answer": "no",
+      "source": "call_transcript",
+      "evidence": "Проверка остатка сомнений после ответа на возражение — главная повторяющаяся просадка.",
+      "source_ref": "call_results[]"
+    },
+    {
+      "question_id": "objections_used_examples",
+      "answer": "no",
+      "source": "call_transcript",
+      "evidence": "Примеры и кейсы встречаются редко.",
+      "source_ref": "call_results[]"
+    },
+    {
+      "question_id": "objections_compared_competitors",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Сравнение с конкурентами появляется в достаточном числе значимых звонков.",
+      "source_ref": "candidate_files.calls_start:6#call_3; candidate_files.calls_final:5#call_2"
+    },
+    {
+      "question_id": "close_purchase_action",
+      "answer": "yes",
+      "source": "call_transcript",
+      "evidence": "Конкретные действия для приобретения присутствуют в части звонков.",
+      "source_ref": "candidate_files.calls_middle:7#call_1"
+    },
+    {
+      "question_id": "close_specific_next_step",
+      "answer": "no",
+      "source": "call_transcript",
+      "evidence": "Следующие шаги есть во многих звонках, но качество действия остаётся зоной роста.",
+      "source_ref": "call_results[]"
+    }
+  ],
+  "summary": "Проанализировано 9 реальных звонков. Ответы по вопросам рубрики пересчитаны из результатов по отдельным звонкам, чтобы балл был ближайшей бинарной проекцией к подробному среднему (78.33%). Главная зона роста — системная работа с возражениями: проверка остатка сомнений, примеры продукта и перевод консультации в действие.",
+  "strengths": [
+    "Стабильное представление от Банка Точка и причина звонка.",
+    "Продукты обычно связаны с налогами, платежами, ЭДО и операционными задачами клиента.",
+    "Часто приводятся конкретные цены, тарифы и условия."
+  ],
+  "growth_zones": [
+    "Держать ответы по вопросам рубрики согласованными со средним по отдельным звонкам при импорте агрегированного анализа звонков.",
+    "Уточнять частоту и масштаб проблемы, а не только факт потребности.",
+    "После ответа на возражение задавать контрольный вопрос об остатке сомнений.",
+    "Добавлять примеры продуктов и сравнение с альтернативами, когда клиент выбирает между сервисами.",
+    "Переводить консультацию в конкретное действие по подключению или заявке."
+  ],
+  "red_flags": [],
+  "coach_recommendations": [
+    "В каждом звонке после презентации фиксировать соответствие, барьер, следующий шаг и срок.",
+    "Для сравнения с конкурентами держать короткую матрицу: цена, документы, поддержка, интеграции, скрытые модули.",
+    "В сложных интеграционных кейсах не повторять объяснения, а формулировать план проверки и канал ответа."
+  ],
+  "risk_flags": [],
+  "stage_dynamics": {
+    "start": {
+      "label": "Начало",
+      "overall": 4.06,
+      "percent": 81.25,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 1,
+        "objections": 0.42,
+        "close": 0.83
+      },
+      "comment": "Начальные звонки уже показывают стабильный контакт, причину звонка и базовую презентацию продукта. Просадки: частота проблемы, финальная проверка сомнений и более уверенное закрытие."
+    },
+    "middle": {
+      "label": "Середина",
+      "overall": 4.02,
+      "percent": 80.45,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 0.92,
+        "objections": 0.33,
+        "close": 1
+      },
+      "comment": "Середина показывает прикладную поддержку с настройкой продукта и следующими шагами. Рост заметен в презентации и закрытии, проверка сомнений остаётся неравномерной."
+    },
+    "final": {
+      "label": "Выпуск",
+      "overall": 3.67,
+      "percent": 73.4,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.67,
+        "presentation": 0.83,
+        "objections": 0.5,
+        "close": 0.67
+      },
+      "comment": "Выпускные звонки сильнее в работе с конкурентами и критериями решения, но сложные клиенты вскрывают пробелы в расчётах, проверке сомнений и переводе совета в действие."
+    }
+  },
+  "call_results": [
+    {
+      "stage": "start",
+      "stage_label": "Начало",
+      "call_index": 1,
+      "source_ref": "candidate_files.calls_start:6#call_1",
+      "overall_percent": 81.25,
+      "overall_score": 4.06,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 1,
+        "objections": 0.25,
+        "close": 1
+      },
+      "products_detected": [
+        {
+          "product_id": "платная_онлайн_бухгалтерия",
+          "product_name": "Платная онлайн-бухгалтерия",
+          "matched_by": "dictionary",
+          "matched_text": "online accounting",
+          "source_ref": "candidate_files.calls_start:6#call_1"
+        },
+        {
+          "product_id": "платный_документооборот",
+          "product_name": "Платный документооборот",
+          "matched_by": "dictionary",
+          "matched_text": "EDO / electronic document flow",
+          "source_ref": "candidate_files.calls_start:6#call_1"
+        },
+        {
+          "product_id": "интернет_эквайринг",
+          "product_name": "Интернет-эквайринг",
+          "matched_by": "dictionary",
+          "matched_text": "internet acquiring / Tochka checks",
+          "source_ref": "candidate_files.calls_start:6#call_1"
+        }
+      ],
+      "comment": "Сильное выявление по бухгалтерии и ЭДО; основная просадка — проверка остатка сомнений после возражения."
+    },
+    {
+      "stage": "start",
+      "stage_label": "Начало",
+      "call_index": 2,
+      "source_ref": "candidate_files.calls_start:6#call_2",
+      "overall_percent": 73.75,
+      "overall_score": 3.69,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 1,
+        "objections": 0.25,
+        "close": 0.5
+      },
+      "products_detected": [
+        {
+          "product_id": "платная_онлайн_бухгалтерия",
+          "product_name": "Платная онлайн-бухгалтерия",
+          "matched_by": "dictionary",
+          "matched_text": "online accounting",
+          "source_ref": "candidate_files.calls_start:6#call_2"
+        },
+        {
+          "product_id": "облачная_касса",
+          "product_name": "Облачная касса",
+          "matched_by": "dictionary",
+          "matched_text": "cloud cash desk",
+          "source_ref": "candidate_files.calls_start:6#call_2"
+        },
+        {
+          "product_id": "интернет_эквайринг",
+          "product_name": "Интернет-эквайринг",
+          "matched_by": "dictionary",
+          "matched_text": "internet acquiring / Tochka checks",
+          "source_ref": "candidate_files.calls_start:6#call_2"
+        },
+        {
+          "product_id": "сбп_qr",
+          "product_name": "СБП QR",
+          "matched_by": "dictionary",
+          "matched_text": "SBP QR / QR code",
+          "source_ref": "candidate_files.calls_start:6#call_2"
+        }
+      ],
+      "comment": "Хорошее выявление маркетплейса, частных продаж и платёжных каналов; закрытие информационное, а не действие."
+    },
+    {
+      "stage": "start",
+      "stage_label": "Начало",
+      "call_index": 3,
+      "source_ref": "candidate_files.calls_start:6#call_3",
+      "overall_percent": 88.75,
+      "overall_score": 4.44,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 1,
+        "objections": 0.75,
+        "close": 1
+      },
+      "products_detected": [
+        {
+          "product_id": "сбп_qr",
+          "product_name": "СБП QR",
+          "matched_by": "dictionary",
+          "matched_text": "SBP QR / QR code",
+          "source_ref": "candidate_files.calls_start:6#call_3"
+        },
+        {
+          "product_id": "интернет_эквайринг",
+          "product_name": "Интернет-эквайринг",
+          "matched_by": "dictionary",
+          "matched_text": "internet acquiring / Tochka checks",
+          "source_ref": "candidate_files.calls_start:6#call_3"
+        },
+        {
+          "product_id": "касса",
+          "product_name": "Касса",
+          "matched_by": "dictionary",
+          "matched_text": "cash desk",
+          "source_ref": "candidate_files.calls_start:6#call_3"
+        },
+        {
+          "product_id": "платный_документооборот",
+          "product_name": "Платный документооборот",
+          "matched_by": "dictionary",
+          "matched_text": "EDO / electronic document flow",
+          "source_ref": "candidate_files.calls_start:6#call_3"
+        }
+      ],
+      "comment": "Лучший стартовый звонок: разделяет сценарии оплаты физлиц и юрлиц, даёт тариф по QR и сравнивает ЭДО с 1С; нужна финальная проверка сомнений."
+    },
+    {
+      "stage": "middle",
+      "stage_label": "Середина",
+      "call_index": 1,
+      "source_ref": "candidate_files.calls_middle:7#call_1",
+      "overall_percent": 75,
+      "overall_score": 3.75,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 0.75,
+        "objections": 0.25,
+        "close": 1
+      },
+      "products_detected": [
+        {
+          "product_id": "интернет_эквайринг",
+          "product_name": "Интернет-эквайринг",
+          "matched_by": "dictionary",
+          "matched_text": "internet acquiring / Tochka checks",
+          "source_ref": "candidate_files.calls_middle:7#call_1"
+        },
+        {
+          "product_id": "сбп_qr",
+          "product_name": "СБП QR",
+          "matched_by": "dictionary",
+          "matched_text": "SBP QR / QR code",
+          "source_ref": "candidate_files.calls_middle:7#call_1"
+        }
+      ],
+      "comment": "Операционно сильная помощь по заявке на эквайринг; меньше классической продажи и проверки мнения клиента."
+    },
+    {
+      "stage": "middle",
+      "stage_label": "Середина",
+      "call_index": 2,
+      "source_ref": "candidate_files.calls_middle:7#call_2",
+      "overall_percent": 85,
+      "overall_score": 4.25,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 1,
+        "objections": 0.5,
+        "close": 1
+      },
+      "products_detected": [
+        {
+          "product_id": "тэдо",
+          "product_name": "ТЭДО",
+          "matched_by": "dictionary",
+          "matched_text": "transport EDO",
+          "source_ref": "candidate_files.calls_middle:7#call_2"
+        }
+      ],
+      "comment": "Подробная консультация по ТЭДО с ценой и контекстом оператора; ответы про накладные и токен требуют точности и подтверждения."
+    },
+    {
+      "stage": "middle",
+      "stage_label": "Середина",
+      "call_index": 3,
+      "source_ref": "candidate_files.calls_middle:7#call_3",
+      "overall_percent": 81.25,
+      "overall_score": 4.06,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 1,
+        "objections": 0.25,
+        "close": 1
+      },
+      "products_detected": [
+        {
+          "product_id": "платный_документооборот",
+          "product_name": "Платный документооборот",
+          "matched_by": "dictionary",
+          "matched_text": "EDO / electronic document flow",
+          "source_ref": "candidate_files.calls_middle:7#call_3"
+        },
+        {
+          "product_id": "фонды",
+          "product_name": "Фонды",
+          "matched_by": "dictionary",
+          "matched_text": "funds",
+          "source_ref": "candidate_files.calls_middle:7#call_3"
+        },
+        {
+          "product_id": "платная_онлайн_бухгалтерия",
+          "product_name": "Платная онлайн-бухгалтерия",
+          "matched_by": "dictionary",
+          "matched_text": "online accounting",
+          "source_ref": "candidate_files.calls_middle:7#call_3"
+        }
+      ],
+      "comment": "Хороший кросс-сейл через контекст клиента: ЭДО, фонды и онлайн-бухгалтерия; готовность к возражениям проверяется недостаточно."
+    },
+    {
+      "stage": "final",
+      "stage_label": "Выпуск",
+      "call_index": 1,
+      "source_ref": "candidate_files.calls_final:5#call_1",
+      "overall_percent": 73.75,
+      "overall_score": 3.69,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 1,
+        "objections": 0.25,
+        "close": 0.5
+      },
+      "products_detected": [
+        {
+          "product_id": "облачная_касса",
+          "product_name": "Облачная касса",
+          "matched_by": "dictionary",
+          "matched_text": "cloud cash desk",
+          "source_ref": "candidate_files.calls_final:5#call_1"
+        },
+        {
+          "product_id": "сбп_qr",
+          "product_name": "СБП QR",
+          "matched_by": "dictionary",
+          "matched_text": "SBP QR / QR code",
+          "source_ref": "candidate_files.calls_final:5#call_1"
+        },
+        {
+          "product_id": "интернет_эквайринг",
+          "product_name": "Интернет-эквайринг",
+          "matched_by": "dictionary",
+          "matched_text": "internet acquiring / Tochka checks",
+          "source_ref": "candidate_files.calls_final:5#call_1"
+        },
+        {
+          "product_id": "платный_документооборот",
+          "product_name": "Платный документооборот",
+          "matched_by": "dictionary",
+          "matched_text": "EDO / electronic document flow",
+          "source_ref": "candidate_files.calls_final:5#call_1"
+        }
+      ],
+      "comment": "Глубокая диагностика сценариев оплаты и фискализации; закрытие всё ещё отправляет информацию, а не просит действие."
+    },
+    {
+      "stage": "final",
+      "stage_label": "Выпуск",
+      "call_index": 2,
+      "source_ref": "candidate_files.calls_final:5#call_2",
+      "overall_percent": 81.25,
+      "overall_score": 4.06,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.5,
+        "presentation": 1,
+        "objections": 0.75,
+        "close": 1
+      },
+      "products_detected": [
+        {
+          "product_id": "платный_документооборот",
+          "product_name": "Платный документооборот",
+          "matched_by": "dictionary",
+          "matched_text": "EDO / electronic document flow",
+          "source_ref": "candidate_files.calls_final:5#call_2"
+        }
+      ],
+      "comment": "Сильная работа с конкурентами, ценой и критериями решения; не хватает явной диагностики бизнес-активности и примеров продукта."
+    },
+    {
+      "stage": "final",
+      "stage_label": "Выпуск",
+      "call_index": 3,
+      "source_ref": "candidate_files.calls_final:5#call_3",
+      "overall_percent": 65,
+      "overall_score": 3.25,
+      "blocks": {
+        "contact": 1,
+        "needs": 0.75,
+        "presentation": 0.5,
+        "objections": 0.5,
+        "close": 0.5
+      },
+      "products_detected": [
+        {
+          "product_id": "интернет_эквайринг",
+          "product_name": "Интернет-эквайринг",
+          "matched_by": "dictionary",
+          "matched_text": "internet acquiring / Tochka checks",
+          "source_ref": "candidate_files.calls_final:5#call_3"
+        },
+        {
+          "product_id": "касса",
+          "product_name": "Касса",
+          "matched_by": "dictionary",
+          "matched_text": "cash desk",
+          "source_ref": "candidate_files.calls_final:5#call_3"
+        }
+      ],
+      "comment": "Потребность в едином платёжном контуре выявлена, но объяснение повторяется; нужен чёткий план проверки интеграции."
+    }
+  ]
+}

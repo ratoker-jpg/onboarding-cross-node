@@ -148,6 +148,7 @@ The import script will apply score caps based on these.
   "analysis_type": "calls",
   "rubric_id": "calls_automanual_binary_v1",
   "rubric_version": "<from bundle.rubric.rubric_version>",
+  "expected_real_calls_count": 9,
   "question_results": [
     {
       "question_id": "contact_call_reason",
@@ -165,6 +166,26 @@ The import script will apply score caps based on these.
   "coach_recommendations": [],
   "risk_flags": [
     { "code": "dangerous_promises", "evidence": "...", "quote": "...", "source_ref": "calls_final:line:42" }
+  ],
+  "stage_dynamics": {
+    "start":  { "label": "Начало",   "overall": 4.1, "percent": 82.0, "blocks": { "contact": 1.0, "needs": 0.75, "presentation": 0.9, "objections": 0.5, "close": 0.8 }, "comment": "..." },
+    "middle": { "label": "Середина", "overall": 4.0, "percent": 80.0, "blocks": { "contact": 1.0, "needs": 0.75, "presentation": 0.9, "objections": 0.4, "close": 1.0 }, "comment": "..." },
+    "final":  { "label": "Выпуск",   "overall": 3.7, "percent": 74.0, "blocks": { "contact": 1.0, "needs": 0.7, "presentation": 0.85, "objections": 0.5, "close": 0.7 }, "comment": "..." }
+  },
+  "call_results": [
+    {
+      "stage": "start",
+      "stage_label": "Начало",
+      "call_index": 1,
+      "source_ref": "candidate_files.calls_start:6#call_1",
+      "overall_percent": 81.25,
+      "overall_score": 4.06,
+      "blocks": { "contact": 1.0, "needs": 0.75, "presentation": 1.0, "objections": 0.25, "close": 1.0 },
+      "products_detected": [
+        { "product_id": "internet_ekvayring", "product_name": "Интернет-эквайринг", "matched_by": "dictionary", "matched_text": "интернет-эквайринг", "source_ref": "candidate_files.calls_start:6#call_1" }
+      ],
+      "comment": "..."
+    }
   ]
 }
 ```
@@ -176,24 +197,48 @@ The import script will apply score caps based on these.
 - `analysis_type`: always `"calls"` for this prompt.
 - `rubric_id`: always `"calls_automanual_binary_v1"` for this prompt.
 - `rubric_version`: copy from `bundle.rubric.rubric_version`.
-- `question_results[]`: one entry per rubric question (across all stages,
-  — every question in the rubric must appear).
+- `expected_real_calls_count` (**required for calls**): the number of real calls
+  you analysed — equal to `bundle.real_calls.length` and to the number of
+  `call_results[]` entries you emit. The import semantic guard rejects a result
+  where `call_results.length` does not equal `expected_real_calls_count`, so it
+  must not be guessed: count the real calls in the bundle.
+- `question_results[]`: **exactly one entry per rubric question** — the
+  `calls_automanual_binary_v1` v1.1.0 rubric has **16 questions** (contact 2,
+  needs 4, presentation 4, objections 4, close 2), so `question_results[]`
+  must contain all 16. Every question in the rubric must appear; no extra ids.
   - `question_id` must exist in `bundle.rubric.stages[].questions[]`.
   - `answer` must be in `bundle.rubric.allowed_answers`.
-  - For metadata questions (`metadata: true`), `answer` must be in the
-    question's `metadata_answers` array.
-- `summary`: 1-3 sentences, concrete.
+- `summary`: 1-3 sentences, concrete. **Russian only** — no English in any
+  user-facing text (`summary`, `strengths`, `growth_zones`, `red_flags`,
+  `coach_recommendations`, stage/call `comment`).
 - `strengths[]`, `growth_zones[]`, `red_flags[]`, `coach_recommendations[]`:
   arrays of short concrete strings.
 - `risk_flags[]`: array of `{ code, evidence, quote, source_ref }` objects
   for critical errors. May be empty.
-- `stage_dynamics` (optional, calls only): object with `start`, `middle`, `final`
-  keys. Each value: `{ label, overall, percent, blocks: { contact, needs,
-  presentation, objections, close }, comment }`. If data insufficient for a
-  stage, set `overall: null, percent: null` and `comment: 'not_enough_data'`.
-- `call_results[]` (optional, calls only): array of per-call results.
-  Each: `{ stage, call_index, source_ref, overall_percent, blocks: { contact,
-  needs, presentation, objections, close }, comment }`.
+- `stage_dynamics` (**required for calls**): object with `start`, `middle`,
+  `final` keys. Each value: `{ label, overall, percent, blocks: { contact,
+  needs, presentation, objections, close }, comment }`. If data is insufficient
+  for a stage, still emit the key with `overall: null, percent: null` and
+  `comment` explaining why.
+- `call_results[]` (**required for calls**): array of per-call results, one
+  object per real call from `real_calls[]`. The number of `call_results` must
+  match the number of analysed real calls, and the average of their
+  `overall_percent` must be consistent with the overall rubric score.
+  Each: `{ stage, stage_label, call_index, source_ref, overall_percent,
+  overall_score, blocks: { contact, needs, presentation, objections, close },
+  products_detected: [ ... ], comment }`.
+- `products_detected[]` (inside each `call_result`): products from
+  `product_dictionary` mentioned in that call. Each:
+  `{ product_id, product_name, matched_by, matched_text, source_ref }`.
+  Empty array if no dictionary product was presented in the call.
+
+> **Consistency contract.** `import_analysis_result.js` runs semantic checks
+> for calls: 16 `question_results`, `call_results` with one scored entry per
+> real call (`call_results.length` must equal `expected_real_calls_count`),
+> `stage_dynamics` with start/middle/final, the per-call average consistent with
+> the rubric overall score, and no training-bot markers in any semantic field. A document that fails these checks is **rejected on live
+> import** — keep the numbers internally consistent and never mix in
+> `training_bot_dialogs` / учебные agents.
 
 ## Source references for calls
 

@@ -44,10 +44,14 @@ const ALLOWED_TOP_LEVEL_KEYS = new Set([
   // These are allowed in the allowlist so they don't trigger unknown_key
   // errors, but validateAnalysisResult enforces calls-only below.
   'stage_dynamics', 'call_results',
+  // RICH-REPORT-V5: expected number of real calls (copied by Codex from the
+  // bundle's real_calls count). Used by the import semantic guard to verify
+  // call_results.length matches the real call count.
+  'expected_real_calls_count',
 ]);
 
 // Phase 3E3E micro-fixup: fields allowed ONLY for analysis_type=calls
-const CALLS_ONLY_TOP_LEVEL_KEYS = new Set(['stage_dynamics', 'call_results']);
+const CALLS_ONLY_TOP_LEVEL_KEYS = new Set(['stage_dynamics', 'call_results', 'expected_real_calls_count']);
 
 // Forbidden markers in call_results source_ref (mirrors question_results guard)
 const FORBIDDEN_CALLS_RESULT_MARKERS = [
@@ -237,6 +241,14 @@ function validateAnalysisResult(doc, options = {}) {
     }
     if (doc.call_results != null) {
       errors.push('call_results is allowed only for calls analysis');
+    }
+    if (doc.expected_real_calls_count != null) {
+      errors.push('expected_real_calls_count is allowed only for calls analysis');
+    }
+  } else if (doc.expected_real_calls_count != null) {
+    // RICH-REPORT-V5: positive integer if present.
+    if (!Number.isInteger(doc.expected_real_calls_count) || doc.expected_real_calls_count <= 0) {
+      errors.push('expected_real_calls_count must be a positive integer');
     }
   }
 

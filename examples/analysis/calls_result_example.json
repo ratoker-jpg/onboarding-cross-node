@@ -4,6 +4,7 @@
   "analysis_type": "calls",
   "rubric_id": "calls_automanual_binary_v1",
   "rubric_version": "1.1.0",
+  "expected_real_calls_count": 3,
   "question_results": [
     { "question_id": "contact_bank_tochka", "answer": "yes", "evidence": "Оператор назвал Банк Точка.", "quote": "звоню из Банка Точка", "source": "call_transcript", "source_ref": "calls_start:line:2" },
     { "question_id": "contact_call_reason", "answer": "yes", "evidence": "Оператор сообщил причину звонка.", "quote": "по поводу предложения для вашего бизнеса", "source": "call_transcript", "source_ref": "calls_start:line:3" },
@@ -44,5 +45,69 @@
     "Отработать вопрос 'что думаете?' после презентации",
     "Закрепить скрипт проверки снятия сомнения"
   ],
-  "risk_flags": []
+  "risk_flags": [],
+  "stage_dynamics": {
+    "start": {
+      "label": "Начало",
+      "overall": 4.5,
+      "percent": 90.0,
+      "blocks": { "contact": 1.0, "needs": 0.9, "presentation": 0.9, "objections": 0.55, "close": 1.0 },
+      "comment": "Сильное начало: контакт, выявление и презентация с расчётом. Просадка в проверке снятия сомнений."
+    },
+    "middle": {
+      "label": "Середина",
+      "overall": 4.38,
+      "percent": 87.5,
+      "blocks": { "contact": 1.0, "needs": 0.9, "presentation": 0.85, "objections": 0.55, "close": 1.0 },
+      "comment": "Стабильная работа, presentation чуть слабее по расчётам. Закрытие с конкретным сроком."
+    },
+    "final": {
+      "label": "Выпуск",
+      "overall": 4.3,
+      "percent": 85.9,
+      "blocks": { "contact": 1.0, "needs": 0.85, "presentation": 0.85, "objections": 0.5, "close": 1.0 },
+      "comment": "Уверенный выпуск, остаётся зона по работе с возражениями и сравнению с конкурентами."
+    }
+  },
+  "call_results": [
+    {
+      "stage": "start",
+      "stage_label": "Начало",
+      "call_index": 1,
+      "source_ref": "candidate_files.calls_start:1#call_1",
+      "overall_percent": 90.0,
+      "overall_score": 4.5,
+      "blocks": { "contact": 1.0, "needs": 0.9, "presentation": 0.9, "objections": 0.55, "close": 1.0 },
+      "products_detected": [
+        { "product_id": "biznes_overdraft", "product_name": "Овердрафт для бизнеса", "matched_by": "dictionary", "matched_text": "овердрафт для бизнеса", "source_ref": "candidate_files.calls_start:1#call_1" }
+      ],
+      "comment": "Контакт, выявление и презентация с расчётом; продукт связан с кассовым разрывом."
+    },
+    {
+      "stage": "middle",
+      "stage_label": "Середина",
+      "call_index": 1,
+      "source_ref": "candidate_files.calls_middle:1#call_1",
+      "overall_percent": 87.5,
+      "overall_score": 4.38,
+      "blocks": { "contact": 1.0, "needs": 0.9, "presentation": 0.85, "objections": 0.55, "close": 1.0 },
+      "products_detected": [
+        { "product_id": "biznes_overdraft", "product_name": "Овердрафт для бизнеса", "matched_by": "dictionary", "matched_text": "овердрафт", "source_ref": "candidate_files.calls_middle:1#call_1" }
+      ],
+      "comment": "Презентация чуть слабее по расчётам, закрытие со сроком сохраняется."
+    },
+    {
+      "stage": "final",
+      "stage_label": "Выпуск",
+      "call_index": 1,
+      "source_ref": "candidate_files.calls_final:1#call_1",
+      "overall_percent": 85.9,
+      "overall_score": 4.3,
+      "blocks": { "contact": 1.0, "needs": 0.85, "presentation": 0.85, "objections": 0.5, "close": 1.0 },
+      "products_detected": [
+        { "product_id": "biznes_overdraft", "product_name": "Овердрафт для бизнеса", "matched_by": "dictionary", "matched_text": "овердрафт для бизнеса", "source_ref": "candidate_files.calls_final:1#call_1" }
+      ],
+      "comment": "Уверенный звонок; зона роста — проверка остатка сомнений и сравнение с конкурентами."
+    }
+  ]
 }

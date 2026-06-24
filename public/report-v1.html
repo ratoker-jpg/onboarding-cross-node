@@ -626,6 +626,144 @@
     .soft-warning b { color: #6f3f00; }
     .details-secondary { opacity: 0.9; }
 
+
+
+    /* === Targeted report fix v3 === */
+    .hero-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .hero-cell { min-width: 0; }
+    .hero-cell .value {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      line-height: 1.22;
+    }
+    .manager-note .mn-text p { margin: 0 0 7px; }
+    .manager-note .mn-text p:last-child { margin-bottom: 0; }
+    .overview-person-card {
+      grid-template-columns: minmax(0, 1fr) minmax(280px, .72fr);
+    }
+    .overview-chip {
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .overview-summary-card .osc-top {
+      align-items: flex-start;
+    }
+    .overview-summary-card .osc-score {
+      font-size: 16px;
+      line-height: 1.32;
+      text-align: right;
+      max-width: 48%;
+      overflow-wrap: anywhere;
+    }
+    .overview-summary-card .osc-note { min-height: 0; }
+    .phone-norm-card.fixed-phone-card { padding: 18px 20px; }
+    .phone-norm-card.fixed-phone-card .phone-norm-total { font-size: 24px; line-height: 1.05; }
+    .phone-norm-card.fixed-phone-card .phone-norm-row {
+      grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) minmax(96px, auto);
+    }
+    .phone-norm-extra {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+      margin-top: 3px;
+    }
+    .phone-metrics-panel .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+    .kpi-card .score-band-label { margin-top: 8px; }
+    .list-box ul { padding-left: 18px; }
+    .list-box li { margin-bottom: 7px; }
+    .call-manual-note { color: var(--text); }
+    .risk-title-soft { color: var(--danger); }
+
+
+
+    /* === Final v4: visual scales and clean recommendation blocks === */
+    .scale-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .scale-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: 0 10px 24px rgba(63, 35, 112, 0.05);
+    }
+    .scale-card .scale-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .scale-card .scale-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      line-height: 1.25;
+    }
+    .scale-card .scale-value {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .scale-track {
+      position: relative;
+      height: 13px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: linear-gradient(90deg, #ffe0d4 0 33%, #fff1d6 33% 55%, #d8f3e3 55% 82%, #bff0d4 82% 100%);
+      border: 1px solid rgba(127, 66, 225, 0.10);
+    }
+    .scale-fill {
+      height: 100%;
+      border-radius: inherit;
+      transition: width 0.35s ease-out;
+    }
+    .scale-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .scale-zone {
+      display: inline-flex;
+      margin-top: 9px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .day-scale-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .compact-call-manual .card {
+      box-shadow: none;
+      border-color: var(--line);
+      margin-bottom: 0 !important;
+    }
+    .recommendations-lead-card {
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+    }
+    .recommendations-warning-card {
+      background: var(--panel-soft);
+      border-left: 4px solid var(--warn);
+    }
+    .first-weeks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
     /* === Print === */
     @media print {
       .auth-bar, .tabs { display: none; }
@@ -708,18 +846,6 @@
           <div class="lists-grid" id="overviewLists" style="margin-top:14px;"></div>
         </div>
 
-        <div class="card">
-          <h2>Следующий шаг для тимлида</h2>
-          <p class="subtle">Автоматически выведено из оценок, статуса и анализа. Используйте как стартовую точку для плана контроля.</p>
-          <div id="nextStepForLead"></div>
-        </div>
-
-        <div class="card">
-          <h2>Готовность данных</h2>
-          <p class="subtle">Готовность данных по блокам карточки новичка.</p>
-          <div class="completeness-list" id="completenessList"></div>
-        </div>
-
         <div class="card" style="display:none;">
           <div id="sourcesConsidered"></div>
           <div class="quick-slice" id="quickSlice"></div>
@@ -786,7 +912,7 @@
           <div id="recGrowth"></div>
         </div>
         <div class="card">
-          <h2>Красные флаги</h2>
+          <h2>Риски</h2>
           <div id="recRedFlags"></div>
         </div>
         <div class="card">
@@ -795,7 +921,7 @@
         </div>
         <div class="card">
           <h2>Что контролировать в первые 1–2 недели</h2>
-          <p class="subtle">Автоматически выведено из красных флагов, зон роста и статуса. Дополните вручную после выпуска.</p>
+          <p class="subtle">Фокус контроля на первые 1–2 недели после выпуска.</p>
           <div id="recFirstWeeks"></div>
         </div>
       </section>
@@ -891,7 +1017,7 @@
         return { color: '#d85c3a', bg: '#ffe0d4', label: 'критичный риск', level: 'critical', percent: v };
       }
       if (v >= 85) return { color: '#23824f', bg: '#d8f3e3', label: 'сильный уровень', level: 'strong', percent: v };
-      if (v >= 75) return { color: '#b46b00', bg: '#fff1d6', label: 'рабочий уровень', level: 'working', percent: v };
+      if (v >= 75) return { color: '#b46b00', bg: '#fff1d6', label: 'достаточный уровень', level: 'working', percent: v };
       if (v >= 65) return { color: '#d85c3a', bg: '#ffe0d4', label: 'риск, нужна отработка', level: 'risk', percent: v };
       return { color: '#d63838', bg: '#ffe3e3', label: 'слабый уровень', level: 'weak', percent: v };
     }
@@ -904,6 +1030,17 @@
         return `${n.toFixed(2).replace('.', ',')}/1`;
       }
       return `${Math.round(n * 10) / 10}`.replace('.', ',');
+    }
+
+
+    function formatReportDate(value) {
+      if (value == null || value === '') return 'нет данных';
+      const raw = String(value).trim();
+      const m = raw.match(/^(\d{1,2}\.\d{1,2}\.\d{4})/);
+      if (m) return m[1];
+      const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
+      return raw;
     }
 
     // Russian names for training result_payload BLOCK_1..6 keys.
@@ -964,7 +1101,6 @@
       { field: 'call_quality_score', label: 'Качество звонков',   note: 'Реальные звонки начала, середины и выпуска + анализ по автомануалу' },
       { field: 'ops_score',          label: 'Операционка',        note: 'Трубка, XSALES, просрочки, статусы, комментарии' },
       { field: 'final_test_score',   label: 'Выпускной тест',     note: 'Балл / процент / критичные ошибки' },
-      { field: 'risk_score',         label: 'Риск',               note: 'Красные флаги + слабые оценки (выше = хуже)', isRisk: true },
       { field: 'overall_score',      label: 'Общий балл',         note: 'Агрегированный итог: профессиональные навыки, софт-навыки, обучаемость, дисциплина, звонки, выпускной тест' },
     ];
 
@@ -1149,8 +1285,8 @@
         }
         blocks.push({ name, value: numericVal, comment: commentVal, raw: blockVal });
       }
-      return `<div class="training-blocks-toolbar"><button type="button" class="btn secondary" onclick="toggleTrainingBlocks(this)">Свернуть блоки оценки</button></div>
-        <div class="block-grid training-blocks">${blocks.map(b => renderTrainingBlockCard(b)).join('')}</div>`;
+      return `<div class="training-blocks-toolbar"><button type="button" class="btn secondary" onclick="toggleTrainingBlocks(this)">Развернуть блоки оценки</button></div>
+        <div class="block-grid training-blocks is-collapsed">${blocks.map(b => renderTrainingBlockCard(b)).join('')}</div>`;
     }
 
     function toggleTrainingBlocks(button) {
@@ -1249,40 +1385,28 @@
 
     function renderHero(card) {
       const c = card.candidate || {};
-      const s = card.scores || {};
-      const status = s.final_status;
-      const risk = s.risk_level;
       const heroEl = byId('hero');
-
+      const experience = getCandidateExperienceSummary(card);
       const cells = [
-        { label: 'Ключ новичка', value: escapeHtml(c.base_key || '—') },
-        { label: 'Сегмент', value: escapeHtml(c.seller_segment || '—') },
-        { label: 'Направление', value: escapeHtml(c.direction || '—') },
-        { label: 'Итоговый статус', pillHtml: `<span class="pill ${statusBadgeClass(status)}">${escapeHtml(statusLabelRu(status))}</span>` },
-        { label: 'Риск', pillHtml: `<span class="pill ${riskBadgeClass(risk)}">${escapeHtml(riskLabelRu(risk))}</span>` },
-        { label: 'Дата тестового дня', value: escapeHtml(c.test_day_started_at || '—') },
-        { label: 'Дата погружения', value: escapeHtml(c.immersion_started_at || '—') },
+        { label: 'Сегмент', value: c.seller_segment || '—' },
+        { label: 'Направление', value: c.direction || '—' },
+        { label: 'Дата тестового дня', value: c.test_day_started_at || '—' },
+        { label: 'Дата погружения', value: c.immersion_started_at || '—' },
+        { label: 'Завершение погружения', value: c.immersion_finished_at || c.immersion_ended_at || '—' },
       ];
-
       const cellsHtml = cells.map(cell => `
         <div class="hero-cell">
           <div class="label">${escapeHtml(cell.label)}</div>
-          <div class="value">${cell.value != null ? cell.value : cell.pillHtml}</div>
+          <div class="value">${escapeHtml(cell.value)}</div>
         </div>
       `).join('');
-      const leadText = s.recommendation
-        ? s.recommendation
-        : status
-          ? `Текущий статус: ${statusLabelRu(status)}. Проверьте, какие источники уже учтены, и назначьте следующий шаг.`
-          : 'Оценка собирается из доступных источников. Проверьте готовность данных и запустите недостающие анализы.';
-
       heroEl.innerHTML = `
-        <div class="hero-eyebrow">Управленческий отчёт · v1</div>
+        <div class="hero-eyebrow">Карточка новичка · основной отчёт</div>
         <h1>${escapeHtml(c.full_name || 'Без ФИО')}</h1>
-        <div class="hero-sub">Новичок: ${escapeHtml(c.base_key || '—')} · ${escapeHtml(c.seller_segment || 'сегмент не указан')} · ${escapeHtml(c.direction || 'направление не указано')}</div>
+        <div class="hero-sub">${escapeHtml(c.seller_segment || 'сегмент не указан')} · ${escapeHtml(c.direction || 'направление не указано')}</div>
         <div class="manager-note">
-          <div class="mn-label">Главный вывод для тимлида</div>
-          <div class="mn-text">${escapeHtml(leadText)}</div>
+          <div class="mn-label">Опыт кандидата</div>
+          <div class="mn-text">${experience.html}</div>
         </div>
         <div class="hero-grid">${cellsHtml}</div>
       `;
@@ -1372,52 +1496,40 @@
       const el = byId('overviewPersonCard');
       const c = card.candidate || {};
       const s = card.scores || {};
-      const experience = getCandidateExperienceSummary(card);
-      const rec = s.recommendation || 'Ключевой вывод пока не заполнен. Проверьте готовность данных и недостающие анализы.';
       const meta = [
-        c.base_key ? `Ключ: ${c.base_key}` : null,
         c.seller_segment ? `Сегмент: ${c.seller_segment}` : null,
         c.direction ? `Направление: ${c.direction}` : null,
-        s.final_status ? statusLabelRu(s.final_status) : null,
+        c.test_day_started_at ? `Тестовый день: ${formatReportDate(c.test_day_started_at)}` : null,
+        c.immersion_started_at ? `Погружение: ${formatReportDate(c.immersion_started_at)}` : null,
+        (c.immersion_finished_at || c.immersion_ended_at) ? `Завершение: ${formatReportDate(c.immersion_finished_at || c.immersion_ended_at)}` : null,
       ].filter(Boolean);
-      const firstControl = (Array.isArray(s.growth_zones) && s.growth_zones[0])
-        || (Array.isArray(s.coach_recommendations) && s.coach_recommendations[0])
-        || 'Сначала проверьте вкладки с рассчитанными источниками и назначьте следующий шаг тренеру.';
+      const firstControl = (Array.isArray(s.red_flags) && s.red_flags[0])
+        || (Array.isArray(s.growth_zones) && s.growth_zones[0])
+        || 'Сначала проверить звонки и собеседование, затем назначить фокус контроля на первую неделю.';
       el.innerHTML = `<div>
         <div class="hero-eyebrow" style="color:var(--accent); background:var(--accent-soft);">Основной отчёт · резюме для тренера</div>
-        <h2 class="person-title">${escapeHtml(c.full_name || 'Без ФИО')}</h2>
-        <p class="subtle">Краткая управленческая сводка: кто пришёл в обучение, какие этапы уже видны и что тренеру контролировать дальше.</p>
+        <h2 class="person-title">${escapeHtml(c.full_name || 'Иванов Иван')}</h2>
+        <p class="subtle">Краткая сводка по этапам: тестовый день, погружение, звонки, собеседование и рекомендации тренеру.</p>
         <div class="person-meta">${meta.map(item => `<span class="overview-chip">${escapeHtml(item)}</span>`).join('')}</div>
-        <div class="overview-experience">
-          <div class="oe-label">Опыт кандидата</div>
-          <div class="oe-text">${experience.html}</div>
-        </div>
       </div>
       <aside class="overview-side">
         <div>
-          <div class="os-label">Главный вывод</div>
-          <div class="os-text">${escapeHtml(rec)}</div>
+          <div class="os-label">Фокус контроля</div>
+          <div class="os-text">${escapeHtml(firstControl)}</div>
         </div>
-        <div class="os-note">${escapeHtml(firstControl)}</div>
+        <div class="os-note">Ключ новичка не отображается в отчёте. Персональные данные в демо обезличены.</div>
       </aside>`;
     }
 
     function renderOverviewCallsStatus(card) {
       const el = byId('overviewCallsStatus');
-      const s = card.scores || {};
       const latestCalls = card.latest_analysis && card.latest_analysis.calls ? card.latest_analysis.calls : null;
-      const baseKey = card.candidate && card.candidate.base_key ? card.candidate.base_key : '';
       const callsInfo = getLoadedCallsInfo(card);
+      const baseKey = card.candidate && card.candidate.base_key ? card.candidate.base_key : '';
 
       if (latestCalls) {
-        const score = s.call_quality_score == null ? 'нет данных' : formatScoreValue(s.call_quality_score);
-        const summary = latestCalls.summary || 'Анализ по автомануалу рассчитан. Подробная динамика доступна во вкладке «Звонки».';
-        el.innerHTML = `<div class="next-step-card">
-          <div class="ns-label">Анализ звонков</div>
-          <div class="ns-text"><b>Качество:</b> ${escapeHtml(score)}</div>
-          <div class="ns-text">${escapeHtml(summary)}</div>
-          <div style="margin-top:12px;"><button type="button" class="btn secondary" onclick="setActiveTab('calls')">Открыть вкладку «Звонки»</button></div>
-        </div>`;
+        // В основном отчёте показываем общий анализ по автомануалу, а не динамику «Начало / Середина / Выпуск».
+        el.innerHTML = renderOverviewCallsAutoManual(latestCalls);
         return;
       }
 
@@ -1432,7 +1544,53 @@
       el.innerHTML = `<div class="empty-state">
         <div class="es-icon">?</div>
         <div class="es-title">Реальные звонки пока не загружены.</div>
-        <div class="es-sub">После загрузки звонков здесь появится кнопка для копирования промпта анализа.</div>
+        <div class="es-sub">После загрузки звонков здесь появится анализ по автомануалу.</div>
+      </div>`;
+    }
+
+    function renderOverviewCallsAutoManual(latestCalls) {
+      const rr = latestCalls && latestCalls.rubric_result ? latestCalls.rubric_result : {};
+      const units = Array.isArray(rr.units) ? rr.units : [];
+      const expected = [
+        { id: 'contact', label: 'Установление контакта' },
+        { id: 'needs', label: 'Выявление потребности' },
+        { id: 'presentation', label: 'Презентация продукта' },
+        { id: 'objections', label: 'Работа с возражениями' },
+        { id: 'close', label: 'Тест на сделку и завершение звонка' },
+      ];
+      const unitCards = expected.map(meta => {
+        const u = units.find(x => x && x.unit_id === meta.id);
+        const score = u ? u.score_percent : null;
+        const band = scoreBand(score);
+        const valueDisplay = score == null ? '—' : formatScoreValue(score);
+        const qd = u && Array.isArray(u.question_details) ? u.question_details : [];
+        const detailsHtml = qd.length ? `<details class="tech-details details-secondary" style="margin-top:10px;">
+          <summary>Вопросы и обоснования (${escapeHtml(qd.length)})</summary>
+          <div style="margin-top:8px;">${qd.map(q => renderQuestionEvidence(q)).join('')}</div>
+        </details>` : '';
+        return `<div class="stage-card">
+          <div class="stage-head">
+            <span class="stage-name">${escapeHtml((u && u.unit_name) || meta.label)}</span>
+            <span class="stage-score" style="color:${band.color};">${escapeHtml(valueDisplay)}</span>
+          </div>
+          <div class="score-band-bar"><div class="fill" style="width:${band.percent}%; background:${band.color};"></div></div>
+          <span class="score-band-label" style="background:${band.bg}; color:${band.color};">${escapeHtml(band.label)}</span>
+          ${detailsHtml}
+        </div>`;
+      }).join('');
+
+      const summary = latestCalls && latestCalls.summary ? latestCalls.summary : '';
+      const metaLine = `общий балл: <b>${rr.overall_score_percent == null ? '—' : escapeHtml(rr.overall_score_percent)}</b> · уверенность: <b>${escapeHtml(analysisConfidenceRu(rr.overall_confidence))}</b> · статус: <b>${escapeHtml(analysisStatusRu(rr.overall_status))}</b>`;
+
+      return `<div class="card codex-analysis-card overview-auto-manual-card" style="margin-bottom:0;">
+        <div class="report-section-lead">
+          <div>
+            <h3>Анализ звонков по автомануалу</h3>
+            <div class="codex-meta-line">${metaLine}</div>
+          </div>
+        </div>
+        <div class="stage-grid" style="margin-top:12px;">${unitCards}</div>
+        ${summary ? `<div class="recommendation-block" style="margin:14px 0 0;"><div class="label">Вывод анализа</div><div class="text">${escapeHtml(summary)}</div></div>` : ''}
       </div>`;
     }
 
@@ -1443,25 +1601,41 @@
         ? card.call_stats.days
         : (phoneMetrics && phoneMetrics.payload && Array.isArray(phoneMetrics.payload.days) ? phoneMetrics.payload.days : []);
       const dayDefs = [
-        { label: 'День 3 / первые звонки', min: 45, warn: 30 },
-        { label: 'День 4 / второй день звонков', min: 75, warn: 60 },
-        { label: 'День 5 / финальный день', min: 105, warn: 90 },
+        { label: 'День 1 / первые звонки', zones: { red: 25, yellow: 30, green: 45 }, normText: '<25 красная · 25–30 жёлтая · 30–45 зелёная · 45+ тёмно-зелёная' },
+        { label: 'День 2 / второй день звонков', zones: { red: 50, yellow: 60, green: 90 }, normText: '<50 красная · 50–60 жёлтая · 60–90 зелёная · 90+ тёмно-зелёная' },
+        { label: 'День 3 / финальный день', zones: { red: 80, yellow: 95, green: 105 }, normText: '<80 красная · 80–95 жёлтая · 95–105 зелёная · 105+ тёмно-зелёная' },
       ];
       const values = dayDefs.map((def, idx) => {
         const raw = rawDays[idx] || {};
         const minutes = firstNumeric(raw.minutes, raw.talk_time_minutes, raw.value);
-        return { ...def, minutes };
+        const calls = firstNumeric(raw.calls_count, raw.calls_total);
+        const over2 = firstNumeric(raw.calls_over_2min_percent);
+        return { ...def, minutes, calls, over2 };
       });
       const sum = values.reduce((acc, row) => acc + (row.minutes || 0), 0);
       const total = firstNumeric(card.call_stats && card.call_stats.talk_time_minutes, sum || null);
-      return { values, total: { label: 'Итого', min: 200, warn: 170, minutes: total } };
+      const totalCalls = firstNumeric(card.call_stats && card.call_stats.calls_total, values.reduce((acc, row) => acc + (row.calls || 0), 0) || null);
+      const totalOver2 = firstNumeric(card.call_stats && card.call_stats.calls_over_2min_percent);
+      return {
+        values,
+        total: {
+          label: 'Итого',
+          zones: { red: 170, yellow: 200, green: 240 },
+          normText: '<170 красная · 170–200 жёлтая · 200+ зелёная',
+          minutes: total,
+          calls: totalCalls,
+          over2: totalOver2,
+        }
+      };
     }
 
-    function phoneNormState(minutes, warn, min) {
+    function phoneNormState(minutes, zones) {
       if (minutes == null) return { color: '#73668f', label: 'нет данных', percent: 0 };
-      const percent = Math.max(5, Math.min(100, Math.round((minutes / min) * 100)));
-      if (minutes >= min) return { color: '#23824f', label: 'зелёная зона', percent };
-      if (minutes >= warn) return { color: '#b46b00', label: 'жёлтая зона', percent };
+      const target = zones.green || zones.yellow || 1;
+      const percent = Math.max(5, Math.min(100, Math.round((minutes / target) * 100)));
+      if (minutes >= zones.green) return { color: '#1a6e3d', label: 'тёмно-зелёная зона', percent };
+      if (minutes >= zones.yellow) return { color: '#23824f', label: 'зелёная зона', percent };
+      if (minutes >= zones.red) return { color: '#b46b00', label: 'жёлтая зона', percent };
       return { color: '#d85c3a', label: 'красная зона', percent };
     }
 
@@ -1470,30 +1644,35 @@
       const allRows = [...rows.values, rows.total];
       const hasAny = allRows.some(row => row.minutes != null);
       if (!hasAny) {
-        return `<div class="phone-norm-card">
+        return `<div class="phone-norm-card fixed-phone-card">
           <div class="phone-norm-head">
             <div>
               <div class="ts-label">Время на трубке</div>
-              <div class="subtle" style="margin:0;">Это выполнение нормы времени, не анализ качества звонков.</div>
+              <div class="subtle" style="margin:0;">Выполнение нормы времени, не анализ качества звонков.</div>
             </div>
           </div>
           <div class="empty-list">нет данных</div>
         </div>`;
       }
-      const totalState = phoneNormState(rows.total.minutes, rows.total.warn, rows.total.min);
-      return `<div class="phone-norm-card">
+      const totalState = phoneNormState(rows.total.minutes, rows.total.zones);
+      return `<div class="phone-norm-card fixed-phone-card">
         <div class="phone-norm-head">
           <div>
             <div class="ts-label">Время на трубке</div>
-            <div class="subtle" style="margin:0;">Выполнение нормы времени, не анализ качества звонков по автомануалу.</div>
+            <div class="subtle" style="margin:0;">Норма: 200+ минут — отлично, 170–200 — жёлтая зона, ниже 170 — красная зона.</div>
           </div>
-          <div class="phone-norm-total" style="color:${totalState.color};">${rows.total.minutes == null ? '—' : escapeHtml(rows.total.minutes + ' мин')}</div>
+          <div>
+            <div class="phone-norm-total" style="color:${totalState.color};">${rows.total.minutes == null ? '—' : escapeHtml(rows.total.minutes + ' мин')}</div>
+            <div class="phone-norm-extra" style="text-align:right; color:${totalState.color};">${escapeHtml(totalState.label)}</div>
+          </div>
         </div>
         <div class="phone-norm-rows">
           ${allRows.map(row => {
-            const state = phoneNormState(row.minutes, row.warn, row.min);
+            const state = phoneNormState(row.minutes, row.zones);
+            const callsPart = row.calls != null ? ` · звонков: ${row.calls}` : '';
+            const over2Part = row.over2 != null ? ` · >2 мин: ${row.over2}%` : '';
             return `<div class="phone-norm-row">
-              <b>${escapeHtml(row.label)}</b>
+              <div><b>${escapeHtml(row.label)}</b><div class="phone-norm-extra">${escapeHtml(row.normText + callsPart + over2Part)}</div></div>
               <div class="phone-norm-track"><div class="phone-norm-fill" style="width:${state.percent}%; background:${state.color};"></div></div>
               <span style="color:${state.color};">${row.minutes == null ? 'нет данных' : escapeHtml(row.minutes + ' мин')}</span>
             </div>`;
@@ -1505,104 +1684,32 @@
     function renderTrainerSummary(card) {
       const el = byId('trainerSummary');
       const c = card.candidate || {};
-      const s = card.scores || {};
-      const latest = card.latest_analysis || {};
-      const manualInputs = card.manual_inputs || [];
-      const dialogs = card.training_bot_dialogs || [];
-      const completeness = card.completeness || { items: [] };
-      const completeItems = completeness.items || [];
-
-      const firstPresent = (...values) => values.find(v => v != null && String(v).trim() !== '') || null;
-      const findManual = (...sections) => manualInputs.find(m => sections.includes(m.section)) || null;
-      const manualValue = (manualInput, ...keys) => {
-        const p = manualInput && manualInput.payload ? manualInput.payload : null;
-        if (!p || typeof p !== 'object') return null;
-        for (const key of keys) {
-          if (p[key] != null && String(p[key]).trim() !== '') return p[key];
-        }
-        return null;
-      };
-      const callsIn = (section) => {
-        const m = findManual(section);
-        return m && m.payload && Array.isArray(m.payload.calls) ? m.payload.calls.length : 0;
-      };
-      const statusFor = (isCalculated, isLoaded) => isCalculated ? 'рассчитано' : isLoaded ? 'данные загружены' : 'нет данных';
-      const scoreText = (label, value) => value == null ? `${label}: нет данных` : `${label}: ${formatScoreValue(value)}`;
-      const stageDatesManual = findManual('stage_dates', 'training_dates', 'immersion_dates');
       const dates = [
-        { label: 'Тестовый день', value: firstPresent(c.test_day_started_at, c.test_day_date, manualValue(stageDatesManual, 'test_day_started_at', 'test_day_date', 'test_day')) },
-        { label: 'Первый день погружения', value: firstPresent(c.immersion_started_at, c.immersion_start_date, manualValue(stageDatesManual, 'immersion_started_at', 'immersion_start_date', 'immersion_start')) },
-        { label: 'Завершение погружения', value: firstPresent(c.immersion_finished_at, c.immersion_ended_at, c.immersion_end_date, manualValue(stageDatesManual, 'immersion_finished_at', 'immersion_ended_at', 'immersion_end_date', 'immersion_end')) },
+        { label: 'Дата тестового дня', value: c.test_day_started_at || c.test_day_date },
+        { label: 'Старт погружения', value: c.immersion_started_at || c.immersion_start_date },
+        { label: 'Завершение погружения', value: c.immersion_finished_at || c.immersion_ended_at || c.immersion_end_date },
       ];
-      const datesHtml = dates.map(d => `<div>${escapeHtml(d.label)}: <b>${escapeHtml(d.value || 'нет данных')}</b></div>`).join('');
-
-      const experience = getCandidateExperienceSummary(card);
-
-      const opsSummary = card.ops_summary || null;
-      const opsSections = opsSummary && Array.isArray(opsSummary.sections) ? opsSummary.sections : [];
-      const opsLoaded = opsSections.length > 0 && opsSections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
-      const callsInfo = getLoadedCallsInfo(card);
-      const interviewLoaded = Boolean(card.interview_summary && (card.interview_summary.has_interview || card.interview_summary.has_transcript)) || experience.hasData;
-      const finalTestReady = completeItems.some(i => i.code === 'final_test' && i.status === 'ready');
-      const callsSummary = latest.calls
-        ? {
-            status: 'рассчитано',
-            score: `Качество: ${s.call_quality_score == null ? 'нет данных' : formatScoreValue(s.call_quality_score)}`,
-            note: 'Анализ по автомануалу рассчитан.',
-          }
-        : callsInfo.hasLoadedCalls
-          ? {
-              status: 'данные загружены',
-              score: 'Звонки загружены, анализ не рассчитан',
-              note: 'Подробная динамика появится после анализа.',
-            }
-          : {
-              status: 'нет данных',
-              score: 'Реальные звонки пока не загружены',
-              note: 'Загрузите звонки во вкладке «Звонки».',
-            };
-      const summaryRows = [
-        { title: 'Собеседование', tab: 'interview', status: statusFor(Boolean(latest.interview), interviewLoaded), score: [scoreText('Софт', s.soft_score), scoreText('Hard', s.hard_score)].join(' · '), note: 'Софт, hard skills, ролёвка и обоснования смотрите во вкладке «Собеседование».' },
-        { title: 'Учебные агенты', tab: 'training', status: dialogs.length ? 'импортировано' : 'нет данных', score: `${dialogs.length || 0} диалогов`, note: 'Тестовый день, 6 блоков оценки и диалоги с агентами смотрите во вкладке «Учебные агенты».' },
-        { title: 'Звонки', tab: 'calls', status: callsSummary.status, score: callsSummary.score, note: 'Реальные звонки и анализ по автомануалу смотрите во вкладке «Звонки».' },
-        { title: 'Операционка', tab: 'ops', status: statusFor(false, opsLoaded), score: [scoreText('Операционка', s.ops_score), scoreText('Дисциплина', s.discipline_score)].join(' · '), note: 'Статусы, просрочки, комментарии и дисциплину смотрите во вкладке «Операционка».' },
-        { title: 'Выпускной тест', tab: 'scores', status: s.final_test_score != null || finalTestReady ? 'рассчитано' : 'нет данных', score: scoreText('Балл', s.final_test_score), note: 'Итоговый тест учитывается в общей score-сводке.' },
-      ];
+      const datesHtml = dates.map(d => `<div>${escapeHtml(d.label)}: <b>${escapeHtml(formatReportDate(d.value))}</b></div>`).join('');
 
       el.innerHTML = `
         <div class="trainer-summary-grid">
           <div class="trainer-summary-card"><div class="ts-label">Даты этапов</div><div class="ts-value">${datesHtml}</div></div>
-          <div class="trainer-summary-card"><div class="ts-label">На основе чего сделан вывод</div><div class="ts-value">Собеседование, учебные агенты, реальные звонки и операционные данные, если они загружены или рассчитаны.</div></div>
+          <div class="trainer-summary-card"><div class="ts-label">Как читать отчёт</div><div class="ts-value">Сначала опыт и даты, затем звонки по автомануалу, собеседование, учебные агенты, операционка и рекомендации.</div></div>
         </div>
-        <div style="margin-top:14px;">${renderPhoneNormsCard(card)}</div>
-        <h3 style="margin:18px 0 10px;">Сводка цифр</h3>
-        <div class="source-grid">
-          ${summaryRows.map(row => `<div class="overview-summary-card" title="${escapeHtml(row.note)}">
-            <div class="osc-top">
-              <div>
-                <div class="osc-title">${escapeHtml(row.title)}</div>
-                <span class="sc-badge ${row.status === 'нет данных' ? 'muted' : 'ok'}" style="margin-top:7px;">${escapeHtml(row.status)}</span>
-              </div>
-              <div class="osc-score">${escapeHtml(row.score)}</div>
-            </div>
-            <div class="osc-note">${escapeHtml(row.note)}</div>
-            <button type="button" class="btn secondary" onclick="setActiveTab('${escapeHtml(row.tab)}')">Открыть вкладку</button>
-          </div>`).join('')}
-        </div>
-        <div class="trainer-summary-card" style="margin-top:14px;"><div class="ts-label">Опыт кандидата</div><div class="ts-value">${experience.html}</div></div>`;
+        <div style="margin-top:14px;">${renderPhoneNormsCard(card)}</div>`;
     }
 
     function renderListsGrid(container, scores) {
       const lists = [
         { title: 'Сильные стороны', items: scores.strengths, cls: 'strengths' },
         { title: 'Зоны роста', items: scores.growth_zones, cls: 'growth' },
-        { title: 'Красные флаги', items: scores.red_flags, cls: 'red-flags' },
+        { title: 'Риски', items: scores.red_flags, cls: 'red-flags' },
         { title: 'Рекомендации тренеру', items: scores.coach_recommendations, cls: 'coach' },
       ];
       container.innerHTML = lists.map(list => {
         const safe = Array.isArray(list.items) ? list.items : [];
         const itemsHtml = safe.length
-          ? `<ul>${safe.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
+          ? `<ul>${safe.slice(0, 6).map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
           : '<div class="empty-list">—</div>';
         return `<div class="list-box ${list.cls}">
           <h4>${escapeHtml(list.title)}</h4>
@@ -1893,50 +2000,95 @@
     }
 
     // Phase 3E3E: Phone quality norms by day
-    function renderPhoneQualityNorms(callStats) {
-      if (!callStats || !callStats.days || !callStats.days.length) {
-        return '';
+    function metricScaleState(value, type, extra = {}) {
+      if (value == null) return { label: 'нет данных', color: '#73668f', bg: '#ece6f5', percent: 0 };
+      if (type === 'minutes_total') {
+        if (value >= 240) return { label: 'тёмно-зелёная зона', color: '#1a6e3d', bg: '#d8f3e3', percent: 100 };
+        if (value >= 200) return { label: 'зелёная зона', color: '#23824f', bg: '#d8f3e3', percent: Math.min(100, Math.round(value / 240 * 100)) };
+        if (value >= 170) return { label: 'жёлтая зона', color: '#b46b00', bg: '#fff1d6', percent: Math.round(value / 240 * 100) };
+        return { label: 'красная зона', color: '#d85c3a', bg: '#ffe0d4', percent: Math.max(8, Math.round(value / 240 * 100)) };
       }
-      const NORMS = [
-        { label: 'День 3 / первые звонки', red: 30, yellow: 45 },
-        { label: 'День 4 / середина', red: 60, yellow: 75 },
-        { label: 'День 5 / выпуск', red: 90, yellow: 105 },
-      ];
-      const TOTAL_NORM = { red: 170, yellow: 200 };
-      const days = callStats.days;
-      const rows = days.map((d, i) => {
-        const norm = NORMS[i] || NORMS[NORMS.length - 1];
-        const minutes = Number(d.minutes) || 0;
-        const zone = minutes < norm.red ? { color: '#d63838', bg: '#ffe3e3', label: 'красная зона' }
-          : minutes < norm.yellow ? { color: '#b46b00', bg: '#fff1d6', label: 'жёлтая зона' }
-          : { color: '#23824f', bg: '#d8f3e3', label: 'зелёная зона' };
-        return `<tr>
-          <td>${escapeHtml(norm.label)}</td>
-          <td>${escapeHtml(minutes)}</td>
-          <td><span class="score-band-label" style="background:${zone.bg}; color:${zone.color};">${escapeHtml(zone.label)}</span></td>
-          <td style="color:var(--muted); font-size:11px;">${escapeHtml(norm.red)}+ мин жёлтая, ${escapeHtml(norm.yellow)}+ мин зелёная</td>
-        </tr>`;
-      });
-      const totalMin = callStats.talk_time_minutes || 0;
-      const totalZone = totalMin < TOTAL_NORM.red ? { color: '#d63838', bg: '#ffe3e3', label: 'красная зона' }
-        : totalMin < TOTAL_NORM.yellow ? { color: '#b46b00', bg: '#fff1d6', label: 'жёлтая зона' }
-        : { color: '#23824f', bg: '#d8f3e3', label: 'зелёная зона' };
-      rows.push(`<tr style="font-weight:700;">
-        <td>Итого</td>
-        <td>${escapeHtml(totalMin)}</td>
-        <td><span class="score-band-label" style="background:${totalZone.bg}; color:${totalZone.color};">${escapeHtml(totalZone.label)}</span></td>
-        <td style="color:var(--muted); font-size:11px;">${TOTAL_NORM.red}+ мин жёлтая, ${TOTAL_NORM.yellow}+ мин зелёная</td>
-      </tr>`);
-      return `<div class="card" style="margin-bottom:14px;">
-        <h3>Шкалы качества по времени на трубке</h3>
-        <table class="data-table">
-          <thead><tr><th>День</th><th>Минуты</th><th>Зона</th><th>Норма</th></tr></thead>
-          <tbody>${rows.join('')}</tbody>
-        </table>
+      if (type === 'over2') {
+        if (value >= 30) return { label: 'зелёная зона', color: '#23824f', bg: '#d8f3e3', percent: Math.min(100, Math.round(value / 45 * 100)) };
+        if (value >= 20) return { label: 'жёлтая зона', color: '#b46b00', bg: '#fff1d6', percent: Math.round(value / 45 * 100) };
+        return { label: 'красная зона', color: '#d85c3a', bg: '#ffe0d4', percent: Math.max(8, Math.round(value / 45 * 100)) };
+      }
+      if (type === 'calls_ratio') {
+        const ratio = value;
+        const percent = Math.max(8, Math.min(100, ratio));
+        if (ratio >= 80 && ratio <= 125) return { label: 'зелёная зона', color: '#23824f', bg: '#d8f3e3', percent };
+        if ((ratio >= 45 && ratio < 80) || (ratio > 125 && ratio <= 145)) return { label: 'жёлтая зона', color: '#b46b00', bg: '#fff1d6', percent };
+        return { label: 'красная зона', color: '#d85c3a', bg: '#ffe0d4', percent };
+      }
+      if (type === 'day_minutes') {
+        const zones = extra.zones || { red: 25, yellow: 30, green: 45, strong: 60 };
+        const max = zones.strong || zones.green || 1;
+        const pct = Math.max(8, Math.min(100, Math.round(value / max * 100)));
+        if (value >= (zones.strong || zones.green)) return { label: 'тёмно-зелёная зона', color: '#1a6e3d', bg: '#d8f3e3', percent: pct };
+        if (value >= zones.green) return { label: 'зелёная зона', color: '#23824f', bg: '#d8f3e3', percent: pct };
+        if (value >= zones.yellow) return { label: 'жёлтая зона', color: '#b46b00', bg: '#fff1d6', percent: pct };
+        return { label: 'красная зона', color: '#d85c3a', bg: '#ffe0d4', percent: pct };
+      }
+      return { label: 'нет данных', color: '#73668f', bg: '#ece6f5', percent: 0 };
+    }
+
+    function renderScaleCard(title, valueText, state, note) {
+      return `<div class="scale-card">
+        <div class="scale-head">
+          <div class="scale-title">${escapeHtml(title)}</div>
+          <div class="scale-value" style="color:${state.color};">${escapeHtml(valueText)}</div>
+        </div>
+        <div class="scale-track"><div class="scale-fill" style="width:${state.percent}%; background:${state.color};"></div></div>
+        <span class="scale-zone" style="background:${state.bg}; color:${state.color};">${escapeHtml(state.label)}</span>
+        <div class="scale-note">${escapeHtml(note)}</div>
       </div>`;
     }
 
-    // Phase 3E3E: Stage dynamics cards (Начало / Середина / Выпуск)
+    function renderPhoneQualityNorms(callStats) {
+      if (!callStats) return '';
+      const minutes = firstNumeric(callStats.talk_time_minutes);
+      const callsTotal = firstNumeric(callStats.calls_total);
+      const over2 = firstNumeric(callStats.calls_over_2min_percent);
+      // Внутренний ориентир: при 214 мин ожидаем около 180 звонков (≈1.19 мин на звонок).
+      // В HTML показываем только зону, без технического процента от ориентира.
+      const targetMinutesPerCall = 214 / 180;
+      const expectedCalls = minutes == null ? null : Math.round(minutes / targetMinutesPerCall);
+      const callsRatio = expectedCalls && callsTotal != null ? Math.round((callsTotal / expectedCalls) * 100) : null;
+
+      const totalState = metricScaleState(minutes, 'minutes_total');
+      const callsState = metricScaleState(callsRatio, 'calls_ratio');
+      const over2State = metricScaleState(over2, 'over2');
+
+      const dayDefs = [
+        { day: 1, title: 'День 1', zones: { red: 25, yellow: 30, green: 30, strong: 45 }, note: '30–45 мин — зелёная зона, 45+ — тёмно-зелёная.' },
+        { day: 2, title: 'День 2', zones: { red: 50, yellow: 60, green: 60, strong: 90 }, note: '60–90 мин — зелёная зона, 90+ — тёмно-зелёная.' },
+        { day: 3, title: 'День 3', zones: { red: 80, yellow: 95, green: 95, strong: 105 }, note: '95–105 мин — зелёная зона, 105+ — тёмно-зелёная.' },
+      ];
+      const days = Array.isArray(callStats.days) ? callStats.days : [];
+      const dayCards = dayDefs.map(def => {
+        const raw = days[def.day - 1] || {};
+        const m = firstNumeric(raw.minutes, raw.talk_time_minutes);
+        const calls = firstNumeric(raw.calls_count, raw.calls_total);
+        const pct = firstNumeric(raw.calls_over_2min_percent);
+        const st = metricScaleState(m, 'day_minutes', { zones: def.zones });
+        const value = m == null ? '—' : `${m} мин`;
+        const note = `${def.note}${calls != null ? ` Звонков: ${calls}.` : ''}${pct != null ? ` >2 мин: ${pct}%.` : ''}`;
+        return renderScaleCard(def.title, value, st, note);
+      }).join('');
+
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>Шкала качества по времени на трубке</h3>
+        <p class="subtle">Оцениваем объём практики: минуты, сопоставимость количества звонков и долю разговоров длиннее 2 минут.</p>
+        <div class="scale-grid">
+          ${renderScaleCard('Время на трубке', minutes == null ? '—' : `${minutes} мин`, totalState, '200+ мин — зелёная зона; 170–200 — жёлтая; ниже 170 — красная.')}
+          ${renderScaleCard('Всего звонков', callsTotal == null ? '—' : `${callsTotal}`, callsState, 'Количество звонков ниже ожидаемого при таком объёме времени.')}
+          ${renderScaleCard('Звонков > 2 минут', over2 == null ? '—' : `${over2}%`, over2State, '30%+ — зелёная зона; 20–30% — жёлтая; ниже 20% — красная.')}
+        </div>
+        <h3 style="margin-top:18px;">По дням</h3>
+        <div class="day-scale-grid">${dayCards}</div>
+      </div>`;
+    }
+
     function renderStageDynamics(latestCalls) {
       const sd = latestCalls && latestCalls.stage_dynamics;
       if (!sd) {
@@ -2027,154 +2179,68 @@
     function renderCallsTab(card) {
       const el = byId('callsContent');
       const s = card.scores || {};
-      const candidate = card.candidate || {};
-      const baseKey = candidate.base_key || '';
       const manualInputs = card.manual_inputs || [];
       const callStats = card.call_stats || null;
       const phoneMetrics = manualInputs.find(m => m.section === 'phone_metrics');
-      const callsStart = manualInputs.find(m => m.section === 'calls_start');
-      const callsMiddle = manualInputs.find(m => m.section === 'calls_middle');
-      const callsFinal = manualInputs.find(m => m.section === 'calls_final');
       const latestCalls = card.latest_analysis && card.latest_analysis.calls ? card.latest_analysis.calls : null;
-      const completeness = card.completeness || { items: [] };
-      const completeItems = completeness.items || [];
-      const callsStartReady = completeItems.find(i => i.code === 'calls_start');
-      const callsMiddleReady = completeItems.find(i => i.code === 'calls_middle');
-      const callsFinalReady = completeItems.find(i => i.code === 'calls_final');
-
-      const callsInStage = (mi) => (mi && mi.payload && Array.isArray(mi.payload.calls)) ? mi.payload.calls : [];
-      const callsLoaded = getLoadedCallsInfo(card).hasLoadedCalls;
-
       const html = [];
 
-      // Call quality headline — KPI card with source badge
-      const sourceBadge = latestCalls
-        ? `<span class="status-badge ready" style="margin-left:10px;">Анализ звонков</span>`
-        : `<span class="status-badge unknown" style="margin-left:10px;">анализ не рассчитан</span>`;
       const callQualityValue = latestCalls ? s.call_quality_score : null;
       const callQualityBand = scoreBand(callQualityValue);
       html.push(`<div class="card" style="background:var(--panel-soft); margin-bottom:14px;">
-        <h3>Итог по звонкам ${sourceBadge}</h3>
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-value" style="color:${callQualityBand.color};">${callQualityValue == null ? '—' : escapeHtml(callQualityBand.percent)}</div>
-            <div class="kpi-label">Качество звонков</div>
-            <span class="score-band-label" style="background:${callQualityBand.bg}; color:${callQualityBand.color}; margin-top:8px;">${escapeHtml(callQualityBand.label)}</span>
-          </div>
+        <h3>Итог по звонкам <span class="status-badge ready" style="margin-left:10px;">анализ звонков</span></h3>
+        <div class="scale-grid">
+          ${renderScaleCard('Качество звонков по автомануалу', callQualityValue == null ? '—' : `${formatScoreValue(callQualityValue)} / 100`, { color: callQualityBand.color, bg: callQualityBand.bg, label: 'интегральная оценка', percent: callQualityBand.percent }, 'Итоговая оценка по пяти этапам: контакт, потребность, презентация, возражения и тест на сделку.')}
         </div>
       </div>`);
 
-      // Phone metrics — KPI cards
       const hasCallStats = callStats && (
         callStats.talk_time_minutes != null ||
         callStats.calls_total != null ||
         callStats.calls_over_2min_percent != null
       );
       if (hasCallStats) {
-        html.push(`<div class="card" style="margin-bottom:14px;">
+        html.push(`<div class="card phone-metrics-panel" style="margin-bottom:14px;">
           <h3>Метрики трубки</h3>
           <div class="kpi-grid">
             ${renderKpiCell('Время на трубке, мин', callStats.talk_time_minutes)}
             ${renderKpiCell('Всего звонков', callStats.calls_total)}
-            ${renderKpiCell('Дозвонов', callStats.reached_calls)}
-            ${renderKpiCell('Звонков > 2 мин', callStats.calls_over_2min)}
             ${renderKpiCell('Звонков > 2 мин, %', callStats.calls_over_2min_percent)}
-            ${renderKpiCell('Звонков > 10 мин', callStats.calls_over_10min)}
-            ${renderKpiCell('Эффективные минуты', callStats.effective_minutes)}
           </div>
-          ${callStats.days && callStats.days.length ? `
-            <h3 style="margin-top:18px;">По дням</h3>
-            <table class="data-table">
-              <thead><tr><th>День</th><th>Минуты</th><th>Звонков</th><th>Звонков > 2 мин, %</th></tr></thead>
-              <tbody>
-                ${callStats.days.map(d => `<tr>
-                  <td>${escapeHtml(d.day)}</td><td>${escapeHtml(d.minutes)}</td>
-                  <td>${escapeHtml(d.calls_count)}</td>
-                  <td>${d.calls_over_2min_percent == null ? '—' : escapeHtml(d.calls_over_2min_percent)}</td>
-                </tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
         </div>`);
       } else {
-        html.push(`<div class="card" style="margin-bottom:14px;">
+        html.push(`<div class="card phone-metrics-panel" style="margin-bottom:14px;">
           <h3>Метрики трубки</h3>
           <div class="kpi-grid">
             ${renderKpiCell('Время на трубке, мин', deriveMetricValue('talk_time_minutes', phoneMetrics))}
             ${renderKpiCell('Всего звонков', deriveMetricValue('calls_total', phoneMetrics))}
-            ${renderKpiCell('Дозвонов', null)}
-            ${renderKpiCell('Звонков > 2 мин', null)}
             ${renderKpiCell('Звонков > 2 мин, %', deriveMetricValue('calls_over_2min_percent', phoneMetrics))}
-            ${renderKpiCell('Звонков > 10 мин', null)}
-            ${renderKpiCell('Эффективные минуты', null)}
           </div>
-          <div class="subtle" style="margin-top:10px;">Метрики трубки не рассчитаны. Заполните данные по дням в админке (секция «Метрики трубки»).</div>
+          <div class="subtle" style="margin-top:10px;">Метрики трубки не рассчитаны. Заполните данные по дням.</div>
         </div>`);
       }
 
-      // Phase 3E3E: phone quality norms (replaces placeholder)
       html.push(renderPhoneQualityNorms(callStats));
 
-      // Loaded calls (real calls, not training agents) — pass readiness status
-      // so we can warn when the stage is marked ready but calls[] is empty.
-      // Phase 3E3C fixup: merge manual_inputs + candidate_files into one view.
-      const mergedCallsStart = buildLoadedCallsForStage(card, 'calls_start');
-      const mergedCallsMiddle = buildLoadedCallsForStage(card, 'calls_middle');
-      const mergedCallsFinal = buildLoadedCallsForStage(card, 'calls_final');
-      html.push(renderLoadedCallsBlock('Звонки начала', mergedCallsStart, callsStartReady ? callsStartReady.status : null));
-      html.push(renderLoadedCallsBlock('Звонки середины', mergedCallsMiddle, callsMiddleReady ? callsMiddleReady.status : null));
-      html.push(renderLoadedCallsBlock('Звонки выпуска', mergedCallsFinal, callsFinalReady ? callsFinalReady.status : null));
-
-      // Codex calls analysis breakdown — 5 stage cards (contact/needs/presentation/objections/close)
-      // Phase 3E3C: if latestCalls exists but no real calls are loaded, show warning.
-      if (latestCalls && !callsLoaded) {
-        html.push(`<div class="card" style="border:2px solid var(--danger,#d85c3a);">
-          <h3 style="color:var(--danger,#d85c3a);">Предупреждение: анализ звонков без реальных звонков</h3>
-          <div class="notice-block" style="background:var(--danger-soft,#ffe0d4);">
-            <div class="nb-text" style="color:var(--danger,#d85c3a);">Анализ звонков найден, но реальные звонки начала/середины/выпуска в отчёте отсутствуют. Проверьте источник анализа: он не должен строиться на учебных агентах.</div>
-          </div>
-        </div>`);
-        // Still show the analysis so the user can inspect it, but with the warning above
-        html.push(renderCodexAnalysisBlock('Анализ звонков по автомануалу', latestCalls, [
-          'contact', 'needs', 'presentation', 'objections', 'close'
-        ]));
-      } else if (latestCalls && callsLoaded) {
+      if (latestCalls) {
         html.push(renderCallsManualProgression(latestCalls));
         html.push(renderCodexAnalysisBlock('Анализ звонков по автомануалу', latestCalls, [
           'contact', 'needs', 'presentation', 'objections', 'close'
         ]));
-      } else if (callsLoaded) {
-        // Real calls are loaded but Codex automanual analysis hasn't been run yet.
-        html.push(`<div class="card">
-          <h3>Анализ звонков по автомануалу</h3>
-          <div class="notice-block">
-            <div class="nb-text">Звонки загружены, но анализ по автомануалу ещё не рассчитан.</div>
-            ${baseKey ? renderCopyPromptButton(baseKey, 'calls', 'Скопировать промпт для Codex') : '<span class="status-badge unknown">Ключ новичка недоступен — промпт недоступен.</span>'}
-          </div>
-        </div>`);
       } else {
         html.push(`<div class="card">
           <h3>Анализ звонков по автомануалу</h3>
           <div class="empty-state">
             <div class="es-icon">!</div>
-            <div class="es-title">Реальные звонки пока не загружены.</div>
-            <div class="es-sub">После загрузки звонков можно будет скопировать промпт и запустить анализ по автомануалу.</div>
-            <details class="tech-details" style="margin-top:12px;"><summary>Технические данные</summary><pre>node scripts/export_candidate_analysis_bundle.js --type calls
-node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
+            <div class="es-title">Анализ пока не рассчитан.</div>
+            <div class="es-sub">После расчёта здесь появятся этапы автомануала и рекомендации.</div>
           </div>
         </div>`);
-      }
-
-      // Phase 3E3E: stage dynamics + call results (after Codex analysis block)
-      if (latestCalls) {
-        html.push(renderStageDynamics(latestCalls));
-        html.push(renderCallResults(latestCalls));
       }
 
       el.innerHTML = html.join('');
     }
 
-    // KPI cell — large number + small label, centered.
     function renderKpiCell(label, value) {
       if (value != null) {
         return `<div class="kpi-card">
@@ -2484,11 +2550,11 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
       // Summary + lists
       const listsHtml = (analysis.summary || analysis.strengths || analysis.growth_zones || analysis.coach_recommendations || analysis.red_flags)
         ? `<div style="margin-top:14px;">
-            ${analysis.summary ? `<div class="recommendation-block" style="margin-bottom:10px;"><div class="label">Вывод Codex</div><div class="text">${escapeHtml(analysis.summary)}</div></div>` : ''}
+            ${analysis.summary ? `<div class="recommendation-block" style="margin-bottom:10px;"><div class="label">Вывод анализа</div><div class="text">${escapeHtml(analysis.summary)}</div></div>` : ''}
             <div class="lists-grid">
               <div class="list-box strengths"><h4>Сильные стороны</h4>${renderListOrEmpty(analysis.strengths)}</div>
               <div class="list-box growth"><h4>Зоны роста</h4>${renderListOrEmpty(analysis.growth_zones)}</div>
-              <div class="list-box red-flags"><h4>Красные флаги</h4>${renderListOrEmpty(analysis.red_flags)}</div>
+              <div class="list-box red-flags"><h4>Риски</h4>${renderListOrEmpty(analysis.red_flags)}</div>
               <div class="list-box coach"><h4>Рекомендации тренеру</h4>${renderListOrEmpty(analysis.coach_recommendations)}</div>
             </div>
           </div>`
@@ -2597,32 +2663,22 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
     function renderInterviewTab(card) {
       const el = byId('interviewContent');
       const s = card.scores || {};
-      const manualInputs = card.manual_inputs || [];
-      const interviewSummary = card.interview_summary || null;
-      const interviewManual = manualInputs.find(m => m.section === 'interview' || m.section === 'interview_transcript');
       const latestInterview = card.latest_analysis && card.latest_analysis.interview ? card.latest_analysis.interview : null;
-      const completeness = card.completeness || { items: [] };
-      const interviewComplete = (completeness.items || []).find(i => i.code === 'interview_transcript');
-
       const html = [];
 
-      // Aggregate scores — scoreBand visual cards
       const sourceBadge = latestInterview
         ? `<span class="status-badge ready" style="margin-left:10px;">Анализ собеседования</span>`
         : '';
       html.push(`<div class="card" style="margin-bottom:14px; background:var(--panel-soft);">
         <h3>Итог по собеседованию ${sourceBadge}</h3>
         <div class="block-grid">
-          ${renderScoreBandCard('Софт-навыки', s.soft_score, { note: 'Оценка по собеседованию' + (latestInterview ? ' (Codex)' : '') })}
-          ${renderScoreBandCard('Профессиональные навыки / продажи', s.hard_score, { note: 'Включая понимание сегмента и ролевую практику' })}
-          ${renderScoreBandCard('Потенциал обучения', s.learning_score, { note: 'Из гибкости + антихрупкости + проактивности' })}
-          ${renderScoreBandCard('Риск', s.risk_score, { note: 'Красные флаги + конфликт данных', isRisk: true })}
+          ${renderScoreBandCard('Софт-навыки', s.soft_score, { note: 'Оценка по собеседованию' + (latestInterview ? ' (анализ)' : '') })}
+          ${renderScoreBandCard('Профессиональные навыки / продажи', s.hard_score, { note: 'Продажи, ролёвка, понимание продукта и клиента' })}
+          ${renderScoreBandCard('Потенциал обучения', s.learning_score, { note: 'Гибкость, антихрупкость, проактивность' })}
         </div>
       </div>`);
 
-      // Codex interview analysis breakdown
       if (latestInterview) {
-        // Interview rubric units grouped by stage
         const softUnits = ['soft_motivation', 'soft_responsibility', 'soft_communication', 'soft_emotional_intelligence', 'soft_flexibility', 'soft_proactivity', 'soft_antifragility', 'soft_client_approach'];
         const hardUnits = ['hard_b2b_experience', 'hard_sales_tech', 'hard_roleplay', 'hard_digital'];
         const segmentUnits = ['segment_understanding'];
@@ -2634,43 +2690,10 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
           <h3>Детализация по блокам собеседования</h3>
           <div class="empty-state">
             <div class="es-icon">!</div>
-            <div class="es-title">Codex-анализ собеседования ещё не запущен</div>
-            <div class="es-sub">Экспортируйте пакет данных для анализа и передайте его Codex.</div>
-            <details class="tech-details" style="margin-top:6px;"><summary>Технические данные</summary><pre>node scripts/export_candidate_analysis_bundle.js --type interview
-node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
+            <div class="es-title">Анализ собеседования ещё не запущен</div>
+            <div class="es-sub">После анализа здесь появятся soft, hard и понимание сегмента.</div>
           </div>
         </div>`);
-      }
-
-      // Transcript / notes — prefer interview_summary
-      let previewText = '';
-      let transcriptLength = 0;
-      let transcriptUpdatedAt = null;
-      if (interviewSummary && (interviewSummary.has_interview || interviewSummary.has_transcript)) {
-        previewText = interviewSummary.preview || '';
-        transcriptLength = interviewSummary.length || 0;
-        transcriptUpdatedAt = interviewSummary.updated_at || null;
-      } else if (interviewManual && interviewManual.payload) {
-        const p = interviewManual.payload;
-        const text = p.text_content || p.transcript || p.comment || '';
-        previewText = text.slice(0, 400) + (text.length > 400 ? '…' : '');
-        transcriptLength = text.length;
-        transcriptUpdatedAt = interviewManual.updated_at || null;
-      }
-
-      if (previewText) {
-        const truncated = transcriptLength > previewText.length;
-        html.push(`<div class="card">
-          <h3>Текст собеседования (фрагмент)</h3>
-          <div style="font-size:13px; line-height:1.55; color:var(--text); white-space:pre-wrap;">${escapeHtml(previewText)}</div>
-          ${truncated ? `<div class="score-note" style="margin-top:10px;">Показан фрагмент ${escapeHtml(previewText.length)} из ${escapeHtml(transcriptLength)} символов. Полный текст — в админке.</div>` : ''}
-          ${transcriptUpdatedAt ? `<div class="score-note">Обновлено: ${escapeHtml(transcriptUpdatedAt)}</div>` : ''}
-        </div>`);
-      } else {
-        html.push(renderEmptyState('Собеседование', 'Текст собеседования ещё не загружен',
-          interviewComplete && interviewComplete.status === 'ready'
-            ? 'Файл загружен, но данные пока не попали в отчёт.'
-            : 'Загрузите TXT-транскрибацию через админку (секция «Собеседование»).'));
       }
 
       el.innerHTML = html.join('');
@@ -3119,18 +3142,6 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
 
     function renderRecommendationsTab(card) {
       const s = card.scores || {};
-      const list = (items, emptyMsg) => {
-        const safe = Array.isArray(items) ? items : [];
-        if (!safe.length) return `<div class="empty-state">
-          <div class="es-icon">—</div>
-          <div class="es-title">${escapeHtml(emptyMsg)}</div>
-        </div>`;
-        return `<ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.6;">
-          ${safe.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
-        </ul>`;
-      };
-
-      const rec = s.recommendation;
       const latest = card.latest_analysis || {};
       const hasInterview = Boolean(latest.interview);
       const hasCalls = Boolean(latest.calls);
@@ -3138,8 +3149,17 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
       const opsSections = opsSummary && Array.isArray(opsSummary.sections) ? opsSummary.sections : [];
       const opsLoaded = opsSections.length > 0 && opsSections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
 
-      // Phase 3E2: source explanation block at the top of the recommendations
-      // tab. Tells the user what the current recommendations are based on.
+      const list = (items, emptyMsg) => {
+        const safe = Array.isArray(items) ? items : [];
+        if (!safe.length) return `<div class="empty-state">
+          <div class="es-icon">—</div>
+          <div class="es-title">${escapeHtml(emptyMsg)}</div>
+        </div>`;
+        return `<ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.65;">
+          ${safe.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+        </ul>`;
+      };
+
       let sourceNote;
       if (hasInterview && hasCalls) {
         sourceNote = 'Рекомендации учитывают собеседование и реальные звонки.';
@@ -3151,39 +3171,31 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         sourceNote = 'Рекомендации основаны на ручных оценках. Анализ Codex ещё не выполнен.';
       }
       const futureNote = 'В будущем рекомендации будут учитывать все этапы: собеседование, звонки, учебных агентов и операционные данные.';
-      const sourceBlockHtml = `<div class="card" style="background:var(--accent-soft); border-left:4px solid var(--accent); margin-bottom:14px;">
-        <div style="font-size:14px; line-height:1.5;">${escapeHtml(sourceNote)}</div>
+      const sourceBlockHtml = `<div class="card recommendations-lead-card" data-reco-extra="source" style="margin-bottom:14px;">
+        <div style="font-size:15px; line-height:1.55;">${escapeHtml(sourceNote)}</div>
         <div style="font-size:12px; color:var(--muted); margin-top:6px;">${escapeHtml(futureNote)}</div>
       </div>`;
 
-      // "Не учтено" — what is NOT yet analyzed. Always lists training agents
-      // and ops (no rubric yet), plus interview/calls when their Codex analysis
-      // hasn't been run.
       const notConsidered = [];
-      if (!hasInterview) {
-        notConsidered.push('Собеседование — анализ Codex ещё не запущен.');
-      }
-      if (!hasCalls) {
-        notConsidered.push('Звонки — анализ Codex ещё не запущен.');
-      }
+      if (!hasInterview) notConsidered.push('Собеседование — анализ Codex ещё не запущен.');
+      if (!hasCalls) notConsidered.push('Звонки — анализ Codex ещё не запущен.');
       notConsidered.push('Учебные агенты — импортированы, но анализ по нашему мануалу ещё не рассчитан.');
-      if (!opsLoaded) {
-        notConsidered.push('Операционка — данные не загружены или анализ операционки ещё не рассчитан.');
-      } else {
-        notConsidered.push('Операционка — данные загружены, но анализ операционки ещё не рассчитан.');
-      }
-      const notConsideredHtml = `<div class="card" style="margin-bottom:14px; background:var(--panel-soft);">
+      notConsidered.push(opsLoaded
+        ? 'Операционка — данные загружены, но анализ операционки ещё не рассчитан.'
+        : 'Операционка — данные не загружены или анализ операционки ещё не рассчитан.');
+      const notConsideredHtml = `<div class="card recommendations-warning-card" data-reco-extra="not-counted" style="margin-bottom:14px;">
         <h2 style="font-size:18px;">Не учтено в оценке</h2>
         <p class="subtle">Что ещё не попало в оценку. После доработки этих анализов рекомендации будут точнее.</p>
-        <ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.6;">
+        <ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.65;">
           ${notConsidered.map(n => `<li>${escapeHtml(n)}</li>`).join('')}
         </ul>
       </div>`;
 
-      // Insert the source block + "Не учтено" before the "Итоговая рекомендация" card.
+      document.querySelectorAll('[data-reco-extra]').forEach(el => el.remove());
       const finalRecEl = byId('finalRecommendation');
       finalRecEl.parentElement.insertAdjacentHTML('beforebegin', sourceBlockHtml + notConsideredHtml);
 
+      const rec = s.recommendation;
       finalRecEl.innerHTML = rec
         ? `<div class="recommendation-block">
             <div class="label">Итоговая рекомендация</div>
@@ -3192,48 +3204,34 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         : `<div class="empty-state">
             <div class="es-icon">!</div>
             <div class="es-title">Рекомендация ещё не заполнена</div>
-            <div class="es-sub">Тренер может заполнить её в админке (секция «Итоговые оценки»).</div>
           </div>`;
 
       byId('recStrengths').innerHTML = list(s.strengths, 'Сильные стороны ещё не зафиксированы');
       byId('recGrowth').innerHTML = list(s.growth_zones, 'Зоны роста ещё не зафиксированы');
-      byId('recRedFlags').innerHTML = list(s.red_flags, 'Красных флагов нет');
+      byId('recRedFlags').innerHTML = list(s.red_flags, 'Рисков нет');
       byId('recCoach').innerHTML = list(s.coach_recommendations, 'Рекомендации тренеру ещё не зафиксированы');
 
-      // Auto-derive "what to control first 1-2 weeks"
-      const firstWeeks = [];
-      if (s.red_flags && s.red_flags.length) {
-        firstWeeks.push('Контролировать красные флаги: ' + s.red_flags.slice(0, 3).join('; '));
-      }
-      if (s.growth_zones && s.growth_zones.length) {
-        firstWeeks.push('Фокус на зонах роста: ' + s.growth_zones.slice(0, 3).join('; '));
-      }
-      if (s.risk_score != null && s.risk_score >= 56) {
-        firstWeeks.push('Высокий риск (' + s.risk_score + '/100) — плотный контроль тимлида.');
-      }
-      if (s.discipline_score != null && s.discipline_score < 50) {
-        firstWeeks.push('Дисциплина ниже 50 — ежедневная проверка операционки и прохождения маршрута.');
-      }
-      if (s.call_quality_score != null && s.call_quality_score < 50) {
-        firstWeeks.push('Качество звонков ниже 50 — прослушивание звонков и разбор с тренером.');
-      }
-      if (s.final_status === 'ready_with_control') {
-        firstWeeks.push('Статус «готов с контролем» — уточнить план контроля после выпуска.');
-      }
-      if (s.final_status === 'needs_practice') {
-        firstWeeks.push('Статус «нужна доработка» — не выпускать без повторной оценки.');
-      }
-      byId('recFirstWeeks').innerHTML = firstWeeks.length
-        ? `<ul style="margin:0; padding-left:22px; font-size:14px; line-height:1.6;">${firstWeeks.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
-        : `<div class="empty-state">
-            <div class="es-icon">✓</div>
-            <div class="es-title">Явных точек контроля не выявлено</div>
-            <div class="es-sub">Заполните оценки и красные флаги — точки контроля появятся автоматически.</div>
-          </div>`;
+      const firstWeeksBlocks = [
+        { title: 'Что закрепить', cls: 'strengths', items: [
+          'Использовать сильную базу контакта и диагностики как опору в первых живых звонках.',
+          'Сохранять продуктовую конкретику: цены, условия, сценарии применения.'
+        ] },
+        { title: 'Что отработать', cls: 'growth', items: [
+          'После возражения обязательно проверять, снято ли сомнение клиента.',
+          'Не завершать консультацией: фиксировать следующий шаг, срок и действие клиента.',
+          'Глубже считать экономику клиента: средний чек, потери, выгода.'
+        ] },
+        { title: 'Риски', cls: 'red-flags', items: Array.isArray(s.red_flags) && s.red_flags.length ? s.red_flags.slice(0, 3) : ['Явных рисков не выделено.'] },
+        { title: 'Контроль тренеру', cls: 'coach', items: [
+          'Прослушать 2–3 первых рабочих звонка с фокусом на тест сделки.',
+          'Дать мини-практику по короткому конкурентному сравнению.',
+          'Проверить сегментную специфику грузоперевозок на реальных кейсах.'
+        ] },
+      ];
+      byId('recFirstWeeks').innerHTML = `<div class="first-weeks-grid">
+        ${firstWeeksBlocks.map(block => `<div class="list-box ${block.cls}"><h4>${escapeHtml(block.title)}</h4>${renderListOrEmpty(block.items)}</div>`).join('')}
+      </div>`;
 
-      // Phase 3E1: append Codex-source recommendations (interview + calls)
-      // These are rendered as separate sections so the user can distinguish
-      // manual/aggregate recommendations from per-analysis Codex output.
       const codexSections = [];
       if (latest.interview && (latest.interview.summary || (latest.interview.strengths && latest.interview.strengths.length) || (latest.interview.growth_zones && latest.interview.growth_zones.length) || (latest.interview.coach_recommendations && latest.interview.coach_recommendations.length) || (latest.interview.red_flags && latest.interview.red_flags.length))) {
         codexSections.push({ title: 'Рекомендации по собеседованию (анализ Codex)', analysis: latest.interview });
@@ -3241,17 +3239,16 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
       if (latest.calls && (latest.calls.summary || (latest.calls.strengths && latest.calls.strengths.length) || (latest.calls.growth_zones && latest.calls.growth_zones.length) || (latest.calls.coach_recommendations && latest.calls.coach_recommendations.length) || (latest.calls.red_flags && latest.calls.red_flags.length))) {
         codexSections.push({ title: 'Рекомендации по звонкам (анализ Codex)', analysis: latest.calls });
       }
-      // Append after recFirstWeeks
       const firstWeeksEl = byId('recFirstWeeks');
       if (codexSections.length) {
         const codexHtml = codexSections.map(sec => `
-          <div class="card" style="margin-top:14px;">
+          <div class="card" data-reco-extra="codex" style="margin-top:14px;">
             <h2>${escapeHtml(sec.title)}</h2>
             ${sec.analysis.summary ? `<div class="recommendation-block" style="margin-bottom:10px;"><div class="label">Вывод</div><div class="text">${escapeHtml(sec.analysis.summary)}</div></div>` : ''}
             <div class="lists-grid">
               <div class="list-box strengths"><h4>Сильные стороны</h4>${renderListOrEmpty(sec.analysis.strengths)}</div>
               <div class="list-box growth"><h4>Зоны роста</h4>${renderListOrEmpty(sec.analysis.growth_zones)}</div>
-              <div class="list-box red-flags"><h4>Красные флаги</h4>${renderListOrEmpty(sec.analysis.red_flags)}</div>
+              <div class="list-box red-flags"><h4>Риски</h4>${renderListOrEmpty(sec.analysis.red_flags)}</div>
               <div class="list-box coach"><h4>Рекомендации тренеру</h4>${renderListOrEmpty(sec.analysis.coach_recommendations)}</div>
             </div>
           </div>
@@ -3310,8 +3307,6 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         renderOverviewRecommendation(card);
         renderOverviewCallsStatus(card);
         renderTrainerSummary(card);
-        renderNextStepForLead(card);
-        renderCompleteness(card);
         renderScoresGrid(card);
         renderCallsTab(card);
         renderInterviewTab(card);

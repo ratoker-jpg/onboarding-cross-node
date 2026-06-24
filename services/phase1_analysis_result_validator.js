@@ -193,6 +193,29 @@ function validateAnalysisResult(doc, options = {}) {
     }
   }
 
+  // --- Phase 3E3C: calls source boundary guard ---
+  // If analysis_type=calls, question_results evidence/source/source_ref must
+  // NOT reference training bot dialogs, ROLE-* ids, or result_payload from
+  // the training bot. This prevents Codex from analyzing training agents as
+  // real calls.
+  if (doc.analysis_type === 'calls' && Array.isArray(doc.question_results)) {
+    const FORBIDDEN_CALLS_MARKERS = [
+      'training_bot', 'training_bot_dialogs', 'bot_training',
+      'учебн', 'ROLE-', 'role_id', 'result_payload',
+    ];
+    for (let i = 0; i < doc.question_results.length; i++) {
+      const qr = doc.question_results[i];
+      if (!qr) continue;
+      const qrStr = JSON.stringify(qr).toLowerCase();
+      for (const marker of FORBIDDEN_CALLS_MARKERS) {
+        if (qrStr.includes(marker.toLowerCase())) {
+          errors.push(`calls_analysis_source_violation:question_results[${i}] contains forbidden marker "${marker}". Calls analysis cannot use training bot dialogs as evidence.`);
+          break;
+        }
+      }
+    }
+  }
+
   return {
     ok: errors.length === 0,
     errors,

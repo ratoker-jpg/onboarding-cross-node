@@ -308,6 +308,82 @@ function buildCallStatsBundle(manualInputs) {
   };
 }
 
+/**
+ * Phase 3E3C fixup: Build a normalized list of real calls from BOTH
+ * manual_inputs and candidate_files. Deduplicates by transcript hash
+ * within the same stage.
+ *
+ * Each entry: { stage, stage_label, source_type, source_ref, file_id,
+ *               original_name, transcript, coach_comment, duplicate_skipped? }
+ */
+function buildRealCallsForBundle(manualInputsRaw, filesRaw) {
+  const STAGES = [
+    { section: 'calls_start', stage: 'start',  label: 'Начало'  },
+    { section: 'calls_middle', stage: 'middle', label: 'Середина' },
+    { section: 'calls_final', stage: 'final',  label: 'Выпуск'  },
+  ];
+  const MIN_TRANSCRIPT_LEN = 50;
+  const allCalls = [];
+
+  for (const { section, stage, label } of STAGES) {
+    const seenHashes = new Set();
+
+    // Source A: manual_inputs
+    const mi = manualInputsRaw.find(m => m.section === section);
+    if (mi && mi.payload) {
+      const callsArr = Array.isArray(mi.payload.calls) ? mi.payload.calls : [];
+      for (const c of callsArr) {
+        const transcript = String(c.transcript || '').trim();
+        if (transcript.length < MIN_TRANSCRIPT_LEN) continue;
+        const hash = simpleHash(transcript);
+        if (seenHashes.has(hash)) {
+          allCalls.push({ stage, stage_label: label, source_type: 'manual_input', source_ref: `manual_inputs.${section}`, file_id: null, original_name: null, transcript, coach_comment: c.coach_comment || null, duplicate_skipped: true });
+          continue;
+        }
+        seenHashes.add(hash);
+        allCalls.push({ stage, stage_label: label, source_type: 'manual_input', source_ref: `manual_inputs.${section}`, file_id: null, original_name: null, transcript, coach_comment: c.coach_comment || null });
+      }
+      // Legacy single-call shape
+      if (!callsArr.length && mi.payload.transcript) {
+        const transcript = String(mi.payload.transcript).trim();
+        if (transcript.length >= MIN_TRANSCRIPT_LEN) {
+          const hash = simpleHash(transcript);
+          if (!seenHashes.has(hash)) {
+            seenHashes.add(hash);
+            allCalls.push({ stage, stage_label: label, source_type: 'manual_input', source_ref: `manual_inputs.${section}`, file_id: null, original_name: null, transcript, coach_comment: mi.payload.coach_comment || null });
+          }
+        }
+      }
+    }
+
+    // Source B: candidate_files
+    const cf = filesRaw.filter(f => f.section === section);
+    for (const f of cf) {
+      const transcript = String(f.text_content || '').trim();
+      if (transcript.length < MIN_TRANSCRIPT_LEN) continue;
+      const hash = simpleHash(transcript);
+      if (seenHashes.has(hash)) {
+        allCalls.push({ stage, stage_label: label, source_type: 'candidate_file', source_ref: `candidate_files.${section}:${f.id}`, file_id: f.id, original_name: f.original_name || null, transcript, coach_comment: f.comment || null, duplicate_skipped: true });
+        continue;
+      }
+      seenHashes.add(hash);
+      allCalls.push({ stage, stage_label: label, source_type: 'candidate_file', source_ref: `candidate_files.${section}:${f.id}`, file_id: f.id, original_name: f.original_name || null, transcript, coach_comment: f.comment || null });
+    }
+  }
+
+  // Filter out duplicates — they're only kept for logging
+  const uniqueCalls = allCalls.filter(c => !c.duplicate_skipped);
+  return uniqueCalls;
+}
+
+function simpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+ return String(h);
+}
+
 function exportBundle(baseKey, analysisType) {
   if (!ANALYSIS_TYPE_TO_RUBRIC[analysisType]) {
     throw new Error(`invalid_analysis_type:${analysisType}`);
@@ -331,15 +407,57 @@ function exportBundle(baseKey, analysisType) {
     .map(m => projectManualInputForBundle(m, analysisType))
     .filter(Boolean);
 
-  // Training dialogs
-  const trainingDialogsRaw = snapshotsRepo.listTrainingBotDialogsByCandidateId(candidate.id);
+  // Training dialogs — ONLY included for interview bundles.
+  // Phase 3E3C: calls analysis must NEVER use training bot dialogs.
+  // Training agents are a separate entity for training_agent_analysis_v1.
+  const trainingDialogsRaw = analysisType === 'calls'
+    ? []
+    : snapshotsRepo.listTrainingBotDialogsByCandidateId(candidate.id);
   const trainingBotDialogs = trainingDialogsRaw
     .map(d => projectTrainingDialogForBundle(d, analysisType))
     .filter(Boolean);
 
+  // Phase 3E3C: for calls analysis, verify that real calls exist.
+  // Real calls come from TWO sources:
+  //   A) manual_inputs.calls_start/middle/final (payload.calls[] or payload.transcript)
+  //   B) candidate_files where section = calls_start/middle/final (text_content as transcript)
+  // If neither source has real calls, abort with a clear error — do NOT fall
+  // back to training bot dialogs.
+  if (analysisType === 'calls') {
+    const callsSections = ['calls_start', 'calls_middle', 'calls_final'];
+    // Move filesRaw load before the check so we can inspect candidate_files too
+    const filesRawEarly = candidateFilesRepo.listByCandidateId(candidate.id);
+    let totalCalls = 0;
+    for (const sec of callsSections) {
+      // Source A: manual_inputs
+      const mi = manualInputsRaw.find(m => m.section === sec);
+      if (mi && mi.payload) {
+        if (Array.isArray(mi.payload.calls)) {
+          totalCalls += mi.payload.calls.filter(c => c && String(c.transcript || '').trim().length > 50).length;
+        } else if (mi.payload.transcript && String(mi.payload.transcript).trim().length > 50) {
+          totalCalls += 1; // legacy single-call shape
+        }
+      }
+      // Source B: candidate_files
+      const cf = filesRawEarly.filter(f => f.section === sec);
+      totalCalls += cf.filter(f => f && String(f.text_content || '').trim().length > 50).length;
+    }
+    if (totalCalls === 0) {
+      throw new Error('No real calls found for calls analysis. Upload calls_start/calls_middle/calls_final first.');
+    }
+  }
+
   // Files as metadata only
   const filesRaw = candidateFilesRepo.listByCandidateId(candidate.id);
   const files = filesRaw.map(projectFileForBundle).filter(Boolean);
+
+  // Phase 3E3C fixup: for calls bundles, build a normalized real_calls array
+  // from BOTH manual_inputs AND candidate_files. This gives Codex a clear
+  // list of transcripts to analyse, with stable source_refs.
+  let realCallsForBundle = null;
+  if (analysisType === 'calls') {
+    realCallsForBundle = buildRealCallsForBundle(manualInputsRaw, filesRaw);
+  }
 
   // Candidate scores (current)
   const scores = candidateScoresRepo.getByCandidateId(candidate.id);
@@ -383,14 +501,34 @@ function exportBundle(baseKey, analysisType) {
   const rubric = loadRubric(rubricId);
 
   // Source refs collected for traceability
+  // Phase 3E3C micro-fixup: for calls bundles, filter out any source refs
+  // related to training bot / bot_training / ROLE- / result_payload.
+  const FORBIDDEN_CALLS_REF_MARKERS = ['training_bot', 'bot_training', 'ROLE-', 'result_payload'];
+  function isForbiddenCallRef(refStr) {
+    const lower = String(refStr).toLowerCase();
+    return FORBIDDEN_CALLS_REF_MARKERS.some(m => lower.includes(m.toLowerCase()));
+  }
+
   const sourceRefs = [];
   if (interviewSummary) sourceRefs.push('manual_inputs.section=interview_transcript');
   if (callStats) sourceRefs.push('manual_inputs.section=phone_metrics');
-  if (trainingBotDialogs.length) sourceRefs.push('training_bot_dialogs[]');
-  for (const f of files) {
-    if (f.source_ref) sourceRefs.push(f.source_ref);
+  if (trainingBotDialogs.length && analysisType !== 'calls') sourceRefs.push('training_bot_dialogs[]');
+  if (realCallsForBundle) {
+    for (const rc of realCallsForBundle) {
+      if (rc.source_ref) sourceRefs.push(rc.source_ref);
+    }
   }
-  for (const sl of sourceLinks) {
+  for (const f of files) {
+    if (f.source_ref) {
+      if (analysisType === 'calls' && isForbiddenCallRef(f.source_ref)) continue;
+      sourceRefs.push(f.source_ref);
+    }
+  }
+  // Filter source_links for calls bundles — exclude bot_training
+  const filteredSourceLinks = analysisType === 'calls'
+    ? sourceLinks.filter(sl => sl.source_code !== 'bot_training')
+    : sourceLinks;
+  for (const sl of filteredSourceLinks) {
     sourceRefs.push(`source_link:${sl.source_code}:${sl.legacy_key || sl.legacy_id || ''}`);
   }
 
@@ -418,12 +556,12 @@ function exportBundle(baseKey, analysisType) {
     completeness: null, // populated below
     scores: scores,
     manual_inputs: manualInputs,
-    training_bot_dialogs: trainingBotDialogs,
+    real_calls: realCallsForBundle,
     call_stats: callStats,
-    ops_summary: null, // not needed for codex prompt — omitted for size
+    ops_summary: null,
     interview_summary: interviewSummary,
     files: files,
-    source_links: sourceLinks.map(sl => ({
+    source_links: filteredSourceLinks.map(sl => ({
       source_code: sl.source_code,
       source_name: sl.source_name,
       legacy_key: sl.legacy_key,
@@ -477,7 +615,21 @@ function main() {
     console.log(`  analysis_type: ${args.type}`);
     console.log(`  rubric: ${bundle.rubric.rubric_id} v${bundle.rubric.rubric_version}`);
     console.log(`  manual_inputs: ${bundle.manual_inputs.length}`);
-    console.log(`  training_bot_dialogs: ${bundle.training_bot_dialogs.length}`);
+    if (args.type === 'calls') {
+      console.log(`  training_bot_dialogs: omitted for calls`);
+    } else {
+      console.log(`  training_bot_dialogs: ${bundle.training_bot_dialogs ? bundle.training_bot_dialogs.length : 0}`);
+    }
+    if (bundle.real_calls) {
+      const byStage = {};
+      let totalDupes = 0;
+      for (const c of bundle.real_calls) {
+        byStage[c.stage] = (byStage[c.stage] || 0) + 1;
+        if (c.duplicate_skipped) totalDupes++;
+      }
+      console.log(`  real_calls: ${bundle.real_calls.length} (${Object.entries(byStage).map(([k,v]) => `${k}=${v}`).join(', ')})`);
+      if (totalDupes) console.log(`  duplicate transcripts skipped: ${totalDupes}`);
+    }
     console.log(`  files (metadata only): ${bundle.files.length}`);
     console.log(`  source_refs: ${bundle.source_refs.length}`);
     console.log(`  out: ${args.out} (${size} bytes)`);

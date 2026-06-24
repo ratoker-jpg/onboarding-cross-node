@@ -683,4 +683,18 @@ function main() {
   }
 }
 
-main();
+// FULL-CANDIDATE-CARD-V1: export the calls semantic guard + helpers so
+// scripts/import_full_candidate_card.js can reuse them for the calls block
+// (single source of truth). Only run the CLI when invoked directly.
+module.exports = {
+  runCallsSemanticChecks,
+  extractCallResultScore,
+  buildScoresPatch,
+  mergeUniqueStrings,
+  enrichRubricResultWithQuestionEvidence,
+  CALLS_SCORE_CONSISTENCY_TOLERANCE,
+};
+
+if (require.main === module) {
+  main();
+}

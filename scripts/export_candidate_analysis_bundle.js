@@ -518,6 +518,27 @@ function slugifyProduct(name) {
     .slice(0, 60) || 'unnamed';
 }
 
+/**
+ * Strip Google Sheets edit markers ("Отредактировано <...>") and normalise
+ * whitespace in a product name cell. Operators append these markers when they
+ * update a row, e.g. "Платная онлайн-бухгалтерия Отредактировано Калинкина" —
+ * the suffix must never reach Codex or appear in the report as the product
+ * name. The original cell value is preserved separately as `raw_product_name`
+ * for traceability.
+ *
+ * The marker run stops at common cell separators (newline / comma / semicolon
+ * / pipe) so a marker followed by more content (rare but possible) does not
+ * eat the rest of the cell. Any trailing punctuation left after the marker
+ * removal is trimmed, and whitespace is collapsed to single spaces.
+ */
+function cleanProductName(value) {
+  return String(value || '')
+    .replace(/\s*Отредактировано\s+[^\n\r,;|]+/gi, '')
+    .replace(/[,;|]+\s*$/g, '')   // trim trailing punctuation left by marker stop
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function parseAliases(aliasStr) {
   if (!aliasStr) return [];
   return String(aliasStr)
@@ -566,14 +587,21 @@ async function loadProductDictionary({ required = false } = {}) {
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       if (!row || !row[0]) continue;
-      const productName = String(row[0] || '').trim();
+      const rawProductName = String(row[0] || '').trim();
+      if (!rawProductName) continue;
+      // Strip operator edit markers ("Отредактировано ...") and normalise
+      // whitespace. If the cell contained only the marker, skip the row.
+      const productName = cleanProductName(rawProductName);
       if (!productName) continue;
       const description = String(row[4] || '').trim();
       const status = String(row[6] || '').trim();
       // Exclude non-selling
       if (isExcludedStatus(status)) continue;
       if (isExcludedDescription(description)) continue;
-      // Generate stable product_id
+      // Generate stable product_id from the CLEANED name so two rows that
+      // differ only by "Отредактировано X" vs "Отредактировано Y" collapse
+      // to the same slug (the second one gets a _<row> suffix to stay unique
+      // and traceable via raw_product_name + source_ref).
       let slug = slugifyProduct(productName);
       if (seenSlugs.has(slug)) {
         slug = `${slug}_${i}`;
@@ -582,6 +610,7 @@ async function loadProductDictionary({ required = false } = {}) {
       products.push({
         product_id: slug,
         product_name: productName,
+        raw_product_name: rawProductName,
         is_chp: parseBooleanLike(row[1]),
         segments: String(row[2] || '').trim() || null,
         product_type: String(row[3] || '').trim() || null,

@@ -615,7 +615,11 @@ function main() {
     console.log(`  analysis_type: ${args.type}`);
     console.log(`  rubric: ${bundle.rubric.rubric_id} v${bundle.rubric.rubric_version}`);
     console.log(`  manual_inputs: ${bundle.manual_inputs.length}`);
-    console.log(`  training_bot_dialogs: ${bundle.training_bot_dialogs.length}`);
+    if (args.type === 'calls') {
+      console.log(`  training_bot_dialogs: omitted for calls`);
+    } else {
+      console.log(`  training_bot_dialogs: ${bundle.training_bot_dialogs ? bundle.training_bot_dialogs.length : 0}`);
+    }
     if (bundle.real_calls) {
       const byStage = {};
       let totalDupes = 0;

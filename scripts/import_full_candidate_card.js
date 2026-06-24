@@ -56,6 +56,7 @@ const {
   runCallsSemanticChecks,
   enrichRubricResultWithQuestionEvidence,
   mergeUniqueStrings,
+  buildScoresPatch,
 } = require('./import_analysis_result');
 
 const SCHEMA_VERSION = 'full_candidate_card_v1';
@@ -200,9 +201,13 @@ function buildPlan(doc) {
     if (opsScore != null || disc != null) {
       plan.ops.action = 'update';
       plan.ops.derived = { ops_score: opsScore, discipline_score: disc };
-      plan.ops.detail = `ops_score=${opsScore} discipline_score=${disc}`;
+      plan.ops.detail = `ops_score=${opsScore} discipline_score=${disc}; qualitative ops analysis_run also created (visible on Ops tab via latest_analysis.ops)`;
     } else {
-      plan.ops.detail = 'no numeric score (null) — qualitative only, no score update';
+      // Even without numeric scores, persist the qualitative ops block as an
+      // analysis_run so renderOpsTab can show summary + notes.
+      plan.ops.action = 'update';
+      plan.ops.derived = { ops_score: null, discipline_score: null };
+      plan.ops.detail = `qualitative-only ops analysis_run (no numeric score); visible on Ops tab via latest_analysis.ops`;
     }
   } else {
     plan.ops.detail = 'missing_data';
@@ -273,29 +278,102 @@ function persistFullCard(doc, plan, adminKey) {
   const existing = candidateScoresRepo.getByCandidateId(candidate.id) || {};
   const blocks = doc.blocks || {};
 
-  // Merge candidate_scores from existing + per-block derived values.
+  // ------------------------------------------------------------------
+  // BLOCKER 3 fixup: build the candidate_scores patch via buildScoresPatch
+  // (reused from import_analysis_result.js) so the full importer does NOT
+  // diverge from the single importer by scoring semantics. Concretely:
+  //   - interview block bumps soft/hard/learning via derived_fields
+  //   - calls block sets call_quality_score via derived_fields AND applies
+  //     risk_score_adjust + applyCriticalErrorCaps (risk_flags caps) — same
+  //     as the single calls importer
+  //   - per-block summary/strengths/growth_zones/red_flags/coach_recommendations
+  //     are merged via mergeUniqueStrings (idempotent), so re-importing the
+  //     same Codex result does not duplicate entries
+  //   - recommendation falls back to interview.analysis.summary (then
+  //     calls.analysis.summary) when no manual recommendation exists — same
+  //     as single importer
+  // We chain the patches: interview patch builds on `existing`, calls patch
+  // builds on the interview patch. This way risk_score_adjust from interview
+  // is preserved when calls adds its own adjust on top.
+  // ------------------------------------------------------------------
+  let mergedPatch = {
+    hard_score: existing.hard_score ?? null,
+    soft_score: existing.soft_score ?? null,
+    learning_score: existing.learning_score ?? null,
+    discipline_score: existing.discipline_score ?? null,
+    call_quality_score: existing.call_quality_score ?? null,
+    ops_score: existing.ops_score ?? null,
+    final_test_score: existing.final_test_score ?? null,
+    risk_score: existing.risk_score ?? null,
+    recommendation: existing.recommendation ?? null,
+    strengths: safeArr(existing.strengths),
+    growth_zones: safeArr(existing.growth_zones),
+    red_flags: safeArr(existing.red_flags),
+    coach_recommendations: safeArr(existing.coach_recommendations),
+  };
+
+  if (plan.interview.action === 'update') {
+    mergedPatch = buildScoresPatch(
+      'interview_binary_v1',
+      plan.interview.eval.rubricResult,
+      blocks.interview.analysis,
+      mergedPatch
+    );
+  }
+  if (plan.calls.action === 'update') {
+    mergedPatch = buildScoresPatch(
+      'calls_automanual_binary_v1',
+      plan.calls.eval.rubricResult,
+      blocks.calls.analysis,
+      mergedPatch
+    );
+  }
+
+  // ops / final_test numeric scores — applied directly (no rubric, no caps).
+  // These never affect call_quality_score.
+  if (plan.ops.action === 'update' && plan.ops.derived.ops_score != null) {
+    mergedPatch.ops_score = plan.ops.derived.ops_score;
+  }
+  if (plan.ops.action === 'update' && plan.ops.derived.discipline_score != null) {
+    mergedPatch.discipline_score = plan.ops.derived.discipline_score;
+  }
+  if (plan.final_test.action === 'update') {
+    mergedPatch.final_test_score = plan.final_test.derived.final_test_score;
+  }
+
+  // overall block — lists merged on top via mergeUniqueStrings (idempotent),
+  // recommendation overrides if the overall block provided one.
+  if (plan.overall.action === 'update') {
+    const ov = plan.overall.derived;
+    if (ov.recommendation) mergedPatch.recommendation = ov.recommendation;
+    mergedPatch.strengths = mergeUniqueStrings(mergedPatch.strengths, ov.strengths);
+    mergedPatch.growth_zones = mergeUniqueStrings(mergedPatch.growth_zones, ov.growth_zones);
+    mergedPatch.red_flags = mergeUniqueStrings(mergedPatch.red_flags, ov.red_flags);
+    mergedPatch.coach_recommendations = mergeUniqueStrings(mergedPatch.coach_recommendations, ov.coach_recommendations);
+  }
+
   const row = {
     candidate_id: candidate.id,
     base_key: doc.base_key,
-    hard_score: plan.interview.action === 'update' ? plan.interview.derived.hard_score : (existing.hard_score ?? null),
-    soft_score: plan.interview.action === 'update' ? plan.interview.derived.soft_score : (existing.soft_score ?? null),
-    learning_score: plan.interview.action === 'update' ? plan.interview.derived.learning_score : (existing.learning_score ?? null),
-    discipline_score: plan.ops.action === 'update' && plan.ops.derived.discipline_score != null ? plan.ops.derived.discipline_score : (existing.discipline_score ?? null),
-    call_quality_score: plan.calls.action === 'update' ? plan.calls.derived.call_quality_score : (existing.call_quality_score ?? null),
-    ops_score: plan.ops.action === 'update' && plan.ops.derived.ops_score != null ? plan.ops.derived.ops_score : (existing.ops_score ?? null),
-    final_test_score: plan.final_test.action === 'update' ? plan.final_test.derived.final_test_score : (existing.final_test_score ?? null),
-    risk_score: existing.risk_score ?? null,
+    hard_score: mergedPatch.hard_score,
+    soft_score: mergedPatch.soft_score,
+    learning_score: mergedPatch.learning_score,
+    discipline_score: mergedPatch.discipline_score,
+    call_quality_score: mergedPatch.call_quality_score,
+    ops_score: mergedPatch.ops_score,
+    final_test_score: mergedPatch.final_test_score,
+    risk_score: mergedPatch.risk_score,
     overall_score: existing.overall_score ?? null,
     risk_level: existing.risk_level ?? null,
     final_status: existing.final_status ?? null,
-    recommendation: plan.overall.action === 'update' && plan.overall.derived.recommendation ? plan.overall.derived.recommendation : (existing.recommendation ?? null),
+    recommendation: mergedPatch.recommendation,
     source: 'mixed',
     analysis_run_id: existing.analysis_run_id ?? null,
     score_breakdown_json: existing.score_breakdown_json ?? null,
-    strengths_json: JSON.stringify(plan.overall.action === 'update' ? mergeUniqueStrings(safeArr(existing.strengths), plan.overall.derived.strengths) : safeArr(existing.strengths)),
-    growth_zones_json: JSON.stringify(plan.overall.action === 'update' ? mergeUniqueStrings(safeArr(existing.growth_zones), plan.overall.derived.growth_zones) : safeArr(existing.growth_zones)),
-    red_flags_json: JSON.stringify(plan.overall.action === 'update' ? mergeUniqueStrings(safeArr(existing.red_flags), plan.overall.derived.red_flags) : safeArr(existing.red_flags)),
-    coach_recommendations_json: JSON.stringify(plan.overall.action === 'update' ? mergeUniqueStrings(safeArr(existing.coach_recommendations), plan.overall.derived.coach_recommendations) : safeArr(existing.coach_recommendations)),
+    strengths_json: JSON.stringify(mergedPatch.strengths),
+    growth_zones_json: JSON.stringify(mergedPatch.growth_zones),
+    red_flags_json: JSON.stringify(mergedPatch.red_flags),
+    coach_recommendations_json: JSON.stringify(mergedPatch.coach_recommendations),
     has_calls_data: plan.calls.action === 'update' ? 1 : (existing.has_calls_data ? 1 : 0),
     created_at: existing.created_at || now,
     updated_at: now,
@@ -316,20 +394,80 @@ function persistFullCard(doc, plan, adminKey) {
     });
 
     if (plan.interview.action === 'update') {
-      createRun('interview', { schema_version: 'full_candidate_card_v1', block: 'interview' }, { rubric_result: plan.interview.eval.rubricResult, analysis: blocks.interview.analysis });
+      // Persist summary/lists at top level of output_payload so
+      // projectAnalysisRunForViewer can pick them up the same way it does
+      // for single-import runs. Also include scores_patch as a fallback for
+      // older viewer code that reads scores_patch.recommendation.
+      const a = blocks.interview.analysis;
+      createRun('interview',
+        { schema_version: 'full_candidate_card_v1', block: 'interview' },
+        {
+          rubric_result: plan.interview.eval.rubricResult,
+          analysis: a,
+          summary: a.summary || '',
+          strengths: a.strengths || [],
+          growth_zones: a.growth_zones || [],
+          red_flags: a.red_flags || [],
+          coach_recommendations: a.coach_recommendations || [],
+          scores_patch: {
+            soft_score: mergedPatch.soft_score,
+            hard_score: mergedPatch.hard_score,
+            learning_score: mergedPatch.learning_score,
+            risk_score: mergedPatch.risk_score,
+            recommendation: mergedPatch.recommendation,
+            strengths: mergedPatch.strengths,
+            growth_zones: mergedPatch.growth_zones,
+            red_flags: mergedPatch.red_flags,
+            coach_recommendations: mergedPatch.coach_recommendations,
+          },
+        }
+      );
     }
     if (plan.calls.action === 'update') {
       const a = blocks.calls.analysis;
-      createRun('calls', { schema_version: 'full_candidate_card_v1', block: 'calls' }, {
-        rubric_result: plan.calls.eval.rubricResult,
-        summary: a.summary || '',
-        stage_dynamics: a.stage_dynamics || null,
-        call_results: Array.isArray(a.call_results) ? a.call_results : null,
-      });
+      createRun('calls',
+        { schema_version: 'full_candidate_card_v1', block: 'calls' },
+        {
+          rubric_result: plan.calls.eval.rubricResult,
+          summary: a.summary || '',
+          strengths: a.strengths || [],
+          growth_zones: a.growth_zones || [],
+          red_flags: a.red_flags || [],
+          coach_recommendations: a.coach_recommendations || [],
+          risk_flags: Array.isArray(a.risk_flags) ? a.risk_flags : [],
+          stage_dynamics: a.stage_dynamics || null,
+          call_results: Array.isArray(a.call_results) ? a.call_results : null,
+          scores_patch: {
+            call_quality_score: mergedPatch.call_quality_score,
+            risk_score: mergedPatch.risk_score,
+            recommendation: mergedPatch.recommendation,
+            strengths: mergedPatch.strengths,
+            growth_zones: mergedPatch.growth_zones,
+            red_flags: mergedPatch.red_flags,
+            coach_recommendations: mergedPatch.coach_recommendations,
+          },
+        }
+      );
     }
     if (plan.training_agents.action === 'update') {
       // SEPARATE run; no candidate_scores.call_quality_score impact.
-      createRun('training_agents', { schema_version: 'full_candidate_card_v1', block: 'training_agents' }, blocks.training_agents);
+      // output_payload IS the training_agents block (summary/strengths/
+      // growth_zones/dialogs_reviewed/note) so projectAnalysisRunForViewer
+      // picks up the fields directly.
+      createRun('training_agents',
+        { schema_version: 'full_candidate_card_v1', block: 'training_agents' },
+        blocks.training_agents
+      );
+    }
+    // BLOCKER 2 fixup: persist ops analysis_run so renderOpsTab can show it
+    // via latest_analysis.ops. The numeric ops_score / discipline_score are
+    // already in the candidate_scores row above; this run is qualitative-only
+    // (summary + notes). NEVER affects call_quality_score.
+    if (plan.ops.action === 'update') {
+      createRun('ops',
+        { schema_version: 'full_candidate_card_v1', block: 'ops' },
+        blocks.ops
+      );
     }
     const upserted = candidateScoresRepo.upsert(row);
     return { scores: upserted };

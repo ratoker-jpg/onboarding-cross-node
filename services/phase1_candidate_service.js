@@ -2199,18 +2199,42 @@ function projectAnalysisRunForViewer(run) {
     // Phase 3E3E: calls-only stage dynamics + call_results
     stage_dynamics: output.stage_dynamics || null,
     call_results: Array.isArray(output.call_results) ? output.call_results : null,
+    // FULL-CANDIDATE-CARD-V1 fixup: pass through block-specific extras so
+    // report-v1.html can render training_agents and ops analysis runs the
+    // same way it renders interview/calls. These fields are null/[] for
+    // interview/calls runs (no schema change for those types).
+    dialogs_reviewed: output.dialogs_reviewed != null ? output.dialogs_reviewed : null,
+    note: typeof output.note === 'string' && output.note
+      ? truncateForViewer(output.note, 1000)
+      : null,
+    ops_score: typeof output.ops_score === 'number' && Number.isFinite(output.ops_score)
+      ? output.ops_score
+      : null,
+    discipline_score: typeof output.discipline_score === 'number' && Number.isFinite(output.discipline_score)
+      ? output.discipline_score
+      : null,
+    notes: Array.isArray(output.notes) ? output.notes : [],
   };
 }
 
 /**
  * Build the latest_analysis block for the viewer card.
- * Returns { interview: <projection>|null, calls: <projection>|null }.
+ * Returns {
+ *   interview: <projection>|null,
+ *   calls: <projection>|null,
+ *   training_agents: <projection>|null,   // FULL-CANDIDATE-CARD-V1 fixup
+ *   ops: <projection>|null,               // FULL-CANDIDATE-CARD-V1 fixup
+ * }.
  *
  * For each type, picks the most recent successful codex analysis_run.
+ * FULL-CANDIDATE-CARD-V1 fixup: training_agents and ops are now first-class
+ * analysis types (created by import_full_candidate_card.js). They are
+ * returned alongside interview/calls so report-v1.html can render them on
+ * their respective tabs without special endpoints.
  */
 function buildLatestAnalysis(baseKey, analysisRunsRepo) {
-  const types = ['interview', 'calls'];
-  const out = { interview: null, calls: null };
+  const types = ['interview', 'calls', 'training_agents', 'ops'];
+  const out = { interview: null, calls: null, training_agents: null, ops: null };
   for (const t of types) {
     const runs = analysisRunsRepo.listByBaseKeyType(baseKey, t);
     // Filter to codex + success, then take the most recent (repo already

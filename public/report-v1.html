@@ -2743,6 +2743,63 @@
       </div>`;
     }
 
+    // FULL-CANDIDATE-CARD-V1 fixup: render the qualitative training_agents
+    // analysis block (created by import_full_candidate_card.js). This block
+    // has no rubric_result — it's a pure summary + lists. It NEVER affects
+    // call_quality_score and is never mixed with real calls.
+    function renderTrainingAgentsAnalysisBlock(analysis) {
+      const dialogsReviewed = analysis.dialogs_reviewed != null
+        ? escapeHtml(analysis.dialogs_reviewed)
+        : '—';
+      const summaryHtml = analysis.summary
+        ? `<div class="recommendation-block" style="margin-bottom:10px;"><div class="label">Вывод анализа</div><div class="text">${escapeHtml(analysis.summary)}</div></div>`
+        : '';
+      const noteHtml = analysis.note
+        ? `<div class="subtle" style="margin-top:10px;">${escapeHtml(analysis.note)}</div>`
+        : '';
+      const listsHtml = (analysis.strengths || analysis.growth_zones)
+        ? `<div class="lists-grid">
+            <div class="list-box strengths"><h4>Сильные стороны</h4>${renderListOrEmpty(analysis.strengths)}</div>
+            <div class="list-box growth"><h4>Зоны роста</h4>${renderListOrEmpty(analysis.growth_zones)}</div>
+          </div>`
+        : '';
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>Анализ по нашему мануалу <span class="status-badge ready" style="margin-left:10px;">Codex · training_agents</span></h3>
+        <div class="codex-meta-line">просмотрено диалогов: <b>${dialogsReviewed}</b> · обновлено: <b>${escapeHtml(formatReportDate(analysis.finished_at || analysis.created_at))}</b></div>
+        ${summaryHtml}
+        ${listsHtml}
+        ${noteHtml}
+        <div class="subtle" style="margin-top:10px;">Это отдельный анализ учебных агентов. Он не влияет на оценку качества звонков и не подменяет анализ реальных звонков.</div>
+      </div>`;
+    }
+
+    // FULL-CANDIDATE-CARD-V1 fixup: render the ops analysis block (created by
+    // import_full_candidate_card.js when plan.ops.action === 'update'). Shows
+    // the qualitative summary + notes from the Codex ops block alongside the
+    // numeric ops_score / discipline_score that were already written to
+    // candidate_scores. NEVER affects call_quality_score.
+    function renderOpsAnalysisBlock(analysis) {
+      const opsScore = analysis.ops_score != null ? escapeHtml(formatScoreValue(analysis.ops_score)) : '—';
+      const discScore = analysis.discipline_score != null ? escapeHtml(formatScoreValue(analysis.discipline_score)) : '—';
+      const summaryHtml = analysis.summary
+        ? `<div class="recommendation-block" style="margin-bottom:10px;"><div class="label">Вывод анализа</div><div class="text">${escapeHtml(analysis.summary)}</div></div>`
+        : '';
+      const notesHtml = Array.isArray(analysis.notes) && analysis.notes.length
+        ? `<div class="list-box growth" style="margin-top:6px;"><h4>Заметки по операционке</h4>${renderListOrEmpty(analysis.notes)}</div>`
+        : '';
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>Анализ операционки <span class="status-badge ready" style="margin-left:10px;">Codex · ops</span></h3>
+        <div class="block-grid" style="margin-top:8px;">
+          ${renderScoreBandCard('Оценка операционки', analysis.ops_score, { note: 'Из анализа Codex' })}
+          ${renderScoreBandCard('Дисциплина', analysis.discipline_score, { note: 'Из анализа Codex (если задана)' })}
+        </div>
+        <div class="codex-meta-line">обновлено: <b>${escapeHtml(formatReportDate(analysis.finished_at || analysis.created_at))}</b></div>
+        ${summaryHtml}
+        ${notesHtml}
+        <div class="subtle" style="margin-top:10px;">Этот анализ не влияет на оценку качества звонков.</div>
+      </div>`;
+    }
+
     function renderTrainingTab(card) {
       const el = byId('trainingContent');
       const dialogs = card.training_bot_dialogs || [];
@@ -2818,19 +2875,31 @@
         <div class="subtle" style="margin-top:10px;">Это учебные диалоги из бота учебки. Они не являются реальными звонками, не оцениваются по рубрике качества реальных звонков и не влияют на оценку качества звонков.</div>
       </div>`);
 
-      // Phase 3E2: training agents don't have a Codex analysis yet
-      // (no training_agent_analysis_v1 rubric). Show an info block with an
-      // active button that copies a draft prompt so the user can run a draft
-      // analysis manually in Codex.
-      const trainingCodexDraftPrompt = 'Это учебные агенты, не реальные звонки.\nНе использовать calls_automanual_binary_v1 как анализ реальных звонков.\nНужен отдельный будущий анализ training_agent_analysis_v1.\nЕсли pipeline/rubric ещё не реализованы — не импортировать результат в БД, а подготовить черновой JSON/отчёт по этапам: установление контакта, выявление потребности, презентация, возражения, закрытие, сегментная оценка.';
-      const trainingCodexDraftLabel = 'Скопировать черновик промпта для Codex';
-      html.push(`<div class="card" style="margin-bottom:14px;">
-        <h3>Анализ по нашему мануалу</h3>
-        <div class="notice-block">
-          <div class="nb-text">Импортирован результат из учебного бота. Отдельный анализ по нашему мануалу ещё не рассчитан.</div>
-          ${renderCopyTextButton(trainingCodexDraftPrompt, trainingCodexDraftLabel)}
-        </div>
-      </div>`);
+      // FULL-CANDIDATE-CARD-V1 fixup: if a training_agents analysis_run exists
+      // (created by import_full_candidate_card.js), render its summary / lists
+      // instead of the "not yet calculated" placeholder. The training_agents
+      // analysis is qualitative only — it never affects call_quality_score and
+      // is never mixed with real calls.
+      const latestTraining = card.latest_analysis && card.latest_analysis.training_agents
+        ? card.latest_analysis.training_agents
+        : null;
+      if (latestTraining) {
+        html.push(renderTrainingAgentsAnalysisBlock(latestTraining));
+      } else {
+        // Phase 3E2: training agents don't have a Codex analysis yet
+        // (no training_agent_analysis_v1 rubric). Show an info block with an
+        // active button that copies a draft prompt so the user can run a draft
+        // analysis manually in Codex.
+        const trainingCodexDraftPrompt = 'Это учебные агенты, не реальные звонки.\nНе использовать calls_automanual_binary_v1 как анализ реальных звонков.\nНужен отдельный будущий анализ training_agent_analysis_v1.\nЕсли pipeline/rubric ещё не реализованы — не импортировать результат в БД, а подготовить черновой JSON/отчёт по этапам: установление контакта, выявление потребности, презентация, возражения, закрытие, сегментная оценка.';
+        const trainingCodexDraftLabel = 'Скопировать черновик промпта для Codex';
+        html.push(`<div class="card" style="margin-bottom:14px;">
+          <h3>Анализ по нашему мануалу</h3>
+          <div class="notice-block">
+            <div class="nb-text">Импортирован результат из учебного бота. Отдельный анализ по нашему мануалу ещё не рассчитан.</div>
+            ${renderCopyTextButton(trainingCodexDraftPrompt, trainingCodexDraftLabel)}
+          </div>
+        </div>`);
+      }
 
       // Per-group training cards
       groupAggregates.forEach((group, idx) => {
@@ -3130,11 +3199,15 @@
         }
       }
 
-      // Phase 3E2: if ops data is loaded but no ops analysis yet, show a
-      // missing-analysis block with a draft Codex prompt button. The draft
-      // text is intentionally NOT produced by buildCodexPromptText, since
-      // there's no ops rubric yet — this is just a heads-up for the user.
-      if (opsDataLoaded && !latestOps) {
+      // FULL-CANDIDATE-CARD-V1 fixup: if an ops analysis_run exists (created
+      // by import_full_candidate_card.js when plan.ops.action === 'update'),
+      // render its summary + notes + score explanation as a dedicated block.
+      // This is qualitative and never affects call_quality_score.
+      if (latestOps) {
+        html.push(renderOpsAnalysisBlock(latestOps));
+      } else if (opsDataLoaded) {
+        // Phase 3E2: ops data loaded but no ops analysis yet — show the
+        // missing-analysis block with a draft Codex prompt button.
         html.push(renderOpsAnalysisMissingBlock());
       }
 

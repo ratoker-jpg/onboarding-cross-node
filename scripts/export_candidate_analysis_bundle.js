@@ -331,11 +331,33 @@ function exportBundle(baseKey, analysisType) {
     .map(m => projectManualInputForBundle(m, analysisType))
     .filter(Boolean);
 
-  // Training dialogs
-  const trainingDialogsRaw = snapshotsRepo.listTrainingBotDialogsByCandidateId(candidate.id);
+  // Training dialogs — ONLY included for interview bundles.
+  // Phase 3E3C: calls analysis must NEVER use training bot dialogs.
+  // Training agents are a separate entity for training_agent_analysis_v1.
+  const trainingDialogsRaw = analysisType === 'calls'
+    ? []
+    : snapshotsRepo.listTrainingBotDialogsByCandidateId(candidate.id);
   const trainingBotDialogs = trainingDialogsRaw
     .map(d => projectTrainingDialogForBundle(d, analysisType))
     .filter(Boolean);
+
+  // Phase 3E3C: for calls analysis, verify that real calls exist.
+  // If no real calls are found, abort with a clear error — do NOT fall back
+  // to training bot dialogs.
+  if (analysisType === 'calls') {
+    const callsSections = ['calls_start', 'calls_middle', 'calls_final'];
+    let totalCalls = 0;
+    for (const sec of callsSections) {
+      const mi = manualInputsRaw.find(m => m.section === sec);
+      if (mi && mi.payload) {
+        if (Array.isArray(mi.payload.calls)) totalCalls += mi.payload.calls.length;
+        else if (mi.payload.transcript) totalCalls += 1; // legacy single-call shape
+      }
+    }
+    if (totalCalls === 0) {
+      throw new Error('No real calls found for calls analysis. Upload calls_start/calls_middle/calls_final first.');
+    }
+  }
 
   // Files as metadata only
   const filesRaw = candidateFilesRepo.listByCandidateId(candidate.id);

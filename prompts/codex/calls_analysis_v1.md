@@ -5,6 +5,22 @@ to fill in the binary rubric `calls_automanual_binary_v1`. The output is a
 strict JSON document that `scripts/import_analysis_result.js` will validate,
 score, and persist.
 
+## CRITICAL: Source boundary
+
+Анализируй **только** реальные звонки из `calls_start`, `calls_middle`,
+`calls_final` (разделы `manual_inputs`).
+
+**ЗАПРЕЩЕНО** использовать:
+- `training_bot_dialogs`
+- учебных агентов
+- role dialogs
+- `ROLE-*` источники
+- `result_payload` тестового дня
+- `transcript_text` учебных агентов
+
+Если в bundle нет реальных звонков — верни `not_enough_data` для всех вопросов
+или остановись, но **не анализируй учебных агентов как реальные звонки**.
+
 ## What you receive
 
 A bundle JSON file (`*_calls_bundle.json`) containing:
@@ -13,9 +29,8 @@ A bundle JSON file (`*_calls_bundle.json`) containing:
 - `manual_inputs[]` — sections relevant to calls analysis are included in
   full: `calls_start`, `calls_middle`, `calls_final`, `phone_metrics`.
   Other sections are truncated previews.
-- `training_bot_dialogs[]` — for calls bundles, transcript text IS included
-  (capped at 20K chars per dialog; check `transcript_full_text_included`).
-  Use these if the bundle is for training-bot dialogs evaluated as calls.
+- `training_bot_dialogs[]` — **NOT included** in calls bundles (Phase 3E3C).
+  Training agents are a separate entity for `training_agent_analysis_v1`.
 - `call_stats` — aggregated phone metrics: `talk_time_minutes`,
   `calls_total`, `calls_over_2min`, `calls_over_2min_percent`, `days[]`.
 - `scores` — current `candidate_scores` row.

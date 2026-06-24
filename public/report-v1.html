@@ -1900,7 +1900,19 @@
       html.push(renderLoadedCallsBlock('Звонки выпуска', callsFinal, callsFinalReady ? callsFinalReady.status : null));
 
       // Codex calls analysis breakdown — 5 stage cards (contact/needs/presentation/objections/close)
-      if (latestCalls) {
+      // Phase 3E3C: if latestCalls exists but no real calls are loaded, show warning.
+      if (latestCalls && !callsLoaded) {
+        html.push(`<div class="card" style="border:2px solid var(--danger,#d85c3a);">
+          <h3 style="color:var(--danger,#d85c3a);">Предупреждение: анализ звонков без реальных звонков</h3>
+          <div class="notice-block" style="background:var(--danger-soft,#ffe0d4);">
+            <div class="nb-text" style="color:var(--danger,#d85c3a);">Анализ звонков найден, но реальные звонки начала/середины/выпуска в отчёте отсутствуют. Проверьте источник анализа: он не должен строиться на учебных агентах.</div>
+          </div>
+        </div>`);
+        // Still show the analysis so the user can inspect it, but with the warning above
+        html.push(renderCodexAnalysisBlock('Анализ звонков по автомануалу', latestCalls, [
+          'contact', 'needs', 'presentation', 'objections', 'close'
+        ]));
+      } else if (latestCalls && callsLoaded) {
         html.push(renderCallsManualProgression(latestCalls));
         html.push(renderCodexAnalysisBlock('Анализ звонков по автомануалу', latestCalls, [
           'contact', 'needs', 'presentation', 'objections', 'close'

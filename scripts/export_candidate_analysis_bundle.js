@@ -111,12 +111,19 @@ const ANALYSIS_TYPE_TO_RUBRIC = {
 // Secret-leakage patterns. Mirrors services/phase1_analysis_result_validator.js
 // FORBIDDEN_SECRET_PATTERNS so the same checks run on export (before the
 // bundle leaves the server) AND on import (before the result reaches the DB).
+//
+// AA-pattern is case-sensitive + word-boundary anchored: real Точка OAuth
+// tokens are uppercase `AA…` ≥30 chars; lowercase `aa…` UUIDs (e.g.
+// `aa5f51-8b0f-49c9-94c0-971f94b8e846`) must NOT match. The previous
+// `/AA[A-Za-z0-9_-]{30,}/i` flagged legitimate UUIDs in source_links /
+// legacy_id fields as secrets (false positive). Other prefixes keep their
+// /i flag because UUIDs do not start with `ghp_` / `github_pat_` etc.
 const FORBIDDEN_SECRET_PATTERNS = [
   /ADMIN_KEY\s*[:=]/i,
   /VIEWER_KEY\s*[:=]/i,
   /ghp_[A-Za-z0-9]{20,}/i,
   /github_pat_[A-Za-z0-9_]{20,}/i,
-  /AA[A-Za-z0-9_-]{30,}/i,
+  /\bAA[A-Za-z0-9_-]{30,}\b/,
   /x-access-token:/i,
 ];
 

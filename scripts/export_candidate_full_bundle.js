@@ -53,13 +53,29 @@ const { createCandidatesRepo } = require('../repositories/phase1_candidates_repo
 const { createManualInputsRepo } = require('../repositories/phase1_manual_inputs_repo');
 const { createSnapshotsRepo } = require('../repositories/phase1_snapshots_repo');
 
-// Mirrors the secret patterns used by the analysis export/validator.
+// Secret-leak patterns. Each pattern is intentionally narrow to avoid false
+// positives on legitimate data (UUIDs, base keys, manual_input text, etc.).
+//
+// Why no /i flag on the AA-pattern:
+//   The previous `/AA[A-Za-z0-9_-]{30,}/i` was case-insensitive, so it also
+//   matched lowercase `aa…` strings. That caused false positives on UUIDs
+//   like `aa5f51-8b0f-49c9-94c0-971f94b8e846` (a legitimate identifier that
+//   can appear in source_links / legacy_id fields). Real Точка OAuth tokens
+//   are uppercase `AA…` and ≥30 chars, so we keep the pattern case-sensitive
+//   and anchor it on word boundaries.
+//
+// Other patterns (ADMIN_KEY / VIEWER_KEY / ghp_ / github_pat_ / x-access-token:)
+// keep their /i flag because the secret prefix itself is case-insensitive in
+// practice and the match only fires when the prefix is followed by an
+// assignment or a long payload — UUIDs do not start with these prefixes.
 const FORBIDDEN_SECRET_PATTERNS = [
   /ADMIN_KEY\s*[:=]/i,
   /VIEWER_KEY\s*[:=]/i,
   /ghp_[A-Za-z0-9]{20,}/i,
   /github_pat_[A-Za-z0-9_]{20,}/i,
-  /AA[A-Za-z0-9_-]{30,}/i,
+  // Case-sensitive + word boundaries: catches real uppercase AA… tokens,
+  // ignores lowercase aa… UUIDs.
+  /\bAA[A-Za-z0-9_-]{30,}\b/,
   /x-access-token:/i,
 ];
 

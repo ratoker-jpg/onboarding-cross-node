@@ -198,3 +198,77 @@ wording. The PR now contains only FULL-CANDIDATE-CARD-V1 changes.
   reviewer should diff `scripts/import_full_candidate_card.js` against
   `scripts/import_analysis_result.js` to confirm `buildScoresPatch` is
   being called with the calls rubric id and the doc's `risk_flags` array.
+
+---
+
+# Fixup — secret-scan false positive on lowercase UUIDs
+
+**Date:** 2026-06-25
+**Goal:** unblock `node scripts/export_candidate_full_bundle.js --base-key GTRAIN02` on the prod-VPS, which was failing with:
+
+```
+FAIL: forbidden_secret_in_bundle:full_bundle:GTRAIN02:pattern aa5f51-8b0f-49c9-94c0-971f94b8e846
+```
+
+## Root cause
+
+`FORBIDDEN_SECRET_PATTERNS` in `scripts/export_candidate_full_bundle.js` (and mirrored in `scripts/export_candidate_analysis_bundle.js`) included `/AA[A-Za-z0-9_-]{30,}/i`. The `/i` flag made it case-insensitive, so it matched any 32+ char string starting with `aa` — including legitimate lowercase UUIDs like `aa5f51-8b0f-49c9-94c0-971f94b8e846` that appear in `source_links.legacy_key` / `source_ref` fields.
+
+The full-bundle exporter calls `exportBundle()` for the interview/calls sub-bundles (each runs its own `assertNoForbiddenSecrets`), and then runs `assertNoForbiddenSecrets` again on the assembled full bundle. Either scan could trip the false positive.
+
+## Fix
+
+The AA-pattern is now **case-sensitive + word-boundary anchored**:
+
+```js
+/\bAA[A-Za-z0-9_-]{30,}\b/
+```
+
+Real Точка OAuth tokens are uppercase `AA…` and ≥30 chars; lowercase `aa…` UUIDs must NOT match. Other secret patterns (`ADMIN_KEY`, `VIEWER_KEY`, `ghp_`, `github_pat_`, `x-access-token:`) keep their `/i` flag — UUIDs do not start with these prefixes, so no false positive risk, and case-insensitivity on the prefix is intentional (operators sometimes type `admin_key=` / `Admin_Key=`).
+
+Applied to both files (the full-bundle exporter and the analysis-bundle exporter it delegates to):
+
+- `scripts/export_candidate_full_bundle.js` — `FORBIDDEN_SECRET_PATTERNS[4]` updated; added a comment block explaining the case-sensitivity rationale.
+- `scripts/export_candidate_analysis_bundle.js` — same regex change, so the inner `exportBundle()` call inside `buildAnalysisBlock` no longer trips on the same UUID.
+
+## Files changed in this fixup
+
+| File | Change |
+|---|---|
+| `scripts/export_candidate_full_bundle.js` | `/AA[A-Za-z0-9_-]{30,}/i` → `/\bAA[A-Za-z0-9_-]{30,}\b/` (case-sensitive + word boundaries). Added explanatory comment. |
+| `scripts/export_candidate_analysis_bundle.js` | Same regex change (the full-bundle exporter delegates interview/calls sub-bundles to this script's `exportBundle`). |
+
+## Not changed (deliberate)
+
+- `services/phase1_analysis_result_validator.js` has the same `/AA[A-Za-z0-9_-]{30,}/i` pattern. It runs on **import** (Codex result JSON), not on export, and Codex results for GTRAIN02 have not exhibited the false positive. Left as-is to keep this fixup focused on the export pipeline. If a Codex result ever trips the same false positive, fix the validator in a separate PR.
+
+## Verification (mock-based, no DB)
+
+`scripts/test_secret_patterns_regex.js` — 6 test groups, all pass:
+
+1. Lowercase `aa5f51-8b0f-49c9-94c0-971f94b8e846` is NOT flagged in 5 contexts (legacy_id, source_ref, source_link, bare, leading aa).
+2. Uppercase `AA` + 37 chars token IS still flagged in 3 contexts (token:, JSON access_token, bare).
+3. Existing secret patterns still match: `ADMIN_KEY=…`, `VIEWER_KEY:…`, `ghp_<36>`, `github_pat_<22>`, `x-access-token:…`.
+4. The AA-pattern regex source has no `/i` flag and contains `\b` word boundaries (regression check on both files).
+5. Short `AA` + 20 chars does NOT match (needs ≥30 after `AA`).
+6. Realistic bundle fragment with UUIDs in `source_links`/`manual_inputs` passes both scanners.
+
+Also re-ran the full check suite:
+- `node --check` on all required files — OK
+- Inline JS from `report-v1.html` → `node --check` — OK
+- `node scripts/test_rubric_scoring.js` — 24/24
+- `node scripts/import_full_candidate_card.js --file examples/analysis/full_candidate_card_example.json --dry-run` — all blocks UPDATE, calls 9/78.3 semantic PASS
+
+## Server verification steps (for the reviewer on prod-VPS)
+
+1. `node --check scripts/export_candidate_full_bundle.js` — OK.
+2. `node scripts/export_candidate_full_bundle.js --base-key GTRAIN02 --out tmp/GTRAIN02_full_bundle.json` — must succeed (no `forbidden_secret_in_bundle:full_bundle:GTRAIN02:pattern aa5f51-…` error).
+3. Verify the bundle file exists and contains the UUID in `source_links` (it should — the UUID is legitimate data, not a secret):
+   ```
+   node -e "const b=require('./tmp/GTRAIN02_full_bundle.json'); console.log('source_links:', (b.source_links||[]).length); console.log('first legacy_key:', b.source_links && b.source_links[0] && b.source_links[0].legacy_key);"
+   ```
+4. Sanity: confirm no real secret patterns leaked. The bundle must NOT contain `ADMIN_KEY=`, `VIEWER_KEY:`, `ghp_…`, `github_pat_…`, `x-access-token:`, or any uppercase `AA…` token ≥30 chars. A quick grep:
+   ```
+   grep -nE 'ADMIN_KEY\s*[:=]|VIEWER_KEY\s*[:=]|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|\bAA[A-Za-z0-9_-]{30,}\b|x-access-token:' tmp/GTRAIN02_full_bundle.json
+   # expected: exit 1 (no matches)
+   ```

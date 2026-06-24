@@ -1892,6 +1892,134 @@
       return text.length >= 50;
     }
 
+    // Phase 3E3E: Phone quality norms by day
+    function renderPhoneQualityNorms(callStats) {
+      if (!callStats || !callStats.days || !callStats.days.length) {
+        return '';
+      }
+      const NORMS = [
+        { label: 'День 3 / первые звонки', red: 30, yellow: 45 },
+        { label: 'День 4 / середина', red: 60, yellow: 75 },
+        { label: 'День 5 / выпуск', red: 90, yellow: 105 },
+      ];
+      const TOTAL_NORM = { red: 170, yellow: 200 };
+      const days = callStats.days;
+      const rows = days.map((d, i) => {
+        const norm = NORMS[i] || NORMS[NORMS.length - 1];
+        const minutes = Number(d.minutes) || 0;
+        const zone = minutes < norm.red ? { color: '#d63838', bg: '#ffe3e3', label: 'красная зона' }
+          : minutes < norm.yellow ? { color: '#b46b00', bg: '#fff1d6', label: 'жёлтая зона' }
+          : { color: '#23824f', bg: '#d8f3e3', label: 'зелёная зона' };
+        return `<tr>
+          <td>${escapeHtml(norm.label)}</td>
+          <td>${escapeHtml(minutes)}</td>
+          <td><span class="score-band-label" style="background:${zone.bg}; color:${zone.color};">${escapeHtml(zone.label)}</span></td>
+          <td style="color:var(--muted); font-size:11px;">${escapeHtml(norm.red)}+ мин жёлтая, ${escapeHtml(norm.yellow)}+ мин зелёная</td>
+        </tr>`;
+      });
+      const totalMin = callStats.talk_time_minutes || 0;
+      const totalZone = totalMin < TOTAL_NORM.red ? { color: '#d63838', bg: '#ffe3e3', label: 'красная зона' }
+        : totalMin < TOTAL_NORM.yellow ? { color: '#b46b00', bg: '#fff1d6', label: 'жёлтая зона' }
+        : { color: '#23824f', bg: '#d8f3e3', label: 'зелёная зона' };
+      rows.push(`<tr style="font-weight:700;">
+        <td>Итого</td>
+        <td>${escapeHtml(totalMin)}</td>
+        <td><span class="score-band-label" style="background:${totalZone.bg}; color:${totalZone.color};">${escapeHtml(totalZone.label)}</span></td>
+        <td style="color:var(--muted); font-size:11px;">${TOTAL_NORM.red}+ мин жёлтая, ${TOTAL_NORM.yellow}+ мин зелёная</td>
+      </tr>`);
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>Шкалы качества по времени на трубке</h3>
+        <table class="data-table">
+          <thead><tr><th>День</th><th>Минуты</th><th>Зона</th><th>Норма</th></tr></thead>
+          <tbody>${rows.join('')}</tbody>
+        </table>
+      </div>`;
+    }
+
+    // Phase 3E3E: Stage dynamics cards (Начало / Середина / Выпуск)
+    function renderStageDynamics(latestCalls) {
+      const sd = latestCalls && latestCalls.stage_dynamics;
+      if (!sd) {
+        return `<div class="card" style="margin-bottom:14px;">
+          <h3>Динамика по этапам «начало / середина / выпуск»</h3>
+          <div class="notice-block"><div class="nb-text">Динамика по этапам пока не рассчитана. Она появится после нового анализа звонков с сегментацией.</div></div>
+        </div>`;
+      }
+      const STAGES = [
+        { key: 'start', label: 'Начало' },
+        { key: 'middle', label: 'Середина' },
+        { key: 'final', label: 'Выпуск' },
+      ];
+      const BLOCKS = [
+        { key: 'contact', label: 'Установление контакта' },
+        { key: 'needs', label: 'Выявление потребности' },
+        { key: 'presentation', label: 'Презентация продукта' },
+        { key: 'objections', label: 'Работа с возражениями' },
+        { key: 'close', label: 'Тест на сделку' },
+      ];
+      const cards = STAGES.map(({ key, label }) => {
+        const s = sd[key];
+        if (!s) return `<div class="block-card"><div class="block-head"><span class="block-name">${escapeHtml(label)}</span><span class="block-score" style="color:var(--muted);">—</span></div><div class="block-comment">Нет данных</div></div>`;
+        const pct = s.percent != null ? s.percent : null;
+        const band = scoreBand(pct);
+        const blocksHtml = BLOCKS.map(b => {
+          const v = s.blocks && s.blocks[b.key];
+          const bBand = scoreBand(v);
+          return `<div style="display:flex; justify-content:space-between; font-size:11px; margin-top:2px;">
+            <span style="color:var(--muted);">${escapeHtml(b.label)}</span>
+            <span style="color:${bBand.color};">${v != null ? escapeHtml(formatScoreValue(v)) : '—'}</span>
+          </div>`;
+        }).join('');
+        return `<div class="block-card">
+          <div class="block-head">
+            <span class="block-name">${escapeHtml(label)}</span>
+            <span class="block-score" style="color:${band.color};">${pct != null ? escapeHtml(formatScoreValue(pct)) : '—'}</span>
+          </div>
+          <div class="score-band-bar"><div class="fill" style="width:${band.percent}%; background:${band.color};"></div></div>
+          <span class="score-band-label" style="background:${band.bg}; color:${band.color};">${escapeHtml(band.label)}</span>
+          ${blocksHtml}
+          ${s.comment ? `<div class="block-comment" style="margin-top:6px;">${escapeHtml(s.comment)}</div>` : ''}
+        </div>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>Динамика по этапам «начало / середина / выпуск»</h3>
+        <div class="block-grid">${cards}</div>
+      </div>`;
+    }
+
+    // Phase 3E3E: Individual call results table
+    function renderCallResults(latestCalls) {
+      const cr = latestCalls && latestCalls.call_results;
+      if (!cr || !Array.isArray(cr) || !cr.length) return '';
+      const BLOCKS = [
+        { key: 'contact', label: 'Контакт' },
+        { key: 'needs', label: 'Выявление' },
+        { key: 'presentation', label: 'Презентация' },
+        { key: 'objections', label: 'Возражения' },
+        { key: 'close', label: 'Завершение' },
+      ];
+      const rows = cr.map(c => {
+        const b = c.blocks || {};
+        return `<tr>
+          <td>${escapeHtml(c.stage || '—')}</td>
+          <td>${escapeHtml(c.call_index || '—')}</td>
+          <td>${c.overall_percent != null ? escapeHtml(formatScoreValue(c.overall_percent)) : '—'}</td>
+          ${BLOCKS.map(bl => `<td>${b[bl.key] != null ? escapeHtml(formatScoreValue(b[bl.key])) : '—'}</td>`).join('')}
+          <td style="font-size:11px; color:var(--muted);">${escapeHtml((c.comment || '').slice(0, 80))}</td>
+          <td style="font-size:10px; color:var(--muted);">${escapeHtml(c.source_ref || '—')}</td>
+        </tr>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:14px;">
+        <h3>Разбор отдельных звонков</h3>
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="font-size:12px;">
+            <thead><tr><th>Период</th><th>№</th><th>Общий</th><th>Контакт</th><th>Выявление</th><th>Презентация</th><th>Возражения</th><th>Завершение</th><th>Комментарий</th><th>Источник</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
     function renderCallsTab(card) {
       const el = byId('callsContent');
       const s = card.scores || {};
@@ -1980,13 +2108,8 @@
         </div>`);
       }
 
-      // Placeholder: quality scales by talk time are pending
-      html.push(`<div class="card" style="margin-bottom:14px; background:var(--panel-soft);">
-        <h3>Шкалы качества по времени на трубке</h3>
-        <div class="notice-block" style="margin-top:0;">
-          <div class="nb-text">Шкалы качества по времени на трубке будут добавлены после согласования норм.</div>
-        </div>
-      </div>`);
+      // Phase 3E3E: phone quality norms (replaces placeholder)
+      html.push(renderPhoneQualityNorms(callStats));
 
       // Loaded calls (real calls, not training agents) — pass readiness status
       // so we can warn when the stage is marked ready but calls[] is empty.
@@ -2036,6 +2159,12 @@
 node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details>
           </div>
         </div>`);
+      }
+
+      // Phase 3E3E: stage dynamics + call results (after Codex analysis block)
+      if (latestCalls) {
+        html.push(renderStageDynamics(latestCalls));
+        html.push(renderCallResults(latestCalls));
       }
 
       el.innerHTML = html.join('');

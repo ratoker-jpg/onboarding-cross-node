@@ -31,15 +31,14 @@ A bundle JSON file (`*_calls_bundle.json`) containing:
   `candidate_files.calls_start/middle/final`. Каждый объект:
   - `stage`: start / middle / final
   - `stage_label`: Начало / Середина / Выпуск
+  - `call_index`: номер звонка внутри периода
   - `source_type`: manual_input / candidate_file
   - `source_ref`
-  - `transcript`
+  - `transcript` — текст одного звонка (файлы сегментированы)
   - `coach_comment`
-  Используй для оценки **только** `real_calls[]`. `manual_inputs[]` и
-  `files[]` можно использовать как metadata/context, но не как основной
-  список транскриптов, если `real_calls[]` есть.
-  Если `real_calls[]` пустой или отсутствует — верни `not_enough_data`
-  для всех вопросов, но **не используй** `training_bot_dialogs`.
+  Используй для оценки **только** `real_calls[]`. Каждый объект — отдельный
+  звонок. Оценивай каждый звонок, потом агрегируй по period (start/middle/final)
+  и общий результат. Если `real_calls[]` пустой — верни `not_enough_data`.
 - `manual_inputs[]` — sections relevant to calls analysis are included in
   full: `calls_start`, `calls_middle`, `calls_final`, `phone_metrics`.
   Other sections are truncated previews.
@@ -159,6 +158,13 @@ The import script will apply score caps based on these.
   arrays of short concrete strings.
 - `risk_flags[]`: array of `{ code, evidence, quote, source_ref }` objects
   for critical errors. May be empty.
+- `stage_dynamics` (optional, calls only): object with `start`, `middle`, `final`
+  keys. Each value: `{ label, overall, percent, blocks: { contact, needs,
+  presentation, objections, close }, comment }`. If data insufficient for a
+  stage, set `overall: null, percent: null` and `comment: 'not_enough_data'`.
+- `call_results[]` (optional, calls only): array of per-call results.
+  Each: `{ stage, call_index, source_ref, overall_percent, blocks: { contact,
+  needs, presentation, objections, close }, comment }`.
 
 ## Source references for calls
 

@@ -309,12 +309,71 @@ function buildCallStatsBundle(manualInputs) {
 }
 
 /**
+ * Phase 3E3E: Split a transcript file into individual call segments.
+ * Heuristic: look for timestamp patterns like 00:00–00:05 at the start of
+ * a new "call block" after previous content. If the split is uncertain,
+ * return the whole transcript as one segment.
+ *
+ * Returns array of { transcript, call_index }.
+ */
+function splitTranscriptIntoCalls(text) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return [];
+
+  // Try to find "call boundary" markers: a timestamp near 00:00–00:05
+  // appearing AFTER substantial content (i.e., a previous call has ended).
+  const lines = trimmed.split(/\r?\n/);
+  const segments = [];
+  let current = [];
+
+  const tsRe = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+
+  function parseTimestampSeconds(value) {
+    const parts = String(value || '').trim().split(':').map(Number);
+    if (parts.length === 2) return parts[0] * 60 + parts[1]; // mm:ss
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]; // hh:mm:ss
+    return null;
+  }
+
+  for (const line of lines) {
+    const ln = line.trim();
+    const m = ln.match(tsRe);
+    if (m) {
+      const totalSec = parseTimestampSeconds(ln);
+
+      // Possible new call start: timestamp is small (0-5 sec) AND we have content
+      if (totalSec != null && totalSec <= 5 && current.length > 0) {
+        const currentText = current.join('\n').trim();
+        if (currentText.length >= 300) {
+          segments.push(currentText);
+          current = [];
+        }
+      }
+    }
+    current.push(line);
+  }
+  // Last segment
+  if (current.length > 0) {
+    const currentText = current.join('\n').trim();
+    if (currentText.length >= 50) segments.push(currentText);
+  }
+
+  // If no splits or only one segment, return as-is
+  if (segments.length <= 1) {
+    return [{ transcript: trimmed, call_index: 1 }];
+  }
+
+  return segments.map((t, i) => ({ transcript: t, call_index: i + 1 }));
+}
+
+/**
  * Phase 3E3C fixup: Build a normalized list of real calls from BOTH
  * manual_inputs and candidate_files. Deduplicates by transcript hash
- * within the same stage.
+ * within the same stage. Phase 3E3E: segments transcript files into
+ * individual calls.
  *
- * Each entry: { stage, stage_label, source_type, source_ref, file_id,
- *               original_name, transcript, coach_comment, duplicate_skipped? }
+ * Each entry: { stage, stage_label, call_index, source_type, source_ref,
+ *               file_id, original_name, transcript, coach_comment }
  */
 function buildRealCallsForBundle(manualInputsRaw, filesRaw) {
   const STAGES = [
@@ -327,6 +386,7 @@ function buildRealCallsForBundle(manualInputsRaw, filesRaw) {
 
   for (const { section, stage, label } of STAGES) {
     const seenHashes = new Set();
+    let callCounter = 0;
 
     // Source A: manual_inputs
     const mi = manualInputsRaw.find(m => m.section === section);
@@ -335,45 +395,73 @@ function buildRealCallsForBundle(manualInputsRaw, filesRaw) {
       for (const c of callsArr) {
         const transcript = String(c.transcript || '').trim();
         if (transcript.length < MIN_TRANSCRIPT_LEN) continue;
-        const hash = simpleHash(transcript);
-        if (seenHashes.has(hash)) {
-          allCalls.push({ stage, stage_label: label, source_type: 'manual_input', source_ref: `manual_inputs.${section}`, file_id: null, original_name: null, transcript, coach_comment: c.coach_comment || null, duplicate_skipped: true });
-          continue;
+        // Phase 3E3E: try splitting
+        const segments = splitTranscriptIntoCalls(transcript);
+        for (const seg of segments) {
+          if (seg.transcript.length < MIN_TRANSCRIPT_LEN) continue;
+          const hash = simpleHash(seg.transcript);
+          if (seenHashes.has(hash)) continue;
+          seenHashes.add(hash);
+          callCounter++;
+          allCalls.push({
+            stage, stage_label: label, call_index: callCounter,
+            source_type: 'manual_input',
+            source_ref: `manual_inputs.${section}#call_${callCounter}`,
+            file_id: null, original_name: null,
+            transcript: seg.transcript,
+            coach_comment: c.coach_comment || null,
+          });
         }
-        seenHashes.add(hash);
-        allCalls.push({ stage, stage_label: label, source_type: 'manual_input', source_ref: `manual_inputs.${section}`, file_id: null, original_name: null, transcript, coach_comment: c.coach_comment || null });
       }
       // Legacy single-call shape
       if (!callsArr.length && mi.payload.transcript) {
         const transcript = String(mi.payload.transcript).trim();
         if (transcript.length >= MIN_TRANSCRIPT_LEN) {
-          const hash = simpleHash(transcript);
-          if (!seenHashes.has(hash)) {
+          const segments = splitTranscriptIntoCalls(transcript);
+          for (const seg of segments) {
+            if (seg.transcript.length < MIN_TRANSCRIPT_LEN) continue;
+            const hash = simpleHash(seg.transcript);
+            if (seenHashes.has(hash)) continue;
             seenHashes.add(hash);
-            allCalls.push({ stage, stage_label: label, source_type: 'manual_input', source_ref: `manual_inputs.${section}`, file_id: null, original_name: null, transcript, coach_comment: mi.payload.coach_comment || null });
+            callCounter++;
+            allCalls.push({
+              stage, stage_label: label, call_index: callCounter,
+              source_type: 'manual_input',
+              source_ref: `manual_inputs.${section}#call_${callCounter}`,
+              file_id: null, original_name: null,
+              transcript: seg.transcript,
+              coach_comment: mi.payload.coach_comment || null,
+            });
           }
         }
       }
     }
 
-    // Source B: candidate_files
+    // Source B: candidate_files — Phase 3E3E: split into individual calls
     const cf = filesRaw.filter(f => f.section === section);
     for (const f of cf) {
       const transcript = String(f.text_content || '').trim();
       if (transcript.length < MIN_TRANSCRIPT_LEN) continue;
-      const hash = simpleHash(transcript);
-      if (seenHashes.has(hash)) {
-        allCalls.push({ stage, stage_label: label, source_type: 'candidate_file', source_ref: `candidate_files.${section}:${f.id}`, file_id: f.id, original_name: f.original_name || null, transcript, coach_comment: f.comment || null, duplicate_skipped: true });
-        continue;
+      const segments = splitTranscriptIntoCalls(transcript);
+      for (const seg of segments) {
+        if (seg.transcript.length < MIN_TRANSCRIPT_LEN) continue;
+        const hash = simpleHash(seg.transcript);
+        if (seenHashes.has(hash)) continue;
+        seenHashes.add(hash);
+        callCounter++;
+        allCalls.push({
+          stage, stage_label: label, call_index: callCounter,
+          source_type: 'candidate_file',
+          source_ref: `candidate_files.${section}:${f.id}#call_${seg.call_index}`,
+          file_id: f.id, original_name: f.original_name || null,
+          transcript: seg.transcript,
+          coach_comment: f.comment || null,
+        });
       }
-      seenHashes.add(hash);
-      allCalls.push({ stage, stage_label: label, source_type: 'candidate_file', source_ref: `candidate_files.${section}:${f.id}`, file_id: f.id, original_name: f.original_name || null, transcript, coach_comment: f.comment || null });
     }
   }
 
-  // Filter out duplicates — they're only kept for logging
-  const uniqueCalls = allCalls.filter(c => !c.duplicate_skipped);
-  return uniqueCalls;
+  return allCalls;
 }
 
 function simpleHash(str) {

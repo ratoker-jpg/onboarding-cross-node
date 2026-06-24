@@ -2196,6 +2196,9 @@ function projectAnalysisRunForViewer(run) {
     red_flags: Array.isArray(output.red_flags) && output.red_flags.length
       ? output.red_flags
       : (Array.isArray(scoresPatch.red_flags) ? scoresPatch.red_flags : []),
+    // Phase 3E3E: calls-only stage dynamics + call_results
+    stage_dynamics: output.stage_dynamics || null,
+    call_results: Array.isArray(output.call_results) ? output.call_results : null,
   };
 }
 

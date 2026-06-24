@@ -325,28 +325,30 @@ function splitTranscriptIntoCalls(text) {
   const lines = trimmed.split(/\r?\n/);
   const segments = [];
   let current = [];
-  let prevTimestampSec = null;
 
   const tsRe = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+
+  function parseTimestampSeconds(value) {
+    const parts = String(value || '').trim().split(':').map(Number);
+    if (parts.length === 2) return parts[0] * 60 + parts[1]; // mm:ss
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]; // hh:mm:ss
+    return null;
+  }
 
   for (const line of lines) {
     const ln = line.trim();
     const m = ln.match(tsRe);
     if (m) {
-      const mm = parseInt(m[1], 10);
-      const ss = parseInt(m[2], 10);
-      const hh = m[3] ? parseInt(m[3], 10) : 0;
-      const totalSec = hh * 3600 + mm * 60 + ss;
+      const totalSec = parseTimestampSeconds(ln);
 
       // Possible new call start: timestamp is small (0-5 sec) AND we have content
-      if (totalSec <= 5 && current.length > 0) {
+      if (totalSec != null && totalSec <= 5 && current.length > 0) {
         const currentText = current.join('\n').trim();
         if (currentText.length >= 300) {
           segments.push(currentText);
           current = [];
         }
       }
-      prevTimestampSec = totalSec;
     }
     current.push(line);
   }

@@ -40,9 +40,20 @@ const ALLOWED_TOP_LEVEL_KEYS = new Set([
   'schema_version', 'base_key', 'analysis_type', 'rubric_id', 'rubric_version',
   'question_results', 'summary', 'strengths', 'growth_zones', 'red_flags',
   'coach_recommendations', 'risk_flags',
-  // Phase 3E3E: calls-only optional fields for stage dynamics
+  // Phase 3E3E: calls-only optional fields for stage dynamics.
+  // These are allowed in the allowlist so they don't trigger unknown_key
+  // errors, but validateAnalysisResult enforces calls-only below.
   'stage_dynamics', 'call_results',
 ]);
+
+// Phase 3E3E micro-fixup: fields allowed ONLY for analysis_type=calls
+const CALLS_ONLY_TOP_LEVEL_KEYS = new Set(['stage_dynamics', 'call_results']);
+
+// Forbidden markers in call_results source_ref (mirrors question_results guard)
+const FORBIDDEN_CALLS_RESULT_MARKERS = [
+  'training_bot', 'training_bot_dialogs', 'bot_training',
+  'учебн', 'ROLE-', 'role_id', 'result_payload',
+];
 
 /**
  * Validate an analysis_result_v1 document.
@@ -213,6 +224,56 @@ function validateAnalysisResult(doc, options = {}) {
         if (qrStr.includes(marker.toLowerCase())) {
           errors.push(`calls_analysis_source_violation:question_results[${i}] contains forbidden marker "${marker}". Calls analysis cannot use training bot dialogs as evidence.`);
           break;
+        }
+      }
+    }
+  }
+
+  // Phase 3E3E micro-fixup: stage_dynamics + call_results are calls-only.
+  // Reject if present for interview or any other type.
+  if (doc.analysis_type !== 'calls') {
+    if (doc.stage_dynamics != null) {
+      errors.push('stage_dynamics is allowed only for calls analysis');
+    }
+    if (doc.call_results != null) {
+      errors.push('call_results is allowed only for calls analysis');
+    }
+  }
+
+  // Phase 3E3E micro-fixup: validate stage_dynamics + call_results shape
+  // and check call_results source_ref for forbidden markers.
+  if (doc.analysis_type === 'calls') {
+    // stage_dynamics basic shape
+    if (doc.stage_dynamics != null) {
+      if (typeof doc.stage_dynamics !== 'object' || Array.isArray(doc.stage_dynamics)) {
+        errors.push('stage_dynamics must be an object');
+      } else {
+        const allowedStageKeys = new Set(['start', 'middle', 'final']);
+        for (const k of Object.keys(doc.stage_dynamics)) {
+          if (!allowedStageKeys.has(k)) {
+            errors.push(`stage_dynamics unknown stage key: ${k} (allowed: start, middle, final)`);
+          }
+        }
+      }
+    }
+    // call_results: array + forbidden markers in source_ref
+    if (doc.call_results != null) {
+      if (!Array.isArray(doc.call_results)) {
+        errors.push('call_results must be an array');
+      } else {
+        for (let i = 0; i < doc.call_results.length; i++) {
+          const cr = doc.call_results[i];
+          if (!cr || typeof cr !== 'object') {
+            errors.push(`call_results[${i}] must be an object`);
+            continue;
+          }
+          const crStr = JSON.stringify(cr).toLowerCase();
+          for (const marker of FORBIDDEN_CALLS_RESULT_MARKERS) {
+            if (crStr.includes(marker.toLowerCase())) {
+              errors.push(`calls_analysis_source_violation:call_results[${i}] contains forbidden marker "${marker}". Calls analysis cannot use training bot dialogs as evidence.`);
+              break;
+            }
+          }
         }
       }
     }

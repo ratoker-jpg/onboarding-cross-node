@@ -1377,6 +1377,41 @@ function getViewerCandidateCard(baseKey) {
     .map(mapTrainingDialogForViewer)
     .filter(Boolean);
 
+  // Phase 3E3C fixup: include candidate_files in viewer card so report can
+  // detect and render real call transcripts uploaded as files.
+  // For calls_start/middle/final: include full text_content (needed by report).
+  // For other sections: include metadata only (text_content omitted for size).
+  const CALLS_FILE_SECTIONS = new Set(['calls_start', 'calls_middle', 'calls_final']);
+  const viewerFiles = repos.candidateFilesRepo.listByCandidateId(candidate.id).map(f => {
+    if (CALLS_FILE_SECTIONS.has(f.section)) {
+      return {
+        id: f.id,
+        section: f.section,
+        file_type: f.file_type || null,
+        original_name: f.original_name || null,
+        mime_type: f.mime_type || null,
+        size_bytes: f.size_bytes || null,
+        text_content: f.text_content || null,
+        comment: f.comment || null,
+        created_at: f.created_at || null,
+      };
+    }
+    return {
+      id: f.id,
+      section: f.section,
+      file_type: f.file_type || null,
+      original_name: f.original_name || null,
+      mime_type: f.mime_type || null,
+      size_bytes: f.size_bytes || null,
+      text_content: null,
+      text_content_preview: typeof f.text_content === 'string' && f.text_content.length > 0
+        ? f.text_content.slice(0, 500)
+        : null,
+      comment: f.comment || null,
+      created_at: f.created_at || null,
+    };
+  });
+
   // Phase 3E1: latest Codex analysis runs (interview + calls) for rich report
   const latestAnalysis = buildLatestAnalysis(baseKey, repos.analysisRunsRepo);
 
@@ -1392,6 +1427,8 @@ function getViewerCandidateCard(baseKey) {
     call_stats: callStats,
     ops_summary: opsSummary,
     interview_summary: interviewSummary,
+    // Phase 3E3C fixup: files for report rendering
+    files: viewerFiles,
     // Phase 3E1: latest Codex analysis visibility
     latest_analysis: latestAnalysis,
   };

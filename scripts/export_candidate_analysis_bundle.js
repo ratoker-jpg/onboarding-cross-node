@@ -910,4 +910,12 @@ async function main() {
   }
 }
 
-main();
+// FULL-CANDIDATE-CARD-V1: export exportBundle so scripts/export_candidate_full_bundle.js
+// can reuse the exact interview/calls bundle logic (real_calls, product
+// dictionary, rubrics) without duplicating it. Only run the CLI when invoked
+// directly, not when required as a module.
+module.exports = { exportBundle, ANALYSIS_TYPE_TO_RUBRIC };
+
+if (require.main === module) {
+  main();
+}

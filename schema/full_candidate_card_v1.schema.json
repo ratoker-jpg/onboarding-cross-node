@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "full_candidate_card_v1",
+  "title": "full_candidate_card_v1",
+  "description": "Master result for one candidate card, produced by prompts/codex/full_candidate_card_analysis_v1.md and imported by scripts/import_full_candidate_card.js. Each block is analysed independently; calls and training agents are kept strictly separate.",
+  "type": "object",
+  "required": ["schema_version", "base_key", "blocks"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "full_candidate_card_v1" },
+    "base_key": { "type": "string", "minLength": 1 },
+    "blocks": {
+      "type": "object",
+      "required": ["interview", "calls", "training_agents", "ops", "final_test", "overall"],
+      "additionalProperties": false,
+      "properties": {
+        "interview": {
+          "type": "object",
+          "required": ["missing_data", "analysis"],
+          "additionalProperties": false,
+          "properties": {
+            "missing_data": { "type": "boolean" },
+            "analysis": {
+              "description": "analysis_result_v1 with analysis_type=interview, or null when missing_data is true.",
+              "type": ["object", "null"]
+            }
+          }
+        },
+        "calls": {
+          "type": "object",
+          "required": ["missing_data", "analysis"],
+          "additionalProperties": false,
+          "properties": {
+            "missing_data": { "type": "boolean" },
+            "analysis": {
+              "description": "analysis_result_v1 with analysis_type=calls (expected_real_calls_count, 16 question_results, call_results, stage_dynamics, products_detected), or null when missing_data is true.",
+              "type": ["object", "null"]
+            }
+          }
+        },
+        "training_agents": {
+          "description": "Qualitative only. Never scored by the calls rubric; never affects call_quality_score.",
+          "type": "object",
+          "required": ["missing_data"],
+          "additionalProperties": false,
+          "properties": {
+            "missing_data": { "type": "boolean" },
+            "dialogs_reviewed": { "type": ["integer", "null"], "minimum": 0 },
+            "summary": { "type": ["string", "null"] },
+            "strengths": { "type": "array", "items": { "type": "string" } },
+            "growth_zones": { "type": "array", "items": { "type": "string" } },
+            "note": { "type": ["string", "null"] }
+          }
+        },
+        "ops": {
+          "type": "object",
+          "required": ["missing_data"],
+          "additionalProperties": false,
+          "properties": {
+            "missing_data": { "type": "boolean" },
+            "ops_score": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+            "discipline_score": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+            "summary": { "type": ["string", "null"] },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "final_test": {
+          "type": "object",
+          "required": ["missing_data"],
+          "additionalProperties": false,
+          "properties": {
+            "missing_data": { "type": "boolean" },
+            "final_test_score": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+            "summary": { "type": ["string", "null"] }
+          }
+        },
+        "overall": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "recommendation": { "type": ["string", "null"] },
+            "strengths": { "type": "array", "items": { "type": "string" } },
+            "growth_zones": { "type": "array", "items": { "type": "string" } },
+            "risks": { "type": "array", "items": { "type": "string" } },
+            "coach_recommendations": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}

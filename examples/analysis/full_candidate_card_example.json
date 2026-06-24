@@ -1,0 +1,1034 @@
+{
+  "schema_version": "full_candidate_card_v1",
+  "base_key": "GTRAIN02",
+  "blocks": {
+    "interview": {
+      "missing_data": false,
+      "analysis": {
+        "schema_version": "analysis_result_v1",
+        "base_key": "GTRAIN02",
+        "analysis_type": "interview",
+        "rubric_id": "interview_binary_v1",
+        "rubric_version": "1.0.0",
+        "question_results": [
+          {
+            "question_id": "soft_motivation_01",
+            "answer": "yes",
+            "evidence": "Кандидат прямо говорит о желании звонить клиентам.",
+            "quote": "хочу работать в активных продажах",
+            "source": "interview_transcript",
+            "source_ref": "line:12"
+          },
+          {
+            "question_id": "soft_motivation_02",
+            "answer": "yes",
+            "evidence": "Кандидат упоминает отказы и рутину как ожидаемую часть.",
+            "quote": "понимаю, что будут отказы",
+            "source": "interview_transcript",
+            "source_ref": "line:18"
+          },
+          {
+            "question_id": "soft_motivation_03",
+            "answer": "yes",
+            "evidence": "Связывает прошлый опыт с ролью.",
+            "quote": "у меня был опыт звонков в банке",
+            "source": "interview_transcript",
+            "source_ref": "line:24"
+          },
+          {
+            "question_id": "soft_motivation_04",
+            "answer": "no",
+            "evidence": "Ожидает быстрого дохода без долгой ramps.",
+            "quote": "надеюсь закрыть сделку за первую неделю",
+            "source": "interview_transcript",
+            "source_ref": "line:30"
+          },
+          {
+            "question_id": "soft_responsibility_01",
+            "answer": "yes",
+            "evidence": "Привёл конкретный пример.",
+            "quote": "я сам принял решение изменить процесс",
+            "source": "interview_transcript",
+            "source_ref": "line:42"
+          },
+          {
+            "question_id": "soft_responsibility_02",
+            "answer": "yes",
+            "evidence": "Объясняет влияние на команду.",
+            "quote": "это ускорило работу всей группы",
+            "source": "interview_transcript",
+            "source_ref": "line:48"
+          },
+          {
+            "question_id": "soft_responsibility_03",
+            "answer": "yes",
+            "evidence": "Признаёт свой вклад в ошибку.",
+            "quote": "это был мой прокол",
+            "source": "interview_transcript",
+            "source_ref": "line:55"
+          },
+          {
+            "question_id": "soft_responsibility_04",
+            "answer": "no",
+            "evidence": "Не предложил конкретный следующий шаг.",
+            "quote": "просто больше так делать не буду",
+            "source": "interview_transcript",
+            "source_ref": "line:58"
+          },
+          {
+            "question_id": "soft_communication_01",
+            "answer": "yes",
+            "evidence": "Отвечает структурно.",
+            "quote": "сначала опишу контекст, потом решение",
+            "source": "interview_transcript",
+            "source_ref": "line:65"
+          },
+          {
+            "question_id": "soft_communication_02",
+            "answer": "yes",
+            "evidence": "Уточняет вопрос.",
+            "quote": "уточните, вы имеете в виду B2B или B2C?",
+            "source": "interview_transcript",
+            "source_ref": "line:72"
+          },
+          {
+            "question_id": "soft_communication_03",
+            "answer": "yes",
+            "evidence": "Диалог активный.",
+            "quote": "а как у вас с этим?",
+            "source": "interview_transcript",
+            "source_ref": "line:80"
+          },
+          {
+            "question_id": "soft_communication_04",
+            "answer": "no",
+            "evidence": "Использует жаргон без объяснения.",
+            "quote": "ну это стандартный SLA",
+            "source": "interview_transcript",
+            "source_ref": "line:85"
+          },
+          {
+            "question_id": "soft_emotional_intelligence_01",
+            "answer": "yes",
+            "evidence": "Распознаёт состояние клиента.",
+            "quote": "клиент был раздражён, я это понял",
+            "source": "interview_transcript",
+            "source_ref": "line:92"
+          },
+          {
+            "question_id": "soft_emotional_intelligence_02",
+            "answer": "yes",
+            "evidence": "Спокоен под давлением.",
+            "quote": "я не стал спорить",
+            "source": "interview_transcript",
+            "source_ref": "line:98"
+          },
+          {
+            "question_id": "soft_emotional_intelligence_03",
+            "answer": "not_checked",
+            "evidence": "",
+            "quote": "",
+            "source": "interview_transcript",
+            "source_ref": ""
+          },
+          {
+            "question_id": "soft_emotional_intelligence_04",
+            "answer": "yes",
+            "evidence": "Не обесценивает.",
+            "quote": "у каждого клиента своя ситуация",
+            "source": "interview_transcript",
+            "source_ref": "line:105"
+          },
+          {
+            "question_id": "soft_flexibility_01",
+            "answer": "yes",
+            "evidence": "Адаптируется к новым вводным в ролёвке.",
+            "quote": "хорошо, давайте попробуем по-другому",
+            "source": "interview_transcript",
+            "source_ref": "line:115"
+          },
+          {
+            "question_id": "soft_flexibility_02",
+            "answer": "yes",
+            "evidence": "Принимает ОС без защиты.",
+            "quote": "да, вы правы, я не учёл",
+            "source": "interview_transcript",
+            "source_ref": "line:120"
+          },
+          {
+            "question_id": "soft_flexibility_03",
+            "answer": "yes",
+            "evidence": "Меняет решение после ОС.",
+            "quote": "давайте я переделаю",
+            "source": "interview_transcript",
+            "source_ref": "line:125"
+          },
+          {
+            "question_id": "soft_flexibility_04",
+            "answer": "yes",
+            "evidence": "Сохраняет фокус.",
+            "quote": "цель та же, просто путь другой",
+            "source": "interview_transcript",
+            "source_ref": "line:130"
+          },
+          {
+            "question_id": "soft_proactivity_01",
+            "answer": "yes",
+            "evidence": "Видит узкие места.",
+            "quote": "тут есть проблема — ручная обработка",
+            "source": "interview_transcript",
+            "source_ref": "line:138"
+          },
+          {
+            "question_id": "soft_proactivity_02",
+            "answer": "yes",
+            "evidence": "Предлагает действие.",
+            "quote": "давайте автоматизируем через скрипт",
+            "source": "interview_transcript",
+            "source_ref": "line:142"
+          },
+          {
+            "question_id": "soft_proactivity_03",
+            "answer": "yes",
+            "evidence": "Инициатива без инструкции.",
+            "quote": "я сам подумал и решил",
+            "source": "interview_transcript",
+            "source_ref": "line:148"
+          },
+          {
+            "question_id": "soft_proactivity_04",
+            "answer": "no",
+            "evidence": "Мыслит в рамках своей операции.",
+            "quote": "это не моя зона",
+            "source": "interview_transcript",
+            "source_ref": "line:155"
+          },
+          {
+            "question_id": "soft_antifragility_01",
+            "answer": "yes",
+            "evidence": "Выдерживает давление.",
+            "quote": "я не растерялся",
+            "source": "interview_transcript",
+            "source_ref": "line:162"
+          },
+          {
+            "question_id": "soft_antifragility_02",
+            "answer": "yes",
+            "evidence": "Не уходит в защиту.",
+            "quote": "я согласен с замечанием",
+            "source": "interview_transcript",
+            "source_ref": "line:168"
+          },
+          {
+            "question_id": "soft_antifragility_03",
+            "answer": "yes",
+            "evidence": "Продолжает после ошибки.",
+            "quote": "продолжил разговор спокойно",
+            "source": "interview_transcript",
+            "source_ref": "line:175"
+          },
+          {
+            "question_id": "soft_antifragility_04",
+            "answer": "yes",
+            "evidence": "Использует ОС.",
+            "quote": "после вашего совета я изменил подход",
+            "source": "interview_transcript",
+            "source_ref": "line:182"
+          },
+          {
+            "question_id": "soft_client_approach_01",
+            "answer": "yes",
+            "evidence": "Интересуется бизнесом.",
+            "quote": "расскажите, как у вас устроен процесс",
+            "source": "interview_transcript",
+            "source_ref": "line:190"
+          },
+          {
+            "question_id": "soft_client_approach_02",
+            "answer": "yes",
+            "evidence": "Выявляет боль.",
+            "quote": "с какими трудностями вы сталкиваетесь?",
+            "source": "interview_transcript",
+            "source_ref": "line:195"
+          },
+          {
+            "question_id": "soft_client_approach_03",
+            "answer": "yes",
+            "evidence": "Мыслит как партнёр.",
+            "quote": "давайте подберём под вашу ситуацию",
+            "source": "interview_transcript",
+            "source_ref": "line:200"
+          },
+          {
+            "question_id": "soft_client_approach_04",
+            "answer": "yes",
+            "evidence": "Долгосрочные отношения.",
+            "quote": "важно, чтобы клиент вернулся",
+            "source": "interview_transcript",
+            "source_ref": "line:206"
+          },
+          {
+            "question_id": "hard_b2b_01",
+            "answer": "yes",
+            "evidence": "Опыт B2B есть.",
+            "quote": "я работал с юрлицами в банке",
+            "source": "interview_transcript",
+            "source_ref": "line:215"
+          },
+          {
+            "question_id": "hard_b2b_02",
+            "answer": "yes",
+            "evidence": "Понимает разницу B2B/B2C.",
+            "quote": "в B2B длиннее цикл и ЛПР",
+            "source": "interview_transcript",
+            "source_ref": "line:220"
+          },
+          {
+            "question_id": "hard_b2b_03",
+            "answer": "yes",
+            "evidence": "Готовит базу.",
+            "quote": "я сегментирую перед звонком",
+            "source": "interview_transcript",
+            "source_ref": "line:225"
+          },
+          {
+            "question_id": "hard_b2b_04",
+            "answer": "yes",
+            "evidence": "Понимает цикл сделки.",
+            "quote": "не жду закрытия в первый звонок",
+            "source": "interview_transcript",
+            "source_ref": "line:230"
+          },
+          {
+            "question_id": "hard_sales_tech_01",
+            "answer": "yes",
+            "evidence": "Называет этапы.",
+            "quote": "контакт, выявление, презентация, возражения, закрытие",
+            "source": "interview_transcript",
+            "source_ref": "line:238"
+          },
+          {
+            "question_id": "hard_sales_tech_02",
+            "answer": "yes",
+            "evidence": "Понимает зачем выявление.",
+            "quote": "без потребности презентация — список",
+            "source": "interview_transcript",
+            "source_ref": "line:243"
+          },
+          {
+            "question_id": "hard_sales_tech_03",
+            "answer": "yes",
+            "evidence": "Связывает продукт с болью.",
+            "quote": "этот продукт решает вашу задачу с кассовым разрывом",
+            "source": "interview_transcript",
+            "source_ref": "line:250"
+          },
+          {
+            "question_id": "hard_sales_tech_04",
+            "answer": "yes",
+            "evidence": "Уточняет причину возражения.",
+            "quote": "подскажите, что именно смущает?",
+            "source": "interview_transcript",
+            "source_ref": "line:258"
+          },
+          {
+            "question_id": "hard_sales_tech_05",
+            "answer": "yes",
+            "evidence": "Фиксирует шаг.",
+            "quote": "договорились, что я перезвоню в пятницу",
+            "source": "interview_transcript",
+            "source_ref": "line:265"
+          },
+          {
+            "question_id": "hard_roleplay_01",
+            "answer": "yes",
+            "evidence": "Начал корректно.",
+            "quote": "добрый день, это Иван из Банка Точка",
+            "source": "interview_transcript",
+            "source_ref": "line:272"
+          },
+          {
+            "question_id": "hard_roleplay_02",
+            "answer": "yes",
+            "evidence": "Задал про бизнес и боль.",
+            "quote": "каким бизнесом занимаетесь? с какими проблемами?",
+            "source": "interview_transcript",
+            "source_ref": "line:275"
+          },
+          {
+            "question_id": "hard_roleplay_03",
+            "answer": "yes",
+            "evidence": "Предложил решение под потребность.",
+            "quote": "учитывая кассовый разрыв, рекомендую овердрафт",
+            "source": "interview_transcript",
+            "source_ref": "line:282"
+          },
+          {
+            "question_id": "hard_roleplay_04",
+            "answer": "yes",
+            "evidence": "Обработал возражение.",
+            "quote": "понимаю concern, давайте разберём",
+            "source": "interview_transcript",
+            "source_ref": "line:288"
+          },
+          {
+            "question_id": "hard_roleplay_05",
+            "answer": "yes",
+            "evidence": "Зафиксировал шаг.",
+            "quote": "отправлю КП и перезвоню в понедельник",
+            "source": "interview_transcript",
+            "source_ref": "line:295"
+          },
+          {
+            "question_id": "hard_digital_01",
+            "answer": "yes",
+            "evidence": "Уверенно работает с CRM.",
+            "quote": "использовал amoCRM и Bitrix24",
+            "source": "interview_transcript",
+            "source_ref": "line:302"
+          },
+          {
+            "question_id": "hard_digital_02",
+            "answer": "yes",
+            "evidence": "Понимает дисциплину базы.",
+            "quote": "каждый контакт фиксирую в карточке",
+            "source": "interview_transcript",
+            "source_ref": "line:308"
+          },
+          {
+            "question_id": "hard_digital_03",
+            "answer": "yes",
+            "evidence": "Готовится по карточке.",
+            "quote": "перед звонком смотрю историю",
+            "source": "interview_transcript",
+            "source_ref": "line:312"
+          },
+          {
+            "question_id": "hard_digital_04",
+            "answer": "yes",
+            "evidence": "Рисков нет.",
+            "quote": "не люблю держать в голове, всё в системе",
+            "source": "interview_transcript",
+            "source_ref": "line:318"
+          },
+          {
+            "question_id": "segment_understanding_01",
+            "answer": "yes",
+            "evidence": "Понимает бизнес грузоперевозок.",
+            "quote": "перевозчики живут рейсами, топливом, АТИ",
+            "source": "interview_transcript",
+            "source_ref": "line:325"
+          },
+          {
+            "question_id": "segment_understanding_02",
+            "answer": "yes",
+            "evidence": "Называет боли.",
+            "quote": "кассовые разрывы между рейсами, задержки оплат",
+            "source": "interview_transcript",
+            "source_ref": "line:330"
+          },
+          {
+            "question_id": "segment_understanding_03",
+            "answer": "yes",
+            "evidence": "Связывает с продуктом.",
+            "quote": "овердрафт покрывает разрыв до оплаты от юрлица",
+            "source": "interview_transcript",
+            "source_ref": "line:336"
+          },
+          {
+            "question_id": "segment_understanding_04",
+            "answer": "yes",
+            "evidence": "Использует сегментный язык уместно.",
+            "quote": "ТТН, АТИ, рейсы — всё по делу",
+            "source": "interview_transcript",
+            "source_ref": "line:342"
+          }
+        ],
+        "summary": "Сильный кандидат по soft и hard. Просадка по реалистичности ожиданий (motivation_04) и проактивности за пределами своей операции (proactivity_04). Ролёвка отработана хорошо.",
+        "strengths": [
+          "Связывает продукт с болью клиента в ролёвке",
+          "Понимает цикл B2B сделки и ЛПР",
+          "Принимает обратную связь без защиты",
+          "Хорошее сегментное понимание грузоперевозок"
+        ],
+        "growth_zones": [
+          "Реалистичность ожиданий по нагрузке и срокам первой сделки",
+          "Проактивность за пределами своей операции",
+          "Избегать жаргона без объяснения (SLA)"
+        ],
+        "red_flags": [
+          "Ожидает быстрого дохода без долгой ramps — риск демотивации на старте"
+        ],
+        "coach_recommendations": [
+          "На первой неделе явно обсудить ожидания по timelines",
+          "Дать кейс на проактивность за пределами своей зоны",
+          "Закрепить шпаргалку по жаргону для клиентов"
+        ],
+        "risk_flags": []
+      }
+    },
+    "calls": {
+      "missing_data": false,
+      "analysis": {
+        "schema_version": "analysis_result_v1",
+        "base_key": "GTRAIN02",
+        "analysis_type": "calls",
+        "rubric_id": "calls_automanual_binary_v1",
+        "rubric_version": "1.1.0",
+        "expected_real_calls_count": 9,
+        "question_results": [
+          {
+            "question_id": "contact_bank_tochka",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Во всех девяти звонках оператор представляется от Банка Точка.",
+            "source_ref": "candidate_files.calls_start:6#call_1; candidate_files.calls_final:5#call_2"
+          },
+          {
+            "question_id": "contact_call_reason",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Причина звонка названа стабильно во всех звонках.",
+            "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_3"
+          },
+          {
+            "question_id": "needs_business_activity",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Сфера и формат бизнеса обычно уточняются на старте, середине и выпуске.",
+            "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_middle:7#call_3"
+          },
+          {
+            "question_id": "needs_business_problems",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Проблемы клиента выявляются в большинстве звонков.",
+            "source_ref": "candidate_files.calls_start:6#call_1; candidate_files.calls_final:5#call_2"
+          },
+          {
+            "question_id": "needs_problem_frequency",
+            "answer": "no",
+            "source": "call_transcript",
+            "evidence": "Частота проблем системно не уточняется — остаётся no.",
+            "source_ref": "call_results[]"
+          },
+          {
+            "question_id": "needs_current_solution",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Текущее решение обычно выясняется: самоучёт, маркетплейс, 1С ЭДО, бумажные документы или сторонний сервис.",
+            "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_3"
+          },
+          {
+            "question_id": "presentation_any_product",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "В каждом звонке есть хотя бы одна презентация продукта из словаря.",
+            "source_ref": "real_calls[]"
+          },
+          {
+            "question_id": "presentation_asked_opinion",
+            "answer": "no",
+            "source": "call_transcript",
+            "evidence": "Проверка мнения и готовности клиента неравномерна и в агрегате снижена.",
+            "source_ref": "call_results[]"
+          },
+          {
+            "question_id": "presentation_calculation",
+            "answer": "no",
+            "source": "call_transcript",
+            "evidence": "Расчёты есть в части звонков, но недостаточно стабильны для агрегата.",
+            "source_ref": "call_results[]"
+          },
+          {
+            "question_id": "presentation_linked_to_problem",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Продукты обычно связаны с задачами по налогам и отчётности, ЭДО, приёму платежей или фискализации.",
+            "source_ref": "candidate_files.calls_start:6#call_2; candidate_files.calls_final:5#call_1"
+          },
+          {
+            "question_id": "objections_attempted_handle",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Возражения отрабатываются почти во всех звонках.",
+            "source_ref": "candidate_files.calls_final:5#call_2"
+          },
+          {
+            "question_id": "objections_checked_remaining_doubts",
+            "answer": "no",
+            "source": "call_transcript",
+            "evidence": "Проверка остатка сомнений после ответа на возражение — главная повторяющаяся просадка.",
+            "source_ref": "call_results[]"
+          },
+          {
+            "question_id": "objections_used_examples",
+            "answer": "no",
+            "source": "call_transcript",
+            "evidence": "Примеры и кейсы встречаются редко.",
+            "source_ref": "call_results[]"
+          },
+          {
+            "question_id": "objections_compared_competitors",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Сравнение с конкурентами появляется в достаточном числе значимых звонков.",
+            "source_ref": "candidate_files.calls_start:6#call_3; candidate_files.calls_final:5#call_2"
+          },
+          {
+            "question_id": "close_purchase_action",
+            "answer": "yes",
+            "source": "call_transcript",
+            "evidence": "Конкретные действия для приобретения присутствуют в части звонков.",
+            "source_ref": "candidate_files.calls_middle:7#call_1"
+          },
+          {
+            "question_id": "close_specific_next_step",
+            "answer": "no",
+            "source": "call_transcript",
+            "evidence": "Следующие шаги есть во многих звонках, но качество действия остаётся зоной роста.",
+            "source_ref": "call_results[]"
+          }
+        ],
+        "summary": "Проанализировано 9 реальных звонков. Ответы по вопросам рубрики пересчитаны из результатов по отдельным звонкам, чтобы балл был ближайшей бинарной проекцией к подробному среднему (78.33%). Главная зона роста — системная работа с возражениями: проверка остатка сомнений, примеры продукта и перевод консультации в действие.",
+        "strengths": [
+          "Стабильное представление от Банка Точка и причина звонка.",
+          "Продукты обычно связаны с налогами, платежами, ЭДО и операционными задачами клиента.",
+          "Часто приводятся конкретные цены, тарифы и условия."
+        ],
+        "growth_zones": [
+          "Держать ответы по вопросам рубрики согласованными со средним по отдельным звонкам при импорте агрегированного анализа звонков.",
+          "Уточнять частоту и масштаб проблемы, а не только факт потребности.",
+          "После ответа на возражение задавать контрольный вопрос об остатке сомнений.",
+          "Добавлять примеры продуктов и сравнение с альтернативами, когда клиент выбирает между сервисами.",
+          "Переводить консультацию в конкретное действие по подключению или заявке."
+        ],
+        "red_flags": [],
+        "coach_recommendations": [
+          "В каждом звонке после презентации фиксировать соответствие, барьер, следующий шаг и срок.",
+          "Для сравнения с конкурентами держать короткую матрицу: цена, документы, поддержка, интеграции, скрытые модули.",
+          "В сложных интеграционных кейсах не повторять объяснения, а формулировать план проверки и канал ответа."
+        ],
+        "risk_flags": [],
+        "stage_dynamics": {
+          "start": {
+            "label": "Начало",
+            "overall": 4.06,
+            "percent": 81.25,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 1,
+              "objections": 0.42,
+              "close": 0.83
+            },
+            "comment": "Начальные звонки уже показывают стабильный контакт, причину звонка и базовую презентацию продукта. Просадки: частота проблемы, финальная проверка сомнений и более уверенное закрытие."
+          },
+          "middle": {
+            "label": "Середина",
+            "overall": 4.02,
+            "percent": 80.45,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 0.92,
+              "objections": 0.33,
+              "close": 1
+            },
+            "comment": "Середина показывает прикладную поддержку с настройкой продукта и следующими шагами. Рост заметен в презентации и закрытии, проверка сомнений остаётся неравномерной."
+          },
+          "final": {
+            "label": "Выпуск",
+            "overall": 3.67,
+            "percent": 73.4,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.67,
+              "presentation": 0.83,
+              "objections": 0.5,
+              "close": 0.67
+            },
+            "comment": "Выпускные звонки сильнее в работе с конкурентами и критериями решения, но сложные клиенты вскрывают пробелы в расчётах, проверке сомнений и переводе совета в действие."
+          }
+        },
+        "call_results": [
+          {
+            "stage": "start",
+            "stage_label": "Начало",
+            "call_index": 1,
+            "source_ref": "candidate_files.calls_start:6#call_1",
+            "overall_percent": 81.25,
+            "overall_score": 4.06,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 1,
+              "objections": 0.25,
+              "close": 1
+            },
+            "products_detected": [
+              {
+                "product_id": "платная_онлайн_бухгалтерия",
+                "product_name": "Платная онлайн-бухгалтерия",
+                "matched_by": "dictionary",
+                "matched_text": "online accounting",
+                "source_ref": "candidate_files.calls_start:6#call_1"
+              },
+              {
+                "product_id": "платный_документооборот",
+                "product_name": "Платный документооборот",
+                "matched_by": "dictionary",
+                "matched_text": "EDO / electronic document flow",
+                "source_ref": "candidate_files.calls_start:6#call_1"
+              },
+              {
+                "product_id": "интернет_эквайринг",
+                "product_name": "Интернет-эквайринг",
+                "matched_by": "dictionary",
+                "matched_text": "internet acquiring / Tochka checks",
+                "source_ref": "candidate_files.calls_start:6#call_1"
+              }
+            ],
+            "comment": "Сильное выявление по бухгалтерии и ЭДО; основная просадка — проверка остатка сомнений после возражения."
+          },
+          {
+            "stage": "start",
+            "stage_label": "Начало",
+            "call_index": 2,
+            "source_ref": "candidate_files.calls_start:6#call_2",
+            "overall_percent": 73.75,
+            "overall_score": 3.69,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 1,
+              "objections": 0.25,
+              "close": 0.5
+            },
+            "products_detected": [
+              {
+                "product_id": "платная_онлайн_бухгалтерия",
+                "product_name": "Платная онлайн-бухгалтерия",
+                "matched_by": "dictionary",
+                "matched_text": "online accounting",
+                "source_ref": "candidate_files.calls_start:6#call_2"
+              },
+              {
+                "product_id": "облачная_касса",
+                "product_name": "Облачная касса",
+                "matched_by": "dictionary",
+                "matched_text": "cloud cash desk",
+                "source_ref": "candidate_files.calls_start:6#call_2"
+              },
+              {
+                "product_id": "интернет_эквайринг",
+                "product_name": "Интернет-эквайринг",
+                "matched_by": "dictionary",
+                "matched_text": "internet acquiring / Tochka checks",
+                "source_ref": "candidate_files.calls_start:6#call_2"
+              },
+              {
+                "product_id": "сбп_qr",
+                "product_name": "СБП QR",
+                "matched_by": "dictionary",
+                "matched_text": "SBP QR / QR code",
+                "source_ref": "candidate_files.calls_start:6#call_2"
+              }
+            ],
+            "comment": "Хорошее выявление маркетплейса, частных продаж и платёжных каналов; закрытие информационное, а не действие."
+          },
+          {
+            "stage": "start",
+            "stage_label": "Начало",
+            "call_index": 3,
+            "source_ref": "candidate_files.calls_start:6#call_3",
+            "overall_percent": 88.75,
+            "overall_score": 4.44,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 1,
+              "objections": 0.75,
+              "close": 1
+            },
+            "products_detected": [
+              {
+                "product_id": "сбп_qr",
+                "product_name": "СБП QR",
+                "matched_by": "dictionary",
+                "matched_text": "SBP QR / QR code",
+                "source_ref": "candidate_files.calls_start:6#call_3"
+              },
+              {
+                "product_id": "интернет_эквайринг",
+                "product_name": "Интернет-эквайринг",
+                "matched_by": "dictionary",
+                "matched_text": "internet acquiring / Tochka checks",
+                "source_ref": "candidate_files.calls_start:6#call_3"
+              },
+              {
+                "product_id": "касса",
+                "product_name": "Касса",
+                "matched_by": "dictionary",
+                "matched_text": "cash desk",
+                "source_ref": "candidate_files.calls_start:6#call_3"
+              },
+              {
+                "product_id": "платный_документооборот",
+                "product_name": "Платный документооборот",
+                "matched_by": "dictionary",
+                "matched_text": "EDO / electronic document flow",
+                "source_ref": "candidate_files.calls_start:6#call_3"
+              }
+            ],
+            "comment": "Лучший стартовый звонок: разделяет сценарии оплаты физлиц и юрлиц, даёт тариф по QR и сравнивает ЭДО с 1С; нужна финальная проверка сомнений."
+          },
+          {
+            "stage": "middle",
+            "stage_label": "Середина",
+            "call_index": 1,
+            "source_ref": "candidate_files.calls_middle:7#call_1",
+            "overall_percent": 75,
+            "overall_score": 3.75,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 0.75,
+              "objections": 0.25,
+              "close": 1
+            },
+            "products_detected": [
+              {
+                "product_id": "интернет_эквайринг",
+                "product_name": "Интернет-эквайринг",
+                "matched_by": "dictionary",
+                "matched_text": "internet acquiring / Tochka checks",
+                "source_ref": "candidate_files.calls_middle:7#call_1"
+              },
+              {
+                "product_id": "сбп_qr",
+                "product_name": "СБП QR",
+                "matched_by": "dictionary",
+                "matched_text": "SBP QR / QR code",
+                "source_ref": "candidate_files.calls_middle:7#call_1"
+              }
+            ],
+            "comment": "Операционно сильная помощь по заявке на эквайринг; меньше классической продажи и проверки мнения клиента."
+          },
+          {
+            "stage": "middle",
+            "stage_label": "Середина",
+            "call_index": 2,
+            "source_ref": "candidate_files.calls_middle:7#call_2",
+            "overall_percent": 85,
+            "overall_score": 4.25,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 1,
+              "objections": 0.5,
+              "close": 1
+            },
+            "products_detected": [
+              {
+                "product_id": "тэдо",
+                "product_name": "ТЭДО",
+                "matched_by": "dictionary",
+                "matched_text": "transport EDO",
+                "source_ref": "candidate_files.calls_middle:7#call_2"
+              }
+            ],
+            "comment": "Подробная консультация по ТЭДО с ценой и контекстом оператора; ответы про накладные и токен требуют точности и подтверждения."
+          },
+          {
+            "stage": "middle",
+            "stage_label": "Середина",
+            "call_index": 3,
+            "source_ref": "candidate_files.calls_middle:7#call_3",
+            "overall_percent": 81.25,
+            "overall_score": 4.06,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 1,
+              "objections": 0.25,
+              "close": 1
+            },
+            "products_detected": [
+              {
+                "product_id": "платный_документооборот",
+                "product_name": "Платный документооборот",
+                "matched_by": "dictionary",
+                "matched_text": "EDO / electronic document flow",
+                "source_ref": "candidate_files.calls_middle:7#call_3"
+              },
+              {
+                "product_id": "фонды",
+                "product_name": "Фонды",
+                "matched_by": "dictionary",
+                "matched_text": "funds",
+                "source_ref": "candidate_files.calls_middle:7#call_3"
+              },
+              {
+                "product_id": "платная_онлайн_бухгалтерия",
+                "product_name": "Платная онлайн-бухгалтерия",
+                "matched_by": "dictionary",
+                "matched_text": "online accounting",
+                "source_ref": "candidate_files.calls_middle:7#call_3"
+              }
+            ],
+            "comment": "Хороший кросс-сейл через контекст клиента: ЭДО, фонды и онлайн-бухгалтерия; готовность к возражениям проверяется недостаточно."
+          },
+          {
+            "stage": "final",
+            "stage_label": "Выпуск",
+            "call_index": 1,
+            "source_ref": "candidate_files.calls_final:5#call_1",
+            "overall_percent": 73.75,
+            "overall_score": 3.69,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 1,
+              "objections": 0.25,
+              "close": 0.5
+            },
+            "products_detected": [
+              {
+                "product_id": "облачная_касса",
+                "product_name": "Облачная касса",
+                "matched_by": "dictionary",
+                "matched_text": "cloud cash desk",
+                "source_ref": "candidate_files.calls_final:5#call_1"
+              },
+              {
+                "product_id": "сбп_qr",
+                "product_name": "СБП QR",
+                "matched_by": "dictionary",
+                "matched_text": "SBP QR / QR code",
+                "source_ref": "candidate_files.calls_final:5#call_1"
+              },
+              {
+                "product_id": "интернет_эквайринг",
+                "product_name": "Интернет-эквайринг",
+                "matched_by": "dictionary",
+                "matched_text": "internet acquiring / Tochka checks",
+                "source_ref": "candidate_files.calls_final:5#call_1"
+              },
+              {
+                "product_id": "платный_документооборот",
+                "product_name": "Платный документооборот",
+                "matched_by": "dictionary",
+                "matched_text": "EDO / electronic document flow",
+                "source_ref": "candidate_files.calls_final:5#call_1"
+              }
+            ],
+            "comment": "Глубокая диагностика сценариев оплаты и фискализации; закрытие всё ещё отправляет информацию, а не просит действие."
+          },
+          {
+            "stage": "final",
+            "stage_label": "Выпуск",
+            "call_index": 2,
+            "source_ref": "candidate_files.calls_final:5#call_2",
+            "overall_percent": 81.25,
+            "overall_score": 4.06,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.5,
+              "presentation": 1,
+              "objections": 0.75,
+              "close": 1
+            },
+            "products_detected": [
+              {
+                "product_id": "платный_документооборот",
+                "product_name": "Платный документооборот",
+                "matched_by": "dictionary",
+                "matched_text": "EDO / electronic document flow",
+                "source_ref": "candidate_files.calls_final:5#call_2"
+              }
+            ],
+            "comment": "Сильная работа с конкурентами, ценой и критериями решения; не хватает явной диагностики бизнес-активности и примеров продукта."
+          },
+          {
+            "stage": "final",
+            "stage_label": "Выпуск",
+            "call_index": 3,
+            "source_ref": "candidate_files.calls_final:5#call_3",
+            "overall_percent": 65,
+            "overall_score": 3.25,
+            "blocks": {
+              "contact": 1,
+              "needs": 0.75,
+              "presentation": 0.5,
+              "objections": 0.5,
+              "close": 0.5
+            },
+            "products_detected": [
+              {
+                "product_id": "интернет_эквайринг",
+                "product_name": "Интернет-эквайринг",
+                "matched_by": "dictionary",
+                "matched_text": "internet acquiring / Tochka checks",
+                "source_ref": "candidate_files.calls_final:5#call_3"
+              },
+              {
+                "product_id": "касса",
+                "product_name": "Касса",
+                "matched_by": "dictionary",
+                "matched_text": "cash desk",
+                "source_ref": "candidate_files.calls_final:5#call_3"
+              }
+            ],
+            "comment": "Потребность в едином платёжном контуре выявлена, но объяснение повторяется; нужен чёткий план проверки интеграции."
+          }
+        ]
+      }
+    },
+    "training_agents": {
+      "missing_data": false,
+      "dialogs_reviewed": 5,
+      "summary": "Учебные диалоги показывают уверенный контакт и презентацию, но слабую отработку возражений в сложных ролях.",
+      "strengths": [
+        "Быстро устанавливает контакт и удерживает структуру разговора.",
+        "Связывает продукт с задачей роли клиента."
+      ],
+      "growth_zones": [
+        "Глубже отрабатывать возражения, а не повторять презентацию.",
+        "Чаще проверять остаток сомнений у учебного клиента."
+      ],
+      "note": "Учебные агенты не влияют на call_quality_score."
+    },
+    "ops": {
+      "missing_data": false,
+      "ops_score": 72,
+      "discipline_score": null,
+      "summary": "Операционка в норме: время на трубке набрано, статусы заполнены, есть единичные просрочки.",
+      "notes": [
+        "Время на трубке выше нижней границы.",
+        "Часть клиентских целей закрыта с задержкой."
+      ]
+    },
+    "final_test": {
+      "missing_data": true,
+      "final_test_score": null,
+      "summary": null
+    },
+    "overall": {
+      "recommendation": "Готов с контролем: сильные контакт и презентация, основной фокус — системная работа с возражениями и перевод консультации в действие.",
+      "strengths": [
+        "Стабильный контакт и причина звонка.",
+        "Продукты связаны с задачами клиента."
+      ],
+      "growth_zones": [
+        "Проверка остатка сомнений после возражения.",
+        "Конкретный следующий шаг со сроком."
+      ],
+      "risks": [],
+      "coach_recommendations": [
+        "В первые 1–2 недели слушать по 2 звонка в день с фокусом на возражения.",
+        "Ввести чек-лист закрытия: действие, срок, канал ответа."
+      ]
+    }
+  }
+}

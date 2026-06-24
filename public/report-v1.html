@@ -1387,12 +1387,15 @@
       const c = card.candidate || {};
       const heroEl = byId('hero');
       const experience = getCandidateExperienceSummary(card);
+      // FULL-CANDIDATE-CARD-V1: dates go through formatReportDate (strips time;
+      // shows a clean "—" placeholder when the date is missing).
+      const heroDate = v => (v == null || v === '') ? '—' : formatReportDate(v);
       const cells = [
         { label: 'Сегмент', value: c.seller_segment || '—' },
         { label: 'Направление', value: c.direction || '—' },
-        { label: 'Дата тестового дня', value: c.test_day_started_at || '—' },
-        { label: 'Дата погружения', value: c.immersion_started_at || '—' },
-        { label: 'Завершение погружения', value: c.immersion_finished_at || c.immersion_ended_at || '—' },
+        { label: 'Дата тестового дня', value: heroDate(c.test_day_started_at) },
+        { label: 'Дата погружения', value: heroDate(c.immersion_started_at) },
+        { label: 'Завершение погружения', value: heroDate(c.immersion_finished_at || c.immersion_ended_at) },
       ];
       const cellsHtml = cells.map(cell => `
         <div class="hero-cell">
@@ -1451,6 +1454,20 @@
       renderListsGrid(byId('overviewLists'), s);
     }
 
+    // FULL-CANDIDATE-CARD-V1: coerce an experience candidate value to a clean
+    // string. Strings pass through (trimmed); objects expose a known text field
+    // if present; everything else (numbers, booleans, arrays, plain objects
+    // without a text field) yields '' so it is skipped — never "[object Object]".
+    function coerceExperienceText(v) {
+      if (v == null) return '';
+      if (typeof v === 'string') return v.trim();
+      if (typeof v === 'object' && !Array.isArray(v)) {
+        const inner = v.text || v.summary || v.value || v.content || v.experience_summary;
+        return typeof inner === 'string' ? inner.trim() : '';
+      }
+      return '';
+    }
+
     function getCandidateExperienceSummary(card) {
       const latest = card.latest_analysis || {};
       const manualInputs = card.manual_inputs || [];
@@ -1472,8 +1489,13 @@
         latest.interview && latest.interview.summary,
       ];
       const rawRe = /\[Говорящий\s+\d+\]|^Продавец:|^Клиент:|^Оператор:|^Менеджер:/im;
+      // FULL-CANDIDATE-CARD-V1 fix: experience_summary may arrive as an object
+      // (e.g. { text: "..." } or a nested analysis block). Naively String()-ing
+      // it yields "[object Object]", which then slipped through as the displayed
+      // text. coerceExperienceText only accepts real strings (optionally pulling
+      // a known text field out of an object), so objects can never render raw.
       const text = candidates
-        .map(v => v == null ? '' : String(v).trim())
+        .map(coerceExperienceText)
         .find(v => v && !rawRe.test(v));
       if (!text) {
         return {

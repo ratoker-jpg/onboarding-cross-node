@@ -26,6 +26,20 @@ score, and persist.
 A bundle JSON file (`*_calls_bundle.json`) containing:
 
 - `candidate` — public profile (no secrets).
+- **`real_calls[]`** — главный источник для анализа. Содержит только
+  реальные звонки из `manual_inputs.calls_start/middle/final` и
+  `candidate_files.calls_start/middle/final`. Каждый объект:
+  - `stage`: start / middle / final
+  - `stage_label`: Начало / Середина / Выпуск
+  - `source_type`: manual_input / candidate_file
+  - `source_ref`
+  - `transcript`
+  - `coach_comment`
+  Используй для оценки **только** `real_calls[]`. `manual_inputs[]` и
+  `files[]` можно использовать как metadata/context, но не как основной
+  список транскриптов, если `real_calls[]` есть.
+  Если `real_calls[]` пустой или отсутствует — верни `not_enough_data`
+  для всех вопросов, но **не используй** `training_bot_dialogs`.
 - `manual_inputs[]` — sections relevant to calls analysis are included in
   full: `calls_start`, `calls_middle`, `calls_final`, `phone_metrics`.
   Other sections are truncated previews.

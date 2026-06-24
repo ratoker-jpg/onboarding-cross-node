@@ -1805,6 +1805,86 @@
       }).join('');
     }
 
+    // Phase 3E3C fixup: merge manual_inputs + candidate_files for a calls stage.
+    // Returns an object compatible with renderLoadedCallsBlock:
+    //   { section, payload: { calls: [...] } }
+    // Empty transcripts (< 50 chars) are ignored.
+    // Exact duplicate transcripts within the same stage are skipped.
+    function buildLoadedCallsForStage(card, section) {
+      const manualInputs = card.manual_inputs || [];
+      const files = card.files || [];
+      const calls = [];
+      const seenHashes = new Set();
+      const MIN_LEN = 50;
+
+      // Source A: manual_inputs
+      const mi = manualInputs.find(m => m.section === section);
+      if (mi && mi.payload) {
+        const callsArr = Array.isArray(mi.payload.calls) ? mi.payload.calls : [];
+        for (const c of callsArr) {
+          const transcript = String(c.transcript || '').trim();
+          if (transcript.length < MIN_LEN) continue;
+          const hash = simpleHashFrontend(transcript);
+          if (seenHashes.has(hash)) continue;
+          seenHashes.add(hash);
+          calls.push({
+            transcript,
+            call_date: c.call_date || null,
+            product: c.product || null,
+            coach_comment: c.coach_comment || null,
+            source: c.source || 'manual_input',
+            source_ref: `manual_inputs.${section}`,
+          });
+        }
+        // Legacy single-call shape
+        if (!callsArr.length && mi.payload.transcript) {
+          const transcript = String(mi.payload.transcript).trim();
+          if (transcript.length >= MIN_LEN) {
+            const hash = simpleHashFrontend(transcript);
+            if (!seenHashes.has(hash)) {
+              seenHashes.add(hash);
+              calls.push({
+                transcript,
+                call_date: mi.payload.call_date || null,
+                product: mi.payload.product || null,
+                coach_comment: mi.payload.coach_comment || null,
+                source: 'manual_input',
+                source_ref: `manual_inputs.${section}`,
+              });
+            }
+          }
+        }
+      }
+
+      // Source B: candidate_files with text_content
+      const cf = files.filter(f => f.section === section && f.has_text_content);
+      for (const f of cf) {
+        const transcript = String(f.text_content || f.text_content_preview || '').trim();
+        if (transcript.length < MIN_LEN) continue;
+        const hash = simpleHashFrontend(transcript);
+        if (seenHashes.has(hash)) continue;
+        seenHashes.add(hash);
+        calls.push({
+          transcript,
+          call_date: null,
+          product: null,
+          coach_comment: f.comment || null,
+          source: 'candidate_file',
+          source_ref: `candidate_files.${section}:${f.id || ''}`,
+        });
+      }
+
+      return { section, payload: { calls } };
+    }
+
+    function simpleHashFrontend(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) {
+        h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+      }
+      return String(h);
+    }
+
     function renderCallsTab(card) {
       const el = byId('callsContent');
       const s = card.scores || {};
@@ -1903,9 +1983,13 @@
 
       // Loaded calls (real calls, not training agents) — pass readiness status
       // so we can warn when the stage is marked ready but calls[] is empty.
-      html.push(renderLoadedCallsBlock('Звонки начала', callsStart, callsStartReady ? callsStartReady.status : null));
-      html.push(renderLoadedCallsBlock('Звонки середины', callsMiddle, callsMiddleReady ? callsMiddleReady.status : null));
-      html.push(renderLoadedCallsBlock('Звонки выпуска', callsFinal, callsFinalReady ? callsFinalReady.status : null));
+      // Phase 3E3C fixup: merge manual_inputs + candidate_files into one view.
+      const mergedCallsStart = buildLoadedCallsForStage(card, 'calls_start');
+      const mergedCallsMiddle = buildLoadedCallsForStage(card, 'calls_middle');
+      const mergedCallsFinal = buildLoadedCallsForStage(card, 'calls_final');
+      html.push(renderLoadedCallsBlock('Звонки начала', mergedCallsStart, callsStartReady ? callsStartReady.status : null));
+      html.push(renderLoadedCallsBlock('Звонки середины', mergedCallsMiddle, callsMiddleReady ? callsMiddleReady.status : null));
+      html.push(renderLoadedCallsBlock('Звонки выпуска', mergedCallsFinal, callsFinalReady ? callsFinalReady.status : null));
 
       // Codex calls analysis breakdown — 5 stage cards (contact/needs/presentation/objections/close)
       // Phase 3E3C: if latestCalls exists but no real calls are loaded, show warning.

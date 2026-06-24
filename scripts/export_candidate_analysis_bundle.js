@@ -488,6 +488,16 @@ function normalizeStatus(value) {
     .replace(/\s+/g, ' ');
 }
 
+/**
+ * Normalise boolean-like cell values from Google Sheets.
+ * Accepts: Да/да/YES/yes/true/TRUE/1/1.0 — case-insensitive, ё→е.
+ * Used for product `is_chp` flag where operators type inconsistent forms.
+ */
+function parseBooleanLike(value) {
+  const v = String(value || '').trim().toLowerCase().replace(/ё/g, 'е');
+  return v === 'да' || v === 'yes' || v === 'true' || v === '1';
+}
+
 function isExcludedStatus(status) {
   const ns = normalizeStatus(status);
   if (ns === 'не продается' || ns === 'не продают') return true;
@@ -518,11 +528,21 @@ function parseAliases(aliasStr) {
 
 /**
  * Load product dictionary from Google Sheets.
- * Returns array of product objects or empty array on error.
+ *
  * Each product: { product_id, product_name, is_chp, segments, product_type,
  *                 description, aliases, status, selling_circle, source_ref }
+ *
+ * @param {object}  opts
+ * @param {boolean} [opts.required=false] — when true, the caller (e.g. calls
+ *   export) cannot tolerate an empty/failed dictionary. In that case any
+ *   failure (sheet read error, empty sheet, all rows excluded by status)
+ *   throws an Error with a stable machine-readable prefix:
+ *     - `product_dictionary_failed_to_load:<reason>`   (read error)
+ *     - `product_dictionary_required_but_empty`        (sheet empty after filter)
+ *   When false, errors degrade to a warning + empty array (used by non-calls
+ *   analysis types where the dictionary is not needed).
  */
-async function loadProductDictionary() {
+async function loadProductDictionary({ required = false } = {}) {
   const config = {
     spreadsheetId: PRODUCTS_SHEET_ID,
     clientPath: process.env.GOOGLE_OAUTH_CLIENT || path.join(process.env.HOME || '', 'web-server/secrets/google-oauth-client.json'),
@@ -533,6 +553,9 @@ async function loadProductDictionary() {
     const sheets = await client.batchGet([PRODUCTS_SHEET_NAME]);
     const rows = sheets[PRODUCTS_SHEET_NAME] || [];
     if (!rows.length) {
+      if (required) {
+        throw new Error('product_dictionary_required_but_empty');
+      }
       console.warn('Product dictionary: no rows in sheet');
       return [];
     }
@@ -559,7 +582,7 @@ async function loadProductDictionary() {
       products.push({
         product_id: slug,
         product_name: productName,
-        is_chp: String(row[1] || '').trim() === 'Да' || String(row[1] || '').trim().toLowerCase() === 'yes',
+        is_chp: parseBooleanLike(row[1]),
         segments: String(row[2] || '').trim() || null,
         product_type: String(row[3] || '').trim() || null,
         description: description || null,
@@ -569,8 +592,19 @@ async function loadProductDictionary() {
         source_ref: `products_sheet:row_${i + 1}`,
       });
     }
+    if (!products.length && required) {
+      throw new Error('product_dictionary_required_but_empty');
+    }
     return products;
   } catch (err) {
+    if (required) {
+      // Re-throw with a stable prefix so callers / logs can distinguish
+      // the failure mode. Preserve the original message for debugging.
+      if (err.message && err.message.startsWith('product_dictionary_')) {
+        throw err;
+      }
+      throw new Error(`product_dictionary_failed_to_load:${err.message}`);
+    }
     console.warn(`Product dictionary: failed to load from Google Sheets: ${err.message}`);
     return [];
   }
@@ -749,7 +783,9 @@ async function exportBundle(baseKey, analysisType) {
     scores: scores,
     manual_inputs: manualInputs,
     real_calls: realCallsForBundle,
-    product_dictionary: analysisType === 'calls' ? (await loadProductDictionary()) : null,
+    product_dictionary: analysisType === 'calls'
+      ? await loadProductDictionary({ required: true })
+      : null,
     call_stats: callStats,
     ops_summary: null,
     interview_summary: interviewSummary,
@@ -794,6 +830,15 @@ async function main() {
 
   try {
     const bundle = await exportBundle(args.baseKey, args.type);
+    // Defense in depth: even though loadProductDictionary({required:true})
+    // already throws on empty/failed dictionary for calls, refuse to write
+    // the bundle if for any reason the dictionary ended up empty. An empty
+    // dictionary makes B11/B12/B14/B15-B18 unanalysable.
+    if (args.type === 'calls') {
+      if (!Array.isArray(bundle.product_dictionary) || bundle.product_dictionary.length === 0) {
+        throw new Error('product_dictionary_required_but_empty');
+      }
+    }
     // Secret-leak guard: scan BEFORE writing the file. If a forbidden pattern
     // is found (e.g. an env var accidentally ended up in a manual_input
     // payload), the bundle must not leave the server.

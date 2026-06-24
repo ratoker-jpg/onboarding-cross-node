@@ -3598,6 +3598,9 @@
     function showSelectedBar(candidate) {
       pickerShow('pickerSelectedBar');
       const name = candidate.full_name || 'Без ФИО';
+      // Meta order: direction → segment (matches picker card order; example:
+      // "Грузоперевозки · S"). The hero uses the opposite order, but the
+      // picker + selected bar must be consistent with each other.
       const parts = [];
       if (candidate.direction) parts.push(candidate.direction);
       if (candidate.seller_segment) parts.push(candidate.seller_segment);
@@ -3630,9 +3633,10 @@
       byId('viewerKey').value = key;
       try {
         // Test the key against the candidates list (cheap read-only call).
-        const list = await requestJson(`${VIEWER_BASE}/candidates`);
+        // Endpoint returns { ok: true, candidates: [...] } — unwrap.
+        const payload = await requestJson(`${VIEWER_BASE}/candidates`);
         saveViewerKey(key);
-        pickerCandidates = Array.isArray(list) ? list : [];
+        pickerCandidates = Array.isArray(payload && payload.candidates) ? payload.candidates : [];
         // Backward-compat: if the page was opened via an old ?base_key=…
         // link without a stored viewer key, auto-open that candidate now.
         const queuedBaseKey = byId('baseKeyInput').value.trim();
@@ -3657,8 +3661,9 @@
     async function loadPickerCandidates() {
       byId('pickerListContainer').innerHTML = '<div class="picker-loading">Загружаем список новичков…</div>';
       try {
-        const list = await requestJson(`${VIEWER_BASE}/candidates`);
-        pickerCandidates = Array.isArray(list) ? list : [];
+        // Endpoint returns { ok: true, candidates: [...] } — unwrap.
+        const payload = await requestJson(`${VIEWER_BASE}/candidates`);
+        pickerCandidates = Array.isArray(payload && payload.candidates) ? payload.candidates : [];
         populatePickerFilters();
         renderPickerList();
       } catch (err) {
@@ -3771,6 +3776,9 @@
       });
       container.innerHTML = `<div class="picker-list">${sorted.map(c => {
         const name = c.full_name || 'Без ФИО';
+        // Meta order: direction → segment (matches selected bar; example:
+        // "Грузоперевозки · S"). Hero uses the opposite order — that's OK,
+        // the picker family stays internally consistent.
         const meta = [c.direction, c.seller_segment].filter(Boolean).join(' · ');
         const dateStr = formatImmersionDate(c.immersion_started_at);
         // NOTE: base_key is passed via data-key for the click handler only —

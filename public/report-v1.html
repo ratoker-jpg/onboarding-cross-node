@@ -538,6 +538,69 @@
     .trainer-summary-card .ts-value { margin-top: 5px; font-size: 15px; line-height: 1.5; font-weight: 650; }
     .trainer-link-row { display: flex; flex-wrap: wrap; gap: 8px; }
     .trainer-link-row .btn { padding: 8px 12px; font-size: 13px; }
+    .overview-person-card {
+      display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 18px; align-items: stretch;
+      background: linear-gradient(135deg, #fff 0%, #fbf8ff 54%, #f1e8ff 100%);
+    }
+    .overview-person-card .person-title { margin: 0 0 8px; font-size: 28px; font-weight: 900; letter-spacing: 0; }
+    .overview-person-card .person-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 14px; }
+    .overview-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 10px; border-radius: 999px;
+      background: #fff; border: 1px solid var(--line);
+      color: var(--text); font-size: 12px; font-weight: 800;
+    }
+    .overview-experience {
+      background: #fff; border: 1px solid var(--line); border-radius: var(--radius-md);
+      padding: 16px 18px; box-shadow: 0 10px 24px rgba(63, 35, 112, 0.05);
+    }
+    .overview-experience .oe-label, .overview-side .os-label {
+      font-size: 11px; color: var(--muted); font-weight: 900;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;
+    }
+    .overview-experience .oe-text { font-size: 15px; line-height: 1.62; font-weight: 650; color: var(--text); }
+    .overview-side {
+      background: #171027; color: #fff; border-radius: var(--radius-md);
+      padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px;
+    }
+    .overview-side .os-label { color: #d8c8ff; }
+    .overview-side .os-text { font-size: 18px; line-height: 1.38; font-weight: 850; }
+    .overview-side .os-note { padding: 12px 13px; border-radius: var(--radius-sm); background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.82); font-size: 13px; line-height: 1.45; }
+    .overview-summary-card {
+      background: #fff; border: 1px solid var(--line); border-radius: var(--radius-md);
+      padding: 16px; min-height: 150px; display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 10px 24px rgba(63, 35, 112, 0.05);
+    }
+    .overview-summary-card .osc-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .overview-summary-card .osc-title { font-size: 15px; font-weight: 900; line-height: 1.2; }
+    .overview-summary-card .osc-score { font-size: 22px; font-weight: 900; color: var(--accent); }
+    .overview-summary-card .osc-note { color: var(--muted); font-size: 13px; line-height: 1.45; flex: 1; }
+    .overview-summary-card .btn { align-self: flex-start; padding: 7px 11px; font-size: 12px; }
+    .phone-norm-card {
+      background: #fff; border: 1px solid var(--line); border-radius: var(--radius-md);
+      padding: 16px 18px;
+    }
+    .phone-norm-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 12px; }
+    .phone-norm-total { font-size: 28px; font-weight: 900; letter-spacing: 0; }
+    .phone-norm-rows { display: grid; gap: 10px; }
+    .phone-norm-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 70px; gap: 12px; align-items: center; }
+    .phone-norm-row b { font-size: 13px; line-height: 1.2; }
+    .phone-norm-row span { text-align: right; font-size: 13px; font-weight: 900; }
+    .phone-norm-track { height: 10px; border-radius: 999px; background: #efe7ff; overflow: hidden; }
+    .phone-norm-fill { height: 100%; border-radius: inherit; }
+    .call-manual-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+    .call-manual-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 20px; box-shadow: 0 10px 24px rgba(63, 35, 112, 0.05); }
+    .call-manual-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+    .call-manual-title { font-size: 24px; font-weight: 900; letter-spacing: 0; }
+    .call-score-box { min-width: 112px; text-align: right; border-radius: 18px; padding: 11px 13px; border: 1px solid var(--line); background: var(--accent-soft); }
+    .call-score-box div { font-size: 28px; line-height: 1; font-weight: 900; color: var(--accent); }
+    .call-score-box span { font-size: 12px; font-weight: 900; color: var(--muted); }
+    .call-manual-list { display: grid; gap: 9px; }
+    .call-manual-row { display: grid; grid-template-columns: 1fr 120px 44px; gap: 10px; align-items: center; font-size: 13px; }
+    .call-manual-bar { height: 10px; background: #efe7ff; border-radius: 999px; overflow: hidden; }
+    .call-manual-bar span { display: block; height: 100%; border-radius: inherit; }
+    .call-manual-note { margin: 14px 0 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
     .dialog-card { background: #fff; border: 1px solid var(--line); box-shadow: none; }
     .dialog-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; font-size: 13px; }
     .call-stage-card { background: linear-gradient(180deg, #fff 0%, #fbf9ff 100%); }
@@ -627,22 +690,11 @@
 
       <!-- Tab 1: Overview -->
       <section class="tab-content active" id="tab-overview">
-        <div class="card">
-          <h2>Что учтено в оценке</h2>
-          <p class="subtle">Источники, которые сейчас влияют на оценку. Зелёным отмечены рассчитанные и загруженные источники.</p>
-          <div id="sourcesConsidered"></div>
-        </div>
+        <div class="card overview-person-card" id="overviewPersonCard"></div>
 
         <div class="card">
-          <h2>Быстрый срез</h2>
-          <p class="subtle">Ключевые итоговые оценки. Если оценка не заполнена — значение показывается как «—».</p>
-          <div class="quick-slice" id="quickSlice"></div>
-        </div>
-
-        <div class="card">
-          <h2>Ключевой вывод</h2>
-          <div id="overviewRecommendation"></div>
-          <div class="lists-grid" id="overviewLists" style="margin-top:14px;"></div>
+          <h2>Краткое резюме для тренера</h2>
+          <div id="trainerSummary"></div>
         </div>
 
         <div class="card">
@@ -651,8 +703,9 @@
         </div>
 
         <div class="card">
-          <h2>Краткое резюме для тренера</h2>
-          <div id="trainerSummary"></div>
+          <h2>Ключевой вывод</h2>
+          <div id="overviewRecommendation"></div>
+          <div class="lists-grid" id="overviewLists" style="margin-top:14px;"></div>
         </div>
 
         <div class="card">
@@ -665,6 +718,11 @@
           <h2>Готовность данных</h2>
           <p class="subtle">Готовность данных по блокам карточки новичка.</p>
           <div class="completeness-list" id="completenessList"></div>
+        </div>
+
+        <div class="card" style="display:none;">
+          <div id="sourcesConsidered"></div>
+          <div class="quick-slice" id="quickSlice"></div>
         </div>
       </section>
 
@@ -986,7 +1044,18 @@
 
     function renderCopyPromptButton(baseKey, analysisType, buttonLabel) {
       const text = buildCodexPromptText(baseKey, analysisType);
-      return `<button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" onclick="copyTextToClipboard(${JSON.stringify(text)}); this.textContent='Скопировано!'; setTimeout(()=>{this.textContent='${buttonLabel}'},2000);">${buttonLabel}</button>`;
+      return renderCopyTextButton(text, buttonLabel);
+    }
+
+    function renderCopyTextButton(text, buttonLabel) {
+      return `<button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" data-copy-text="${escapeHtml(text)}" data-copy-label="${escapeHtml(buttonLabel)}" onclick="copyFromDataset(this)">${escapeHtml(buttonLabel)}</button>`;
+    }
+
+    function copyFromDataset(button) {
+      const label = button.dataset.copyLabel || button.innerText;
+      copyTextToClipboard(button.dataset.copyText || '');
+      button.innerText = 'Скопировано!';
+      window.setTimeout(() => { button.innerText = label; }, 2000);
     }
 
     function getLoadedCallsInfo(card) {
@@ -1250,6 +1319,81 @@
       renderListsGrid(byId('overviewLists'), s);
     }
 
+    function getCandidateExperienceSummary(card) {
+      const latest = card.latest_analysis || {};
+      const manualInputs = card.manual_inputs || [];
+      const c = card.candidate || {};
+      const interviewManual = manualInputs.find(m => m.section === 'interview' || m.section === 'interview_summary');
+      const p = interviewManual && interviewManual.payload && typeof interviewManual.payload === 'object' ? interviewManual.payload : {};
+      const candidates = [
+        c.experience_summary,
+        c.candidate_experience,
+        p.experience_summary,
+        p.candidate_experience,
+        p.experience,
+        p.hr_summary,
+        p.tl_summary,
+        p.summary,
+        p.comment,
+        latest.interview && latest.interview.candidate_experience,
+        latest.interview && latest.interview.experience_summary,
+        latest.interview && latest.interview.summary,
+      ];
+      const rawRe = /\[Говорящий\s+\d+\]|^Продавец:|^Клиент:|^Оператор:|^Менеджер:/im;
+      const text = candidates
+        .map(v => v == null ? '' : String(v).trim())
+        .find(v => v && !rawRe.test(v));
+      if (!text) {
+        return {
+          hasData: false,
+          html: 'Опыт кандидата не выделен из собеседования. Посмотрите вкладку «Собеседование» или заполните краткое резюме вручную.',
+        };
+      }
+      const sentences = text
+        .split(/(?<=[.!?])\s+|\n+/)
+        .map(x => x.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+      return {
+        hasData: true,
+        html: sentences.map(x => `<p style="margin:0 0 6px;">${escapeHtml(x)}${/[.!?]$/.test(x) ? '' : '.'}</p>`).join(''),
+      };
+    }
+
+    function renderOverviewPersonCard(card) {
+      const el = byId('overviewPersonCard');
+      const c = card.candidate || {};
+      const s = card.scores || {};
+      const experience = getCandidateExperienceSummary(card);
+      const rec = s.recommendation || 'Ключевой вывод пока не заполнен. Проверьте готовность данных и недостающие анализы.';
+      const meta = [
+        c.base_key ? `Ключ: ${c.base_key}` : null,
+        c.seller_segment ? `Сегмент: ${c.seller_segment}` : null,
+        c.direction ? `Направление: ${c.direction}` : null,
+        s.final_status ? statusLabelRu(s.final_status) : null,
+      ].filter(Boolean);
+      const firstControl = (Array.isArray(s.growth_zones) && s.growth_zones[0])
+        || (Array.isArray(s.coach_recommendations) && s.coach_recommendations[0])
+        || 'Сначала проверьте вкладки с рассчитанными источниками и назначьте следующий шаг тренеру.';
+      el.innerHTML = `<div>
+        <div class="hero-eyebrow" style="color:var(--accent); background:var(--accent-soft);">Основной отчёт · резюме для тренера</div>
+        <h2 class="person-title">${escapeHtml(c.full_name || 'Без ФИО')}</h2>
+        <p class="subtle">Краткая управленческая сводка: кто пришёл в обучение, какие этапы уже видны и что тренеру контролировать дальше.</p>
+        <div class="person-meta">${meta.map(item => `<span class="overview-chip">${escapeHtml(item)}</span>`).join('')}</div>
+        <div class="overview-experience">
+          <div class="oe-label">Опыт кандидата</div>
+          <div class="oe-text">${experience.html}</div>
+        </div>
+      </div>
+      <aside class="overview-side">
+        <div>
+          <div class="os-label">Главный вывод</div>
+          <div class="os-text">${escapeHtml(rec)}</div>
+        </div>
+        <div class="os-note">${escapeHtml(firstControl)}</div>
+      </aside>`;
+    }
+
     function renderOverviewCallsStatus(card) {
       const el = byId('overviewCallsStatus');
       const s = card.scores || {};
@@ -1281,6 +1425,72 @@
         <div class="es-icon">?</div>
         <div class="es-title">Реальные звонки пока не загружены.</div>
         <div class="es-sub">После загрузки звонков здесь появится кнопка для копирования промпта анализа.</div>
+      </div>`;
+    }
+
+    function getPhoneNormRows(card) {
+      const manualInputs = card.manual_inputs || [];
+      const phoneMetrics = manualInputs.find(m => m.section === 'phone_metrics');
+      const rawDays = card.call_stats && Array.isArray(card.call_stats.days)
+        ? card.call_stats.days
+        : (phoneMetrics && phoneMetrics.payload && Array.isArray(phoneMetrics.payload.days) ? phoneMetrics.payload.days : []);
+      const dayDefs = [
+        { label: 'День 3 / первые звонки', min: 45, warn: 30 },
+        { label: 'День 4 / второй день звонков', min: 75, warn: 60 },
+        { label: 'День 5 / финальный день', min: 105, warn: 90 },
+      ];
+      const values = dayDefs.map((def, idx) => {
+        const raw = rawDays[idx] || {};
+        const minutes = firstNumeric(raw.minutes, raw.talk_time_minutes, raw.value);
+        return { ...def, minutes };
+      });
+      const sum = values.reduce((acc, row) => acc + (row.minutes || 0), 0);
+      const total = firstNumeric(card.call_stats && card.call_stats.talk_time_minutes, sum || null);
+      return { values, total: { label: 'Итого', min: 200, warn: 170, minutes: total } };
+    }
+
+    function phoneNormState(minutes, warn, min) {
+      if (minutes == null) return { color: '#73668f', label: 'нет данных', percent: 0 };
+      const percent = Math.max(5, Math.min(100, Math.round((minutes / min) * 100)));
+      if (minutes >= min) return { color: '#23824f', label: 'зелёная зона', percent };
+      if (minutes >= warn) return { color: '#b46b00', label: 'жёлтая зона', percent };
+      return { color: '#d85c3a', label: 'красная зона', percent };
+    }
+
+    function renderPhoneNormsCard(card) {
+      const rows = getPhoneNormRows(card);
+      const allRows = [...rows.values, rows.total];
+      const hasAny = allRows.some(row => row.minutes != null);
+      if (!hasAny) {
+        return `<div class="phone-norm-card">
+          <div class="phone-norm-head">
+            <div>
+              <div class="ts-label">Время на трубке</div>
+              <div class="subtle" style="margin:0;">Это выполнение нормы времени, не анализ качества звонков.</div>
+            </div>
+          </div>
+          <div class="empty-list">нет данных</div>
+        </div>`;
+      }
+      const totalState = phoneNormState(rows.total.minutes, rows.total.warn, rows.total.min);
+      return `<div class="phone-norm-card">
+        <div class="phone-norm-head">
+          <div>
+            <div class="ts-label">Время на трубке</div>
+            <div class="subtle" style="margin:0;">Выполнение нормы времени, не анализ качества звонков по автомануалу.</div>
+          </div>
+          <div class="phone-norm-total" style="color:${totalState.color};">${rows.total.minutes == null ? '—' : escapeHtml(rows.total.minutes + ' мин')}</div>
+        </div>
+        <div class="phone-norm-rows">
+          ${allRows.map(row => {
+            const state = phoneNormState(row.minutes, row.warn, row.min);
+            return `<div class="phone-norm-row">
+              <b>${escapeHtml(row.label)}</b>
+              <div class="phone-norm-track"><div class="phone-norm-fill" style="width:${state.percent}%; background:${state.color};"></div></div>
+              <span style="color:${state.color};">${row.minutes == null ? 'нет данных' : escapeHtml(row.minutes + ' мин')}</span>
+            </div>`;
+          }).join('')}
+        </div>
       </div>`;
     }
 
@@ -1318,21 +1528,13 @@
       ];
       const datesHtml = dates.map(d => `<div>${escapeHtml(d.label)}: <b>${escapeHtml(d.value || 'нет данных')}</b></div>`).join('');
 
-      const interviewManual = findManual('interview', 'interview_transcript');
-      const interviewText = firstPresent(
-        card.interview_summary && (card.interview_summary.preview || card.interview_summary.summary),
-        latest.interview && latest.interview.summary,
-        manualValue(interviewManual, 'experience', 'summary', 'text_content', 'transcript', 'comment')
-      );
-      const experienceHtml = interviewText
-        ? String(interviewText).split(/[.!?]\s+|\n+/).map(x => x.trim()).filter(Boolean).slice(0, 4).map(x => `<p style="margin:0 0 6px;">${escapeHtml(x)}${/[.!?]$/.test(x) ? '' : '.'}</p>`).join('')
-        : 'Опыт не выделен из собеседования. Данные можно уточнить в блоке «Собеседование».';
+      const experience = getCandidateExperienceSummary(card);
 
       const opsSummary = card.ops_summary || null;
       const opsSections = opsSummary && Array.isArray(opsSummary.sections) ? opsSummary.sections : [];
       const opsLoaded = opsSections.length > 0 && opsSections.some(sec => sec.status !== 'not_checked' || (sec.comment && sec.comment.trim()));
       const callsInfo = getLoadedCallsInfo(card);
-      const interviewLoaded = Boolean(card.interview_summary && (card.interview_summary.has_interview || card.interview_summary.has_transcript)) || Boolean(interviewText);
+      const interviewLoaded = Boolean(card.interview_summary && (card.interview_summary.has_interview || card.interview_summary.has_transcript)) || experience.hasData;
       const finalTestReady = completeItems.some(i => i.code === 'final_test' && i.status === 'ready');
       const callsSummary = latest.calls
         ? {
@@ -1352,36 +1554,34 @@
               note: 'Загрузите звонки во вкладке «Звонки».',
             };
       const summaryRows = [
-        { title: 'Собеседование', status: statusFor(Boolean(latest.interview), interviewLoaded), score: [scoreText('Софт', s.soft_score), scoreText('Hard', s.hard_score)].join(' · '), note: 'Soft/hard/evidence смотрите во вкладке «Собеседование».' },
-        { title: 'Звонки', status: callsSummary.status, score: callsSummary.score, note: callsSummary.note },
-        { title: 'Учебные агенты', status: dialogs.length ? 'импортировано' : 'нет данных', score: `${dialogs.length || 0} диалогов`, note: 'Тестовый день и учебные диалоги — во вкладке «Учебные агенты».' },
-        { title: 'Операционка', status: statusFor(false, opsLoaded), score: [scoreText('Операционка', s.ops_score), scoreText('Дисциплина', s.discipline_score)].join(' · '), note: 'Дисциплина, статусы и комментарии — во вкладке «Операционка».' },
-        { title: 'Выпускной тест', status: s.final_test_score != null || finalTestReady ? 'рассчитано' : 'нет данных', score: scoreText('Балл', s.final_test_score), note: 'Итоговый тест учитывается в общей score-сводке.' },
+        { title: 'Собеседование', tab: 'interview', status: statusFor(Boolean(latest.interview), interviewLoaded), score: [scoreText('Софт', s.soft_score), scoreText('Hard', s.hard_score)].join(' · '), note: 'Софт, hard skills, ролёвка и обоснования смотрите во вкладке «Собеседование».' },
+        { title: 'Учебные агенты', tab: 'training', status: dialogs.length ? 'импортировано' : 'нет данных', score: `${dialogs.length || 0} диалогов`, note: 'Тестовый день, 6 блоков оценки и диалоги с агентами смотрите во вкладке «Учебные агенты».' },
+        { title: 'Звонки', tab: 'calls', status: callsSummary.status, score: callsSummary.score, note: 'Реальные звонки и анализ по автомануалу смотрите во вкладке «Звонки».' },
+        { title: 'Операционка', tab: 'ops', status: statusFor(false, opsLoaded), score: [scoreText('Операционка', s.ops_score), scoreText('Дисциплина', s.discipline_score)].join(' · '), note: 'Статусы, просрочки, комментарии и дисциплину смотрите во вкладке «Операционка».' },
+        { title: 'Выпускной тест', tab: 'scores', status: s.final_test_score != null || finalTestReady ? 'рассчитано' : 'нет данных', score: scoreText('Балл', s.final_test_score), note: 'Итоговый тест учитывается в общей score-сводке.' },
       ];
 
       el.innerHTML = `
         <div class="trainer-summary-grid">
           <div class="trainer-summary-card"><div class="ts-label">Даты этапов</div><div class="ts-value">${datesHtml}</div></div>
-          <div class="trainer-summary-card"><div class="ts-label">Опыт кандидата</div><div class="ts-value">${experienceHtml}</div></div>
+          <div class="trainer-summary-card"><div class="ts-label">На основе чего сделан вывод</div><div class="ts-value">Собеседование, учебные агенты, реальные звонки и операционные данные, если они загружены или рассчитаны.</div></div>
         </div>
+        <div style="margin-top:14px;">${renderPhoneNormsCard(card)}</div>
         <h3 style="margin:18px 0 10px;">Сводка цифр</h3>
         <div class="source-grid">
-          ${summaryRows.map(row => `<div class="source-card">
-            <div class="sc-icon ${row.status === 'нет данных' ? 'muted' : 'ok'}">${row.status === 'нет данных' ? '—' : '✓'}</div>
-            <div class="sc-body">
-              <div class="sc-title">${escapeHtml(row.title)}</div>
-              <div class="sc-status">${escapeHtml(row.score)}<br>${escapeHtml(row.note)}</div>
+          ${summaryRows.map(row => `<div class="overview-summary-card" title="${escapeHtml(row.note)}">
+            <div class="osc-top">
+              <div>
+                <div class="osc-title">${escapeHtml(row.title)}</div>
+                <span class="sc-badge ${row.status === 'нет данных' ? 'muted' : 'ok'}" style="margin-top:7px;">${escapeHtml(row.status)}</span>
+              </div>
+              <div class="osc-score">${escapeHtml(row.score)}</div>
             </div>
-            <span class="sc-badge ${row.status === 'нет данных' ? 'muted' : 'ok'}">${escapeHtml(row.status)}</span>
+            <div class="osc-note">${escapeHtml(row.note)}</div>
+            <button type="button" class="btn secondary" onclick="setActiveTab('${escapeHtml(row.tab)}')">Открыть вкладку</button>
           </div>`).join('')}
         </div>
-        <h3 style="margin:18px 0 10px;">Где смотреть подробнее</h3>
-        <div class="trainer-link-row">
-          <button type="button" class="btn secondary" onclick="setActiveTab('interview')">Собеседование</button>
-          <button type="button" class="btn secondary" onclick="setActiveTab('training')">Учебные агенты</button>
-          <button type="button" class="btn secondary" onclick="setActiveTab('calls')">Звонки</button>
-          <button type="button" class="btn secondary" onclick="setActiveTab('ops')">Операционка</button>
-        </div>`;
+        <div class="trainer-summary-card" style="margin-top:14px;"><div class="ts-label">Опыт кандидата</div><div class="ts-value">${experience.html}</div></div>`;
     }
 
     function renderListsGrid(container, scores) {
@@ -1757,7 +1957,8 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
 
       return `<div class="card" style="margin-bottom:14px;">
         <h3>Оценка звонков по автомануалу</h3>
-        <div class="block-grid">
+        <p class="subtle">Итоговая оценка собрана по пяти этапам: контакт, потребность, презентация, возражения и тест на сделку.</p>
+        <div class="call-manual-grid">
           ${stages.map(stage => renderCallManualStageCard(stage)).join('')}
         </div>
       </div>`;
@@ -1767,12 +1968,15 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
       if (!latestCalls || typeof latestCalls !== 'object') return [];
       const possibleContainers = [
         latestCalls.stage_dynamics,
+        latestCalls.output_payload && latestCalls.output_payload.stage_dynamics,
+        latestCalls.output_payload_json && latestCalls.output_payload_json.stage_dynamics,
         latestCalls.call_stage_dynamics,
         latestCalls.dynamics,
         latestCalls.stages,
         latestCalls.by_stage,
         latestCalls.stage_results,
         latestCalls.calls_by_stage,
+        latestCalls.rubric_result && latestCalls.rubric_result.stage_dynamics,
         latestCalls.rubric_result && latestCalls.rubric_result.stage_results,
         latestCalls.rubric_result && latestCalls.rubric_result.by_stage,
       ].filter(Boolean);
@@ -1819,19 +2023,22 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
     function normalizeCallStageData(raw, meta) {
       const data = raw && raw.rubric_result ? { ...raw.rubric_result, ...raw } : raw;
       const score = firstNumeric(
+        data.overall,
         data.overall_score_percent,
         data.score_percent,
         data.call_quality_score,
         data.quality_score,
         data.score
       );
-      const unitsSource = data.units || data.stage_units || data.sales_stages || data.breakdown || [];
+      const percent = firstNumeric(data.percent, data.score_percent, score != null && score <= 5 ? score * 20 : null);
+      const unitsSource = data.blocks || data.units || data.stage_units || data.sales_stages || data.breakdown || [];
       const units = normalizeCallStageUnits(unitsSource);
       const comment = data.comment || data.summary || data.conclusion || data.note || '';
       return {
         key: meta.key,
-        label: meta.label,
+        label: data.label || meta.label,
         score,
+        percent,
         units,
         comment,
         hasData: score != null || units.length > 0 || Boolean(comment),
@@ -1865,22 +2072,31 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
     }
 
     function renderCallManualStageCard(stage) {
-      const band = scoreBand(stage.score);
-      const valueDisplay = stage.score == null ? '—' : formatScoreValue(stage.score);
-      return `<div class="block-card">
-        <div class="block-head">
-          <span class="block-name">${escapeHtml(stage.label)}</span>
-          <span class="block-score" style="color:${band.color};">${escapeHtml(valueDisplay)}</span>
+      const percent = stage.percent != null ? stage.percent : (stage.score != null && stage.score <= 5 ? stage.score * 20 : stage.score);
+      const band = scoreBand(percent);
+      const valueDisplay = stage.score == null
+        ? '—'
+        : (stage.score <= 5 ? `${String(Math.round(stage.score * 100) / 100).replace('.', ',')} / 5` : formatScoreValue(stage.score));
+      return `<div class="call-manual-card">
+        <div class="call-manual-top">
+          <div class="call-manual-title">${escapeHtml(stage.label)}</div>
+          <div class="call-score-box" style="background:${band.bg};">
+            <div style="color:${band.color};">${escapeHtml(valueDisplay)}</div>
+            <span>${percent == null ? 'нет данных' : escapeHtml(Math.round(percent) + '%')}</span>
+          </div>
         </div>
-        <div class="score-band-bar"><div class="fill" style="width:${band.percent}%; background:${band.color};"></div></div>
-        <span class="score-band-label" style="background:${band.bg}; color:${band.color};">${escapeHtml(band.label)}</span>
-        <div style="margin-top:12px; display:grid; gap:6px;">
-          ${stage.units.map(unit => `<div style="display:flex; justify-content:space-between; gap:10px; font-size:12px;">
-            <span>${escapeHtml(unit.label)}</span>
-            <b>${unit.score == null ? 'нет данных' : escapeHtml(formatScoreValue(unit.score))}</b>
-          </div>`).join('')}
+        <div class="call-manual-list">
+          ${stage.units.map(unit => {
+            const unitPercent = unit.score == null ? 0 : (unit.score <= 1 ? unit.score * 100 : unit.score);
+            const cls = unitPercent >= 80 ? 'zone-confident' : unitPercent >= 65 ? 'zone-minimum' : 'zone-risk';
+            return `<div class="call-manual-row">
+              <div>${escapeHtml(unit.label)}</div>
+              <div class="call-manual-bar"><span class="${cls}" style="width:${unitPercent}%; background:${unitPercent >= 80 ? '#23824f' : unitPercent >= 65 ? '#8f6df4' : '#f0b429'};"></span></div>
+              <b>${unit.score == null ? '—' : escapeHtml(String(Math.round(unit.score * 100) / 100).replace('.', ','))}</b>
+            </div>`;
+          }).join('')}
         </div>
-        ${stage.comment ? `<div class="block-comment">${escapeHtml(stage.comment)}</div>` : ''}
+        ${stage.comment ? `<p class="call-manual-note">${escapeHtml(stage.comment)}</p>` : ''}
       </div>`;
     }
 
@@ -1994,7 +2210,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
       }
 
       // Units breakdown — stage cards with scoreBand visual bars.
-      // Evidence (question_details) is shown inside a secondary <details>.
+      // Question details are shown inside a secondary <details>.
       const unitsHtml = expectedUnitIds.map(uid => {
         const u = units.find(x => x.unit_id === uid);
         if (!u) return '';
@@ -2005,7 +2221,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         const statusBadge = u.status && u.status !== 'applicable' ? `<span class="status-badge unknown" style="margin-left:6px; font-size:10px;">${escapeHtml(analysisStatusRu(u.status))}</span>` : '';
         const qd = Array.isArray(u.question_details) ? u.question_details : [];
         const detailsHtml = qd.length ? `<details class="tech-details details-secondary" style="margin-top:10px;">
-          <summary>Evidence и детали (${escapeHtml(qd.length)})</summary>
+          <summary>Вопросы и обоснования (${escapeHtml(qd.length)})</summary>
           <div style="margin-top:8px;">
             ${qd.map(q => renderQuestionEvidence(q)).join('')}
           </div>
@@ -2323,7 +2539,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         <h3>Анализ по нашему мануалу</h3>
         <div class="notice-block">
           <div class="nb-text">Импортирован результат из учебного бота. Отдельный анализ по нашему мануалу ещё не рассчитан.</div>
-          <button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" onclick="copyTextToClipboard(${escapeHtml(JSON.stringify(trainingCodexDraftPrompt))}); this.textContent='Скопировано!'; setTimeout(()=>{this.textContent='${escapeHtml(trainingCodexDraftLabel)}'},2000);">${escapeHtml(trainingCodexDraftLabel)}</button>
+          ${renderCopyTextButton(trainingCodexDraftPrompt, trainingCodexDraftLabel)}
         </div>
       </div>`);
 
@@ -2648,12 +2864,11 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
         'Пока для операционки используются только ручные оценки и готовность данных.',
       ].join('\n');
       const buttonLabel = 'Скопировать промпт для Codex (черновик)';
-      const escapedDraftJson = JSON.stringify(draftText);
       return `<div class="card">
         <h3>Анализ операционки</h3>
         <div class="notice-block">
           <div class="nb-text">Операционные данные загружены, но анализ операционки ещё не рассчитан.</div>
-          <button type="button" class="btn secondary" style="font-size:13px; padding:6px 12px;" onclick="copyTextToClipboard(${escapedDraftJson}); this.textContent='Скопировано!'; setTimeout(()=>{this.textContent='${buttonLabel}'},2000);">${buttonLabel}</button>
+          ${renderCopyTextButton(draftText, buttonLabel)}
         </div>
       </div>`;
     }
@@ -2845,6 +3060,7 @@ node scripts/import_analysis_result.js --file &lt;result&gt;.json</pre></details
           return;
         }
         renderHero(card);
+        renderOverviewPersonCard(card);
         renderSourcesConsidered(card);
         renderQuickSlice(card);
         renderOverviewRecommendation(card);

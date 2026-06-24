@@ -203,6 +203,156 @@ function buildScoresPatch(rubricId, rubricResult, doc, existingScores) {
   return patch;
 }
 
+// ----------------------------------------------------------------------
+// Semantic guard for analysis_type=calls
+// ----------------------------------------------------------------------
+
+// Markers that must never appear in calls semantic fields. A calls analysis
+// must be built from real calls only — never from training bot dialogs.
+const FORBIDDEN_CALLS_SEMANTIC_MARKERS = [
+  'training_bot_dialogs', 'training_bot', 'bot_training',
+  'role-', 'dialog:', 'result_payload', 'учебн',
+];
+
+// Default tolerance (in 0–100 points) for score consistency between the
+// average of per-call scores and the rubric overall_score_percent.
+const CALLS_SCORE_CONSISTENCY_TOLERANCE = 1.0;
+
+/**
+ * Extract a per-call quality score from a call_result object, trying the
+ * accepted field names in priority order. Returns a finite number or null.
+ */
+function extractCallResultScore(cr) {
+  if (!cr || typeof cr !== 'object') return null;
+  for (const field of ['overall_percent', 'call_quality_score', 'quality_score', 'score']) {
+    const v = cr[field];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
+}
+
+/**
+ * Run semantic consistency checks for analysis_type=calls.
+ *
+ * These checks guard against importing a result whose internal "math" is
+ * inconsistent (e.g. a single call_result claiming 9 calls, stage_dynamics
+ * missing stages, an overall score that does not match the per-call average,
+ * or training-bot leakage). They run IN ADDITION to validateAnalysisResult()
+ * and rubric scoring — the document is already structurally valid here.
+ *
+ * Returns:
+ *   {
+ *     ok: boolean,
+ *     checks: { question_results, call_results, stage_dynamics,
+ *               score_consistency, forbidden_markers },   // each PASS/FAIL
+ *     details: string[]   // human-readable explanation per failing check
+ *   }
+ */
+function runCallsSemanticChecks(doc, rubric, rubricResult) {
+  const checks = {
+    question_results: 'PASS',
+    call_results: 'PASS',
+    stage_dynamics: 'PASS',
+    score_consistency: 'PASS',
+    forbidden_markers: 'PASS',
+  };
+  const details = [];
+
+  // 1. question_results — exactly the rubric's questions (v1.1.0 = 16).
+  const expectedIds = [];
+  const stages = Array.isArray(rubric && rubric.stages) ? rubric.stages : [];
+  for (const stage of stages) {
+    for (const q of (stage.questions || [])) {
+      if (q && q.question_id && !q.metadata) expectedIds.push(q.question_id);
+    }
+  }
+  const expectedSet = new Set(expectedIds);
+  const seen = Array.isArray(doc.question_results)
+    ? doc.question_results.map(q => q && q.question_id).filter(Boolean)
+    : [];
+  const seenSet = new Set(seen);
+  const missing = expectedIds.filter(id => !seenSet.has(id));
+  const extra = seen.filter(id => !expectedSet.has(id));
+  if (seen.length !== expectedIds.length || missing.length || extra.length) {
+    checks.question_results = 'FAIL';
+    details.push(`question_results: expected ${expectedIds.length} questions for ${rubric.rubric_id} v${rubric.rubric_version}, got ${seen.length}`
+      + (missing.length ? `; missing: ${missing.join(', ')}` : '')
+      + (extra.length ? `; unexpected: ${extra.join(', ')}` : ''));
+  }
+
+  // 2. call_results — must exist, be a non-empty array, each with a score.
+  const callResults = Array.isArray(doc.call_results) ? doc.call_results : null;
+  let callScores = [];
+  if (!callResults || callResults.length === 0) {
+    checks.call_results = 'FAIL';
+    details.push('call_results: missing or empty — calls analysis must list individual calls.');
+  } else {
+    const scored = callResults.map(extractCallResultScore);
+    const unscored = scored.filter(s => s == null).length;
+    if (unscored > 0) {
+      checks.call_results = 'FAIL';
+      details.push(`call_results: ${unscored}/${callResults.length} entries have no recognised score (overall_percent / call_quality_score / quality_score / score).`);
+    }
+    callScores = scored.filter(s => s != null);
+  }
+
+  // 3. stage_dynamics — must exist and contain start / middle / final.
+  const sd = doc.stage_dynamics;
+  if (!sd || typeof sd !== 'object' || Array.isArray(sd)) {
+    checks.stage_dynamics = 'FAIL';
+    details.push('stage_dynamics: missing or not an object — expected start / middle / final dynamics.');
+  } else {
+    const missingStages = ['start', 'middle', 'final'].filter(k => !(k in sd));
+    if (missingStages.length) {
+      checks.stage_dynamics = 'FAIL';
+      details.push(`stage_dynamics: missing stage(s): ${missingStages.join(', ')}.`);
+    }
+  }
+
+  // 4. score consistency — avg(call_results scores) ≈ rubric overall_score_percent.
+  const overall = rubricResult ? rubricResult.overall_score_percent : null;
+  if (checks.call_results === 'FAIL' || callScores.length === 0 || overall == null) {
+    checks.score_consistency = 'FAIL';
+    details.push('score consistency: cannot compare (call_results scores or rubric overall missing).');
+  } else {
+    const avg = callScores.reduce((s, v) => s + v, 0) / callScores.length;
+    const diff = Math.abs(avg - overall);
+    if (diff > CALLS_SCORE_CONSISTENCY_TOLERANCE) {
+      checks.score_consistency = 'FAIL';
+      details.push(`score consistency: avg(call_results)=${avg.toFixed(2)} vs rubric overall=${overall} → diff ${diff.toFixed(2)} > tolerance ${CALLS_SCORE_CONSISTENCY_TOLERANCE}.`);
+    } else {
+      details.push(`score consistency: avg(call_results)=${avg.toFixed(2)} ≈ rubric overall=${overall} (diff ${diff.toFixed(2)} ≤ ${CALLS_SCORE_CONSISTENCY_TOLERANCE}).`);
+    }
+  }
+
+  // 5. forbidden markers — no training-bot leakage in semantic fields.
+  const scanTargets = {
+    question_results: doc.question_results,
+    call_results: doc.call_results,
+    stage_dynamics: doc.stage_dynamics,
+    summary: doc.summary,
+    strengths: doc.strengths,
+    growth_zones: doc.growth_zones,
+    red_flags: doc.red_flags,
+    coach_recommendations: doc.coach_recommendations,
+  };
+  const foundMarkers = [];
+  for (const [field, value] of Object.entries(scanTargets)) {
+    if (value == null) continue;
+    const hay = (typeof value === 'string' ? value : JSON.stringify(value)).toLowerCase();
+    for (const marker of FORBIDDEN_CALLS_SEMANTIC_MARKERS) {
+      if (hay.includes(marker)) foundMarkers.push(`${marker} (in ${field})`);
+    }
+  }
+  if (foundMarkers.length) {
+    checks.forbidden_markers = 'FAIL';
+    details.push(`forbidden markers: ${foundMarkers.join('; ')}.`);
+  }
+
+  const ok = Object.values(checks).every(v => v === 'PASS');
+  return { ok, checks, details };
+}
+
 function applyCriticalErrorCaps(patch, riskFlags) {
   // Risk flags may cap the call_quality_score. Apply conservative caps
   // based on the codes that appear (mirrors docs/15_CALLS_AUTOMANUAL_BINARY_RUBRIC.md §11).
@@ -421,6 +571,23 @@ function main() {
     }
   }
 
+  // 3b. Semantic guard (calls only) — checks the internal consistency of the
+  // result (call count, stage dynamics, score math, no training-bot leakage).
+  let semantic = null;
+  if (doc.analysis_type === 'calls') {
+    semantic = runCallsSemanticChecks(doc, rubric, rubricResult);
+    console.log('');
+    console.log('Semantic checks:');
+    console.log(`- question_results: ${semantic.checks.question_results}`);
+    console.log(`- call_results: ${semantic.checks.call_results}`);
+    console.log(`- stage_dynamics: ${semantic.checks.stage_dynamics}`);
+    console.log(`- score consistency: ${semantic.checks.score_consistency}`);
+    console.log(`- forbidden markers: ${semantic.checks.forbidden_markers}`);
+    if (semantic.details.length) {
+      for (const d of semantic.details) console.log(`   · ${d}`);
+    }
+  }
+
   // 4. Build candidate_scores patch
   let existingScores = null;
   try {
@@ -446,7 +613,11 @@ function main() {
   // 5. Dry-run or persist
   if (dryRun) {
     console.log('');
-    console.log(`5. DRY-RUN: skipping DB write.`);
+    if (semantic && !semantic.ok) {
+      console.log(`5. DRY-RUN: semantic checks FAILED — live import would be aborted.`);
+    } else {
+      console.log(`5. DRY-RUN: skipping DB write.`);
+    }
     console.log(`   Would create analysis_runs row:`);
     console.log(`     candidate_id: ${doc.base_key}`);
     console.log(`     analysis_type: ${ANALYSIS_RUN_TYPE[doc.analysis_type] || doc.analysis_type}`);
@@ -457,6 +628,14 @@ function main() {
     console.log('');
     console.log('DRY-RUN complete. No DB writes performed.');
     process.exit(0);
+  }
+
+  // Live guard: never write an internally inconsistent calls result to the DB.
+  if (semantic && !semantic.ok) {
+    console.log('');
+    console.error('Aborting: semantic checks failed for calls analysis. No DB writes performed.');
+    for (const d of semantic.details) console.error(`   - ${d}`);
+    process.exit(4);
   }
 
   // Live run

@@ -1069,8 +1069,8 @@
         const m = manualInputs.find(x => x.section === section);
         const calls = m && m.payload && Array.isArray(m.payload.calls) ? m.payload.calls : [];
         count += calls.length;
-        // Source B: candidate_files with text_content
-        const cf = files.filter(f => f.section === section && f.has_text_content);
+        // Source B: candidate_files with useful text_content
+        const cf = files.filter(f => f.section === section && fileHasUsefulText(f));
         fileCount += cf.length;
       }
       const hasMetrics = Boolean(card.call_stats && (
@@ -1856,10 +1856,10 @@
         }
       }
 
-      // Source B: candidate_files with text_content
-      const cf = files.filter(f => f.section === section && f.has_text_content);
+      // Source B: candidate_files with useful text_content
+      const cf = files.filter(f => f.section === section && fileHasUsefulText(f));
       for (const f of cf) {
-        const transcript = String(f.text_content || f.text_content_preview || '').trim();
+        const transcript = String(f.text_content || f.text_content_preview || f.preview || '').trim();
         if (transcript.length < MIN_LEN) continue;
         const hash = simpleHashFrontend(transcript);
         if (seenHashes.has(hash)) continue;
@@ -1883,6 +1883,13 @@
         h = ((h << 5) - h + str.charCodeAt(i)) | 0;
       }
       return String(h);
+    }
+
+    function fileHasUsefulText(file) {
+      const text = String(
+        file && (file.text_content || file.text_content_preview || file.preview || '')
+      ).trim();
+      return text.length >= 50;
     }
 
     function renderCallsTab(card) {

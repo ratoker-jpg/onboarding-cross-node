@@ -246,4 +246,89 @@ These steps require a real Phase 1 DB and are NOT run in this environment.
 
 ## Rollback
 
-Delivered as a branch/PR; rollback = revert the merge commit or `git checkout main -- <file>` for each changed file. The new `scripts/purge_candidate_data.js` and `PATCH_REPORT_DATA_PURGE_V1.md` can be deleted outright.
+Delivered as a branch/PR; rollback = revert the merge commit or `git checkout main -- <file>` for each changed file. The new `scripts/purge_candidate_data.js`, `scripts/test_purge_candidate_data.js`, and `PATCH_REPORT_DATA_PURGE_V1.md` can be deleted outright.
+
+---
+
+# Fixup — path-safe unlink + test file committed (post-review)
+
+**Date:** 2026-06-25
+**Goal:** close two blockers identified during PR #21 review before merge.
+
+## BLOCKER 1 — file unlink must be path-safe
+
+**Problem:** the original `unlinkFiles()` did `fs.unlinkSync(p)` on every path from `candidate_files.stored_path` + `tmp/<base_key>*` without any allowlist. If a compromised DB row contained `stored_path = "/etc/passwd"` or `"../../.env"`, the purge would delete that file — a path-traversal / arbitrary-file-delete vulnerability in a security-focused PR.
+
+**Fix:** added a path-safety allowlist to `unlinkFiles()`.
+
+- New `PURGE_ALLOWED_ROOTS` const (computed at module load):
+  - `<repoRoot>/tmp/` — Codex bundle/result JSON files
+  - `<process.cwd()>/data/uploads/phase1/` — uploaded candidate files (matches `saveCandidateFile`'s `uploadDir`)
+- New `isPathInside(resolvedTarget, allowedRoot)` helper — uses `path.relative()` (not prefix matching) so `/tmp-evil` does NOT match root `/tmp`.
+- New `redactPath(p)` helper — returns basename-only for paths outside allowed roots, or path-relative-to-root for paths inside. Never leaks absolute server paths.
+- `unlinkFiles()` now:
+  1. resolves each path to absolute form
+  2. checks `isPathInsideAnyRoot(resolved)` — if OUTSIDE, pushes a redacted basename to `unsafe` and continues (no unlink, no crash)
+  3. only calls `fs.unlinkSync(resolved)` for paths inside allowed roots
+  4. ENOENT → silently skipped (not failed, not unsafe)
+  5. other unlink errors → `failed` with redacted path
+- Response shape extended:
+  - `unsafe_paths_count` — number of paths flagged unsafe
+  - `unsafe_paths` — array of redacted basenames (never absolute paths, never the original traversal payload)
+  - `tmp_files_failed_paths` — now also redacted (was raw absolute path before)
+- Audit log payload unchanged in shape — it already contained only counts + mode + dry_run + public candidate profile, never raw paths.
+
+**Behaviour:** a compromised `stored_path` is now safely ignored. The DB row is still deleted (that's the point of the purge), but the file on disk is NOT touched. The operator sees `unsafe_paths: ["passwd", ".env", "auth.log"]` in the response and can investigate the DB row.
+
+## BLOCKER 2 — test file was not committed
+
+**Problem:** `PATCH_REPORT` and PR body referenced `scripts/test_purge_candidate_data.js`, but the file lived outside the repo (in `/home/z/my-project/scripts/`) and was not in the PR's changed files. The check was not reproducible.
+
+**Fix:** committed `scripts/test_purge_candidate_data.js` into the repo. The test was also extended to cover the new path-safety behaviour:
+
+- **TEST 0** (new) — real-filesystem test in `<repoRoot>/tmp/`: creates 2 safe files (deleted) + verifies 4 unsafe paths (`/etc/passwd`, `../../.env`, `/tmp/../../etc/shadow`, `<os.tmpdir()>/attacker.json`) are flagged `unsafe` with redacted basenames and the attacker file survives on disk.
+- **TEST 5** updated — now expects 3 files unlinked (2 tmp + 1 stored) and `unsafe_paths_count: 0`.
+- **TEST 6** updated — `deleted_counts.tmp_files` is now 3 (1 stored + 2 tmp).
+- **TEST 7** updated — 3 paths fail unlink (was 2), `unsafe_paths_count: 0`.
+- **TEST 9** (new) — simulates compromised DB: `candidate_files.deleteByCandidateId` returns `['/etc/passwd', '../../.env', '<tmp>/attacker.json']`. Verifies 3 unsafe paths flagged + redacted, 2 safe tmp files still deleted, DB purge permanent, audit log written.
+- **TEST 10** (new) — verifies the response JSON and audit payload NEVER contain raw `/etc/passwd`, `../../.env`, or `/var/log/` strings.
+
+Total: 11 tests (TEST 0 + 1-10), all pass.
+
+## Files changed in this fixup
+
+| File | Change |
+|---|---|
+| `services/phase1_candidate_service.js` | Added `PURGE_ALLOWED_ROOTS`, `isPathInside`, `isPathInsideAnyRoot`, `redactPath`. Rewrote `unlinkFiles()` to use the allowlist. Extended `purgeCandidateData()` response with `unsafe_paths_count` + `unsafe_paths` (redacted). Redacted `tmp_files_failed_paths`. |
+| `scripts/test_purge_candidate_data.js` | **New (committed).** 11 mock-based tests including path-safety + redaction + compromised-DB scenarios. |
+
+## Checks run
+
+```
+node --check server.js                                    # OK
+node --check routes/phase1_admin_routes.js                # OK
+node --check services/phase1_candidate_service.js         # OK
+node --check scripts/purge_candidate_data.js              # OK
+node --check scripts/test_purge_candidate_data.js         # OK
+node scripts/test_purge_candidate_data.js                 # 11/11 PASS
+node scripts/test_rubric_scoring.js                       # 24/24 (no scoring changes)
+```
+
+## Server verification steps (additions for the fixup)
+
+After running the original 9 server verification steps from the main PATCH_REPORT section, also verify:
+
+10. **Path-safety negative test:** manually insert a compromised `stored_path` into `candidate_files` for a test candidate:
+    ```sql
+    INSERT INTO candidate_files (candidate_id, base_key, section, file_type, original_name,
+      stored_path, mime_type, size_bytes, text_content, comment, created_at, updated_at)
+    VALUES (<id>, 'TESTPURG01', 'other', 'test', 'evil.txt',
+      '/etc/passwd', 'text/plain', 0, null, 'compromised row', '<now>', '<now>');
+    ```
+    Then run the purge. Expected: `deleted.candidate_files` includes the row, but `unsafe_paths_count: 1` and `unsafe_paths: ["passwd"]`. The real `/etc/passwd` is NOT deleted (verify with `ls -la /etc/passwd` — ownership/size unchanged).
+
+11. **Response redaction:** verify the response JSON does NOT contain the string `/etc/passwd` anywhere:
+    ```bash
+    node scripts/purge_candidate_data.js --base-key TESTPURG01 --confirm TESTPURG01 2>&1 | grep -c '/etc/passwd'
+    # expected: 0
+    ```

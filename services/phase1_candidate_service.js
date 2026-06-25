@@ -2293,20 +2293,114 @@ function listTmpFilesForBaseKey(baseKey) {
 }
 
 /**
- * Remove a list of files. Returns { deleted, failed }.
- * Best-effort: a missing file is not an error (it counts as deleted=0, not
- * failed). An unlink error (e.g. permission denied) counts as failed and
- * the path is returned so the caller can surface it.
+ * Allowed on-disk roots for purge unlinking. A stored_path or tmp file path
+ * is only unlinked if its resolved absolute path is INSIDE one of these
+ * roots. This prevents a compromised DB row (e.g. stored_path = "/etc/passwd"
+ * or "../../.env") from tricking the purge into deleting files outside the
+ * sanctioned directories.
+ *
+ * Roots:
+ *   - <repoRoot>/tmp/                         — Codex bundle/result JSON files
+ *   - <process.cwd()>/data/uploads/phase1/    — uploaded candidate files
+ *     (created by saveCandidateFile; stored_path is relative to cwd)
+ *
+ * Both roots are resolved to absolute form at module load. Symlinks inside
+ * are not specially handled — if an attacker can plant a symlink inside
+ * these roots, they have already compromised the server. The guard here is
+ * against DB-injected path traversal, not symlink attacks.
+ */
+const PURGE_ALLOWED_ROOTS = (() => {
+  const repoRoot = path.resolve(__dirname, '..');
+  const tmpRoot = path.resolve(repoRoot, 'tmp');
+  const uploadsRoot = path.resolve(process.cwd(), 'data', 'uploads', 'phase1');
+  return [tmpRoot, uploadsRoot];
+})();
+
+/**
+ * Check whether a resolved absolute path is inside any of the allowed roots.
+ * Uses path.relative() to avoid prefix-matching pitfalls (e.g. /tmp-evil
+ * should NOT match root /tmp). A path is "inside" iff the relative path
+ * from the root to the target does not start with '..' and is not absolute.
+ */
+function isPathInside(resolvedTarget, allowedRoot) {
+  if (!resolvedTarget || !allowedRoot) return false;
+  const rel = path.relative(allowedRoot, resolvedTarget);
+  if (!rel) return false; // the root itself — don't unlink a directory
+  return rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel);
+}
+
+function isPathInsideAnyRoot(resolvedTarget) {
+  return PURGE_ALLOWED_ROOTS.some(root => isPathInside(resolvedTarget, root));
+}
+
+/**
+ * Redact a file path for inclusion in API responses / audit log. We never
+ * want to leak absolute server paths (which reveal the deploy layout) or
+ * the raw DB-stored value (which might be the attacker's payload). Returns
+ * a basename-only or "<redacted>" string.
+ */
+function redactPath(p) {
+  if (!p) return '<empty>';
+  try {
+    const resolved = path.resolve(p);
+    // If inside an allowed root, return the path relative to that root —
+    // useful for debugging without leaking absolute layout.
+    for (const root of PURGE_ALLOWED_ROOTS) {
+      if (isPathInside(resolved, root)) {
+        const rel = path.relative(root, resolved);
+        return rel || path.basename(resolved);
+      }
+    }
+    // Outside any allowed root — return only the basename so the operator
+    // sees "passwd" or ".env" without the directory structure.
+    return path.basename(resolved) || '<redacted>';
+  } catch (_) {
+    return '<redacted>';
+  }
+}
+
+/**
+ * Remove a list of files safely. Returns { deleted, failed, unsafe }.
+ *
+ * Safety:
+ *   - Each path is resolved to absolute form and checked against
+ *     PURGE_ALLOWED_ROOTS. Paths outside the allowed roots are NOT unlinked,
+ *     NOT counted as failed, and NOT counted as deleted — they go into
+ *     `unsafe` so the operator sees the DB row is suspicious. The raw path
+ *     is redacted via redactPath() before being stored in the result.
+ *   - ENOENT (file already gone) is silently skipped — not deleted, not
+ *     failed, not unsafe.
+ *   - Other unlink errors (EACCES, EISDIR, …) go into `failed` with a
+ *     redacted path + the error message.
+ *
+ * @param {string[]} paths  — paths from DB (may be relative or absolute)
+ * @returns {{deleted: number, failed: Array<{path, error}>, unsafe: Array<{path}>}}
  */
 function unlinkFiles(paths) {
-  const result = { deleted: 0, failed: [] };
-  for (const p of paths) {
+  const result = { deleted: 0, failed: [], unsafe: [] };
+  for (const p of paths || []) {
+    let resolved;
     try {
-      fs.unlinkSync(p);
+      // path.resolve() against process.cwd() turns relative stored_paths
+      // (like "data/uploads/phase1/GTRAIN02/...") into absolute form.
+      resolved = path.resolve(p);
+    } catch (_) {
+      result.unsafe.push({ path: redactPath(p) });
+      continue;
+    }
+    if (!isPathInsideAnyRoot(resolved)) {
+      // Path traversal / absolute path outside sanctioned roots — DO NOT
+      // unlink, DO NOT crash. Record a redacted basename so the operator
+      // can investigate the DB row.
+      result.unsafe.push({ path: redactPath(p) });
+      continue;
+    }
+    try {
+      fs.unlinkSync(resolved);
       result.deleted += 1;
     } catch (err) {
       if (err && err.code === 'ENOENT') continue; // already gone — not a failure
-      result.failed.push({ path: p, error: err.message });
+      result.failed.push({ path: redactPath(p), error: err.message });
     }
   }
   return result;
@@ -2484,12 +2578,19 @@ function purgeCandidateData(baseKey, opts) {
     // unlink them AFTER the transaction commits. We attach to `deleted` so
     // the post-tx code can read them — but they are stripped from the final
     // response (no absolute paths in the API contract).
+    // SECURITY: these paths come from the DB (candidate_files.stored_path)
+    // and from tmp/ readdir. They are NOT trusted — unlinkFiles() resolves
+    // each to absolute form and refuses to unlink anything outside
+    // PURGE_ALLOWED_ROOTS (see unlinkFiles docs).
     deleted.__tmp_paths = filesResult.stored_paths.concat(counts.tmp_file_paths);
     deleted.__stored_paths = filesResult.stored_paths;
 
     // Audit log INSIDE the same transaction — so a rollback also drops the
     // audit row. Payload contains ONLY counts + mode + dry_run, never raw
-    // call/interview text or session_keys.
+    // call/interview text or session_keys. tmp_files count here is the
+    // number of candidate paths we INTEND to unlink; the actual deleted /
+    // failed / unsafe split is added post-commit (not in the audit payload
+    // to keep the row shape stable across dry_run / live).
     const auditPayload = {
       mode,
       dry_run: false,
@@ -2515,12 +2616,15 @@ function purgeCandidateData(baseKey, opts) {
 
   // ---- POST-COMMIT: unlink on-disk files -----------------------------
   // We do this AFTER the tx commits so a failed unlink does NOT roll back
-  // the DB. A failed unlink is reported in the response but the DB purge
-  // is already permanent.
+  // the DB. unlinkFiles() applies a path-safety allowlist: only files
+  // inside <repoRoot>/tmp/ or <cwd>/data/uploads/phase1/ are unlinked.
+  // Anything outside is reported as `unsafe` (redacted basename) and left
+  // on disk — the operator should investigate the DB row.
   const allPaths = deleted.__tmp_paths || [];
   const unlinkResult = unlinkFiles(allPaths);
   deleted.tmp_files = unlinkResult.deleted;
   deleted.tmp_files_failed = unlinkResult.failed.length;
+  deleted.unsafe_paths_count = unlinkResult.unsafe.length;
 
   // Fetch the audit_log row id we just wrote (the most recent one for this
   // candidate + action). This is best-effort — if the lookup fails, we still
@@ -2546,8 +2650,14 @@ function purgeCandidateData(baseKey, opts) {
     candidate: candidatePublic,
     deleted,
     audit_log_id: auditLogId,
+    // SECURITY: never return raw absolute paths in the API. failed / unsafe
+    // paths are redacted to basename-only (or relative-to-allowed-root) so
+    // the operator can debug without leaking the server's directory layout
+    // or the attacker's original payload.
     tmp_files_failed: unlinkResult.failed.length,
     tmp_files_failed_paths: unlinkResult.failed.map(f => f.path),
+    unsafe_paths_count: unlinkResult.unsafe.length,
+    unsafe_paths: unlinkResult.unsafe.map(u => u.path),
   };
 }
 

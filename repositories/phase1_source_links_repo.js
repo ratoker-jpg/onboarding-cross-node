@@ -40,6 +40,11 @@ function createSourceLinksRepo(db) {
     findByCandidateAndSource(candidateId, sourceCode) {
       return mapSourceLink(db.prepare('SELECT * FROM candidate_source_links WHERE candidate_id = ? AND source_code = ?').get(candidateId, sourceCode));
     },
+    // DATA-PURGE-V1: delete all source_links for a candidate.
+    deleteByCandidateId(candidateId) {
+      const info = db.prepare('DELETE FROM candidate_source_links WHERE candidate_id = ?').run(candidateId);
+      return info.changes || 0;
+    },
   };
 }
 

@@ -72,6 +72,12 @@ function createAiProfileRepo(db) {
     getByCandidateId(candidateId) {
       return mapAiProfile(getByCandidateIdStmt.get(candidateId));
     },
+    // DATA-PURGE-V1: delete the ai_profile row for a candidate.
+    // Returns 1 if deleted, 0 if there was no row.
+    deleteByCandidateId(candidateId) {
+      const info = db.prepare('DELETE FROM ai_profile WHERE candidate_id = ?').run(candidateId);
+      return info.changes || 0;
+    },
   };
 }
 

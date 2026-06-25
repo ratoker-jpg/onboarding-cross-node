@@ -21,6 +21,7 @@ const {
   importTrainingBot,
   listCandidates,
   listSourceLinks,
+  purgeCandidateData,
   recalculateCandidateScores,
   saveAiProfile,
   saveCandidateFile,
@@ -80,6 +81,9 @@ function createPhase1Routes(options) {
     if (err && err.code === 'EMPTY_CALL_TRANSCRIPT') return sendError(res, 400, { error: 'empty_call_transcript' });
     if (err && err.code === 'CANDIDATE_NOT_FOUND') return sendError(res, 404, { error: 'candidate_not_found', source });
     if (err && err.code === 'SOURCE_LINK_NOT_FOUND') return sendError(res, 404, { error: err.message, source, import_run: importRun });
+    // DATA-PURGE-V1 error codes
+    if (err && err.code === 'PURGE_CONFIRM_MISMATCH') return sendError(res, 400, { error: 'confirm_base_key_mismatch' });
+    if (err && err.code === 'PURGE_UNSUPPORTED_MODE') return sendError(res, 400, { error: err.message });
     if (err && err.code === 'PHASE1_SOURCE_CONFIG_MISSING') return sendError(res, 503, { error: err.message, source, import_run: importRun });
     if (err && err.code === 'PHASE1_IMPORT_READ_ERROR') return sendError(res, 400, { error: err.message, source, import_run: importRun });
     if (err && err.code === 'PHASE1_ADMIN_DISABLED') return sendDisabled(res);
@@ -262,6 +266,28 @@ function createPhase1Routes(options) {
       if (intakeViewMatch && req.method === 'GET') {
         const view = getCandidateIntakeView(intakeViewMatch[1]);
         return safeSendJson(res, 200, { ok: true, ...view });
+      }
+
+      // DATA-PURGE-V1: purge sensitive candidate data (interview/calls/files/
+      // transcripts/training/ops/LLM analysis results/tmp bundle files).
+      // Admin-only (X-Admin-Key checked above). Body:
+      //   { mode: 'candidate_data', confirm_base_key: '<base_key>', dry_run: true|false }
+      // dry_run defaults to true — a missing/falsey dry_run NEVER deletes.
+      // All DB deletes run inside one transaction; tmp/ file unlink happens
+      // after the tx commits. See services/phase1_candidate_service.js →
+      // purgeCandidateData for the full contract.
+      const purgeMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/purge$/);
+      if (purgeMatch && req.method === 'POST') {
+        const baseKey = purgeMatch[1];
+        const payload = await readJsonBody(req);
+        const result = purgeCandidateData(baseKey, {
+          mode: payload && payload.mode ? String(payload.mode) : 'candidate_data',
+          confirm_base_key: payload && payload.confirm_base_key ? String(payload.confirm_base_key) : '',
+          // dry_run defaults to true. Only an explicit dry_run:false triggers a live purge.
+          dry_run: payload && payload.dry_run === false ? false : true,
+          admin_key: adminKey,
+        });
+        return safeSendJson(res, 200, result);
       }
 
       if (cleanUrl === '/api/dashboard/phase1/mvp' && req.method === 'GET') {

@@ -44,6 +44,12 @@ function createManualInputsRepo(db) {
     listByCandidateId(candidateId) {
       return listByCandidateIdStmt.all(candidateId).map(mapManualInput);
     },
+    // DATA-PURGE-V1: delete all manual_inputs for a candidate.
+    // Returns the number of rows deleted.
+    deleteByCandidateId(candidateId) {
+      const info = db.prepare('DELETE FROM manual_inputs WHERE candidate_id = ?').run(candidateId);
+      return info.changes || 0;
+    },
   };
 }
 

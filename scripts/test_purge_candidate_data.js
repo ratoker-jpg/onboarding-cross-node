@@ -561,4 +561,74 @@ console.log('TEST 10: response + audit payload never leak absolute paths');
   console.log('  ✓ response + audit payload redacted — no absolute paths, no traversal payloads');
 }
 
+// TEST 11: BLOCKER 3 — dry-run response must NOT leak raw absolute tmp paths.
+// countCandidateData() previously returned tmp_file_paths (raw absolute
+// paths), which purgeCandidateData() passed through as would_delete in the
+// dry-run response. That leaked the server's directory layout to the API
+// caller. Now countCandidateData() returns tmp_files_preview (redacted
+// basenames) and the raw paths never reach the response.
+console.log('TEST 11: dry-run response has no raw absolute tmp paths');
+{
+  setup();
+  const result = purgeCandidateData('GTRAIN02', {
+    mode: 'candidate_data', confirm_base_key: 'GTRAIN02', dry_run: true, admin_key: 'test-admin',
+  });
+  assert.strictEqual(result.dry_run, true);
+  const wd = result.would_delete;
+  // tmp_files count must still be present.
+  assert.ok(typeof wd.tmp_files === 'number' && wd.tmp_files >= 0, 'tmp_files count must be a number');
+  // tmp_file_paths (raw) must NOT be present.
+  assert.ok(wd.tmp_file_paths === undefined, 'dry-run response must NOT contain raw tmp_file_paths');
+  // tmp_files_preview (redacted) is allowed.
+  if (wd.tmp_files_preview !== undefined) {
+    assert.ok(Array.isArray(wd.tmp_files_preview), 'tmp_files_preview must be an array');
+  }
+  // The entire dry-run response must not contain raw absolute paths or
+  // traversal payloads. Check the whole JSON string.
+  const responseStr = JSON.stringify(result);
+  assert.ok(!responseStr.includes('/home/'), 'dry-run response must not contain /home/');
+  assert.ok(!responseStr.includes('/etc/passwd'), 'dry-run response must not contain /etc/passwd');
+  assert.ok(!responseStr.includes('../../'), 'dry-run response must not contain ../../');
+  // The mock tmp files live at <repoRoot>/tmp/GTRAIN02_*.json — the response
+  // must not contain the absolute <repoRoot> prefix.
+  const repoRootAbs = path.resolve(__dirname, '..');
+  assert.ok(!responseStr.includes(repoRootAbs),
+    `dry-run response must not contain absolute repo root ${repoRootAbs}`);
+  // tmp_files_preview entries must be redacted (basename-only or relative).
+  // They must NOT be absolute paths.
+  for (const p of (wd.tmp_files_preview || [])) {
+    assert.ok(typeof p === 'string' && p.length > 0, `preview entry must be non-empty string: ${p}`);
+    assert.ok(!path.isAbsolute(p), `preview entry must NOT be absolute: ${p}`);
+    assert.ok(!p.includes('..'), `preview entry must NOT contain "..": ${p}`);
+  }
+  console.log('  ✓ dry-run response: tmp_files count only, no raw tmp_file_paths, no absolute paths, preview redacted');
+}
+
+// TEST 12: dry-run with compromised candidate_files.stored_path must NOT
+// leak those raw paths either (the dry-run response only contains counts +
+// redacted tmp_files_preview, never stored_paths).
+console.log('TEST 12: dry-run with compromised stored_path does not leak raw paths');
+{
+  setup();
+  // Simulate a compromised DB row with traversal paths as stored_path.
+  // countCandidateData() reads candidate_files via listByCandidateId —
+  // it only counts them, it does NOT read stored_path. So the dry-run
+  // response should be unaffected by the compromised values.
+  sandbox.__repos.candidateFilesRepo.listByCandidateId = () => [
+    { stored_path: '/etc/passwd' },
+    { stored_path: '../../.env' },
+    { stored_path: '/var/log/auth.log' },
+  ];
+  const result = purgeCandidateData('GTRAIN02', {
+    mode: 'candidate_data', confirm_base_key: 'GTRAIN02', dry_run: true, admin_key: 'test-admin',
+  });
+  assert.strictEqual(result.dry_run, true);
+  assert.strictEqual(result.would_delete.candidate_files, 3, 'compromised rows still counted');
+  const responseStr = JSON.stringify(result);
+  assert.ok(!responseStr.includes('/etc/passwd'), 'dry-run must not leak /etc/passwd');
+  assert.ok(!responseStr.includes('../../.env'), 'dry-run must not leak ../../.env');
+  assert.ok(!responseStr.includes('/var/log/'), 'dry-run must not leak /var/log/');
+  console.log('  ✓ dry-run with compromised stored_path: count only, no raw path leak');
+}
+
 console.log('\nALL TESTS PASSED');

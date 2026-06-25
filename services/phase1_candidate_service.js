@@ -2434,6 +2434,13 @@ function countCandidateData(repos, db, candidateId, baseKey) {
     legacyTargets = row ? Number(row.c) || 0 : 0;
   } catch (_) { /* table may not exist on very old DBs — treat as 0 */ }
   const tmpFiles = listTmpFilesForBaseKey(baseKey);
+  // SECURITY: never return raw absolute tmp paths from the service. The
+  // dry-run response is sent to the API caller and would leak the server's
+  // directory layout. We return only the count + a redacted preview (each
+  // path run through redactPath() → basename-only or relative-to-allowed-root).
+  // The raw paths are still available internally to purgeCandidateData()
+  // via listTmpFilesForBaseKey() during the live purge — they just never
+  // reach the response / audit log.
   return {
     manual_inputs: manualInputs,
     candidate_files: candidateFiles,
@@ -2447,7 +2454,7 @@ function countCandidateData(repos, db, candidateId, baseKey) {
     import_runs: importRuns,
     legacy_targets_map: legacyTargets,
     tmp_files: tmpFiles.length,
-    tmp_file_paths: tmpFiles,
+    tmp_files_preview: tmpFiles.map(p => redactPath(p)),
   };
 }
 
@@ -2582,7 +2589,12 @@ function purgeCandidateData(baseKey, opts) {
     // and from tmp/ readdir. They are NOT trusted — unlinkFiles() resolves
     // each to absolute form and refuses to unlink anything outside
     // PURGE_ALLOWED_ROOTS (see unlinkFiles docs).
-    deleted.__tmp_paths = filesResult.stored_paths.concat(counts.tmp_file_paths);
+    // NOTE: we re-read tmp paths via listTmpFilesForBaseKey() here instead
+    // of using counts.tmp_file_paths because countCandidateData() no longer
+    // returns raw paths (they would leak via the dry-run response). The
+    // count is still available as counts.tmp_files.
+    const liveTmpPaths = listTmpFilesForBaseKey(baseKey);
+    deleted.__tmp_paths = filesResult.stored_paths.concat(liveTmpPaths);
     deleted.__stored_paths = filesResult.stored_paths;
 
     // Audit log INSIDE the same transaction — so a rollback also drops the

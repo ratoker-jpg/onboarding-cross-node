@@ -122,9 +122,12 @@ in PATCH_REPORT_DATA_PURGE_V1.md but not implemented in v1.
 
 function fmtCounts(counts) {
   // counts is an object with string keys → number values. Print one per line.
+  // Skip non-count fields: tmp_files_preview is a redacted array (printed
+  // separately), tmp_file_paths is legacy and no longer returned.
+  const SKIP = new Set(['tmp_file_paths', 'tmp_files_preview']);
   const lines = [];
   for (const k of Object.keys(counts)) {
-    if (k === 'tmp_file_paths') continue; // internal helper, not a count
+    if (SKIP.has(k)) continue;
     lines.push(`    ${k}: ${counts[k]}`);
   }
   return lines.join('\n');
@@ -189,9 +192,12 @@ function main() {
     console.log(fmtCounts(result.would_delete || {}));
     console.log('');
     console.log('DRY-RUN complete. No DB writes performed.');
-    if ((result.would_delete || {}).tmp_files > 0) {
-      console.log('tmp files that would be unlinked:');
-      for (const p of (result.would_delete || {}).tmp_file_paths || []) {
+    // SECURITY: tmp_files_preview contains redacted paths only (basename
+    // or relative-to-allowed-root). Never print raw absolute paths.
+    const preview = (result.would_delete || {}).tmp_files_preview;
+    if (Array.isArray(preview) && preview.length > 0) {
+      console.log('tmp files that would be unlinked (redacted):');
+      for (const p of preview) {
         console.log(`  - ${p}`);
       }
     }
@@ -209,6 +215,15 @@ function main() {
       console.log(`  - ${p}`);
     }
     console.log('The DB purge is still permanent; remove these files manually if needed.');
+  }
+  // SECURITY: unsafe_paths are already redacted (basename-only) by the
+  // service. Print them so the operator can investigate compromised DB rows.
+  if (result.unsafe_paths_count > 0) {
+    console.log(`WARN: ${result.unsafe_paths_count} path(s) outside allowed roots were NOT unlinked (suspected compromised DB row):`);
+    for (const p of result.unsafe_paths || []) {
+      console.log(`  - ${p}`);
+    }
+    console.log('Inspect candidate_files.stored_path for these candidates.');
   }
   console.log('');
   console.log('Purge complete. The candidates row + candidate_keys are kept; the candidate stays listed.');

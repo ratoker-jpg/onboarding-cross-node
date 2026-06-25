@@ -332,3 +332,62 @@ After running the original 9 server verification steps from the main PATCH_REPOR
     node scripts/purge_candidate_data.js --base-key TESTPURG01 --confirm TESTPURG01 2>&1 | grep -c '/etc/passwd'
     # expected: 0
     ```
+
+---
+
+# Fixup 2 — dry-run response must not leak raw absolute tmp paths
+
+**Date:** 2026-06-25
+**Goal:** close a third security blocker found after the path-safe-unlink fixup. The dry-run API response was still returning raw absolute tmp paths, leaking the server's directory layout to any caller with `X-Admin-Key`.
+
+## BLOCKER 3 — dry-run response leaked raw absolute tmp paths
+
+**Problem:** `countCandidateData()` returned `tmp_file_paths` (raw absolute paths from `listTmpFilesForBaseKey()`). `purgeCandidateData()` in dry-run mode returned `would_delete: counts` directly, so `POST /purge` with `dry_run: true` exposed the absolute `<repoRoot>/tmp/…` paths in the JSON response.
+
+**Fix:**
+
+- `countCandidateData()` no longer returns `tmp_file_paths`. Instead it returns:
+  - `tmp_files` — count (unchanged)
+  - `tmp_files_preview` — array of **redacted** paths (each run through `redactPath()` → basename-only or relative-to-allowed-root)
+- `purgeCandidateData()` live mode re-reads tmp paths via `listTmpFilesForBaseKey(baseKey)` inside the transaction (instead of relying on `counts.tmp_file_paths`, which no longer exists). The raw paths live only in local variables and the `deleted.__tmp_paths` internal helper — both stripped from the response.
+- CLI `purge_candidate_data.js`:
+  - `fmtCounts()` now skips both `tmp_file_paths` (legacy) and `tmp_files_preview` (redacted array, not a count) when printing the counts block.
+  - Dry-run output prints `tmp_files_preview` (redacted) under a "tmp files that would be unlinked (redacted):" header — never raw absolute paths.
+  - Live output now also prints `unsafe_paths` (already redacted by the service) so the operator can investigate compromised DB rows.
+- Audit log payload: unchanged — it already contained only counts + mode + dry_run + public candidate profile, never raw paths.
+
+**Behaviour:** a dry-run request now returns `would_delete.tmp_files: 2` + `would_delete.tmp_files_preview: ["GTRAIN02_calls_bundle.json", "GTRAIN02_calls_result.json"]` instead of the raw absolute paths. The live purge still works (it re-reads the paths internally).
+
+## Files changed in this fixup
+
+| File | Change |
+|---|---|
+| `services/phase1_candidate_service.js` | `countCandidateData()`: replaced `tmp_file_paths` (raw) with `tmp_files_preview` (redacted). `purgeCandidateData()` live mode: re-reads tmp paths via `listTmpFilesForBaseKey()` instead of `counts.tmp_file_paths`. |
+| `scripts/purge_candidate_data.js` | `fmtCounts()` skips `tmp_files_preview`. Dry-run prints redacted preview. Live output prints `unsafe_paths` (redacted). |
+| `scripts/test_purge_candidate_data.js` | Added TEST 11 (dry-run response has no raw absolute tmp paths, no `tmp_file_paths` field, preview entries are redacted) + TEST 12 (dry-run with compromised `stored_path` does not leak raw paths). |
+
+## Checks run
+
+```
+node --check server.js                                    # OK
+node --check routes/phase1_admin_routes.js                # OK
+node --check services/phase1_candidate_service.js         # OK
+node --check scripts/purge_candidate_data.js              # OK
+node --check scripts/test_purge_candidate_data.js         # OK
+node scripts/test_purge_candidate_data.js                 # 13/13 PASS (TEST 0 + 1-12)
+node scripts/test_rubric_scoring.js                       # 24/24 (no scoring changes)
+```
+
+## Server verification steps (additions for this fixup)
+
+12. **Dry-run redaction:** run a dry-run via API and verify the response does not contain any absolute path:
+    ```bash
+    curl -s -X POST -H "X-Admin-Key: $ADMIN_KEY" -H "Content-Type: application/json" \
+      -d '{"mode":"candidate_data","confirm_base_key":"GTRAIN02","dry_run":true}' \
+      http://localhost:8020/api/admin/phase1/candidates/GTRAIN02/purge \
+      | grep -E '/home/|/tmp/|/etc/passwd|\.\./'
+    # expected: no output (exit 1)
+    ```
+    The response should contain `would_delete.tmp_files: <N>` and `would_delete.tmp_files_preview: ["<basename>.json", …]` — never raw absolute paths.
+
+13. **CLI dry-run redaction:** `node scripts/purge_candidate_data.js --base-key GTRAIN02 --dry-run 2>&1 | grep -E '/home/|/etc/passwd|\.\./'` → expected no output.

@@ -217,6 +217,19 @@ function createSnapshotsRepo(db) {
     listTrainingBotDialogsByCandidateId(candidateId) {
       return db.prepare('SELECT * FROM training_bot_dialogs WHERE candidate_id = ? ORDER BY datetime(updated_at) DESC, id DESC').all(candidateId).map(mapTrainingBotDialog);
     },
+    // DATA-PURGE-V1: delete test_day_snapshot, immersion_snapshot and
+    // training_bot_dialogs for a candidate. Returns counts per table.
+    // All three tables have candidate_id as the natural key.
+    deleteByCandidateId(candidateId) {
+      const td = db.prepare('DELETE FROM test_day_snapshot WHERE candidate_id = ?').run(candidateId);
+      const im = db.prepare('DELETE FROM immersion_snapshot WHERE candidate_id = ?').run(candidateId);
+      const tb = db.prepare('DELETE FROM training_bot_dialogs WHERE candidate_id = ?').run(candidateId);
+      return {
+        test_day_snapshot: td.changes || 0,
+        immersion_snapshot: im.changes || 0,
+        training_bot_dialogs: tb.changes || 0,
+      };
+    },
   };
 }
 

@@ -101,6 +101,12 @@ function createCandidateScoresRepo(db) {
     listAll() {
       return listAllStmt.all().map(mapCandidateScores);
     },
+    // DATA-PURGE-V1: delete the candidate_scores row for a candidate.
+    // Returns 1 if deleted, 0 if there was no row.
+    deleteByCandidateId(candidateId) {
+      const info = db.prepare('DELETE FROM candidate_scores WHERE candidate_id = ?').run(candidateId);
+      return info.changes || 0;
+    },
   };
 }
 

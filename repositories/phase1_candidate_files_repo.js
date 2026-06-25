@@ -51,6 +51,15 @@ function createCandidateFilesRepo(db) {
     listBySection(candidateId, section) {
       return listBySectionStmt.all(candidateId, section).map(mapCandidateFile);
     },
+    // DATA-PURGE-V1: delete all candidate_files rows for a candidate.
+    // Returns { count, stored_paths } — stored_paths lets the caller
+    // unlink the underlying files on disk AFTER the DB commit.
+    deleteByCandidateId(candidateId) {
+      const rows = listByCandidateIdStmt.all(candidateId);
+      const storedPaths = rows.map(r => r.stored_path).filter(Boolean);
+      const info = db.prepare('DELETE FROM candidate_files WHERE candidate_id = ?').run(candidateId);
+      return { count: info.changes || 0, stored_paths: storedPaths };
+    },
   };
 }
 

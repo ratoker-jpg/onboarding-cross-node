@@ -43,6 +43,12 @@ function createImportRunsRepo(db) {
     listByBaseKey(baseKey) {
       return db.prepare('SELECT * FROM import_runs WHERE base_key = ? ORDER BY id DESC').all(baseKey).map(mapImportRun);
     },
+    // DATA-PURGE-V1: delete all import_runs for a candidate.
+    // import_runs is keyed by base_key. Returns the number of rows deleted.
+    deleteByBaseKey(baseKey) {
+      const info = db.prepare('DELETE FROM import_runs WHERE base_key = ?').run(baseKey);
+      return info.changes || 0;
+    },
   };
 }
 

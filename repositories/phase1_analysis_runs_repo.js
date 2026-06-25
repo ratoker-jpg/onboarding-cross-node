@@ -75,6 +75,13 @@ function createAnalysisRunsRepo(db) {
     listByBaseKeyType(baseKey, analysisType) {
       return listByBaseKeyTypeStmt.all(baseKey, analysisType).map(mapAnalysisRun);
     },
+    // DATA-PURGE-V1: delete all analysis_runs for a candidate.
+    // analysis_runs is keyed by base_key (not candidate_id), so this takes
+    // base_key. Returns the number of rows deleted.
+    deleteByBaseKey(baseKey) {
+      const info = db.prepare('DELETE FROM analysis_runs WHERE base_key = ?').run(baseKey);
+      return info.changes || 0;
+    },
   };
 }
 

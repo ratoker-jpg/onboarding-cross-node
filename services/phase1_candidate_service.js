@@ -2252,6 +2252,427 @@ function buildLatestAnalysis(baseKey, analysisRunsRepo) {
   return out;
 }
 
+// ----------------------------------------------------------------------
+// DATA-PURGE-V1
+// ----------------------------------------------------------------------
+
+/**
+ * List tmp/ files that match a candidate's base_key. Used by purgeCandidateData
+ * to count / unlink bundle and result JSON files produced by the Codex pipeline.
+ *
+ * Match rules (per spec):
+ *   - tmp/<base_key>*         (e.g. tmp/GTRAIN02_calls_bundle.json)
+ *   - tmp/*<base_key>*        (defensive: any tmp file whose name contains the key)
+ *   - examples/  and public/ are NEVER touched
+ *
+ * Returns an array of absolute paths. Reads are best-effort: if tmp/ does not
+ * exist, returns [].
+ */
+function listTmpFilesForBaseKey(baseKey) {
+  if (!baseKey) return [];
+  // tmp/ lives at the repo root (same level as package.json). __dirname is
+  // services/, so the repo root is one level up.
+  const repoRoot = path.resolve(__dirname, '..');
+  const tmpDir = path.join(repoRoot, 'tmp');
+  let entries = [];
+  try {
+    entries = fs.readdirSync(tmpDir);
+  } catch (_) {
+    return []; // tmp/ does not exist → nothing to purge
+  }
+  const safeKey = String(baseKey);
+  const matched = [];
+  for (const name of entries) {
+    // Both match rules collapse to "name contains the base_key". The two
+    // patterns in the spec are equivalent for a flat tmp/ directory.
+    if (name.includes(safeKey)) {
+      matched.push(path.join(tmpDir, name));
+    }
+  }
+  return matched;
+}
+
+/**
+ * Allowed on-disk roots for purge unlinking. A stored_path or tmp file path
+ * is only unlinked if its resolved absolute path is INSIDE one of these
+ * roots. This prevents a compromised DB row (e.g. stored_path = "/etc/passwd"
+ * or "../../.env") from tricking the purge into deleting files outside the
+ * sanctioned directories.
+ *
+ * Roots:
+ *   - <repoRoot>/tmp/                         — Codex bundle/result JSON files
+ *   - <process.cwd()>/data/uploads/phase1/    — uploaded candidate files
+ *     (created by saveCandidateFile; stored_path is relative to cwd)
+ *
+ * Both roots are resolved to absolute form at module load. Symlinks inside
+ * are not specially handled — if an attacker can plant a symlink inside
+ * these roots, they have already compromised the server. The guard here is
+ * against DB-injected path traversal, not symlink attacks.
+ */
+const PURGE_ALLOWED_ROOTS = (() => {
+  const repoRoot = path.resolve(__dirname, '..');
+  const tmpRoot = path.resolve(repoRoot, 'tmp');
+  const uploadsRoot = path.resolve(process.cwd(), 'data', 'uploads', 'phase1');
+  return [tmpRoot, uploadsRoot];
+})();
+
+/**
+ * Check whether a resolved absolute path is inside any of the allowed roots.
+ * Uses path.relative() to avoid prefix-matching pitfalls (e.g. /tmp-evil
+ * should NOT match root /tmp). A path is "inside" iff the relative path
+ * from the root to the target does not start with '..' and is not absolute.
+ */
+function isPathInside(resolvedTarget, allowedRoot) {
+  if (!resolvedTarget || !allowedRoot) return false;
+  const rel = path.relative(allowedRoot, resolvedTarget);
+  if (!rel) return false; // the root itself — don't unlink a directory
+  return rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel);
+}
+
+function isPathInsideAnyRoot(resolvedTarget) {
+  return PURGE_ALLOWED_ROOTS.some(root => isPathInside(resolvedTarget, root));
+}
+
+/**
+ * Redact a file path for inclusion in API responses / audit log. We never
+ * want to leak absolute server paths (which reveal the deploy layout) or
+ * the raw DB-stored value (which might be the attacker's payload). Returns
+ * a basename-only or "<redacted>" string.
+ */
+function redactPath(p) {
+  if (!p) return '<empty>';
+  try {
+    const resolved = path.resolve(p);
+    // If inside an allowed root, return the path relative to that root —
+    // useful for debugging without leaking absolute layout.
+    for (const root of PURGE_ALLOWED_ROOTS) {
+      if (isPathInside(resolved, root)) {
+        const rel = path.relative(root, resolved);
+        return rel || path.basename(resolved);
+      }
+    }
+    // Outside any allowed root — return only the basename so the operator
+    // sees "passwd" or ".env" without the directory structure.
+    return path.basename(resolved) || '<redacted>';
+  } catch (_) {
+    return '<redacted>';
+  }
+}
+
+/**
+ * Remove a list of files safely. Returns { deleted, failed, unsafe }.
+ *
+ * Safety:
+ *   - Each path is resolved to absolute form and checked against
+ *     PURGE_ALLOWED_ROOTS. Paths outside the allowed roots are NOT unlinked,
+ *     NOT counted as failed, and NOT counted as deleted — they go into
+ *     `unsafe` so the operator sees the DB row is suspicious. The raw path
+ *     is redacted via redactPath() before being stored in the result.
+ *   - ENOENT (file already gone) is silently skipped — not deleted, not
+ *     failed, not unsafe.
+ *   - Other unlink errors (EACCES, EISDIR, …) go into `failed` with a
+ *     redacted path + the error message.
+ *
+ * @param {string[]} paths  — paths from DB (may be relative or absolute)
+ * @returns {{deleted: number, failed: Array<{path, error}>, unsafe: Array<{path}>}}
+ */
+function unlinkFiles(paths) {
+  const result = { deleted: 0, failed: [], unsafe: [] };
+  for (const p of paths || []) {
+    let resolved;
+    try {
+      // path.resolve() against process.cwd() turns relative stored_paths
+      // (like "data/uploads/phase1/GTRAIN02/...") into absolute form.
+      resolved = path.resolve(p);
+    } catch (_) {
+      result.unsafe.push({ path: redactPath(p) });
+      continue;
+    }
+    if (!isPathInsideAnyRoot(resolved)) {
+      // Path traversal / absolute path outside sanctioned roots — DO NOT
+      // unlink, DO NOT crash. Record a redacted basename so the operator
+      // can investigate the DB row.
+      result.unsafe.push({ path: redactPath(p) });
+      continue;
+    }
+    try {
+      fs.unlinkSync(resolved);
+      result.deleted += 1;
+    } catch (err) {
+      if (err && err.code === 'ENOENT') continue; // already gone — not a failure
+      result.failed.push({ path: redactPath(p), error: err.message });
+    }
+  }
+  return result;
+}
+
+/**
+ * Count rows that WOULD be deleted for a candidate, without touching anything.
+ * Used by dry_run mode. Reads only — safe to call any time.
+ *
+ * @param {object} repos  — built repos
+ * @param {object} db     — raw better-sqlite3 handle (for legacy_targets_map)
+ * @param {number} candidateId
+ * @param {string} baseKey
+ * @returns {object} counts per entity + tmp_files list
+ */
+function countCandidateData(repos, db, candidateId, baseKey) {
+  const manualInputs = repos.manualInputsRepo.listByCandidateId(candidateId).length;
+  const candidateFiles = repos.candidateFilesRepo.listByCandidateId(candidateId).length;
+  const aiProfile = repos.aiProfileRepo.getByCandidateId(candidateId) ? 1 : 0;
+  const sourceLinks = repos.sourceLinksRepo.listByCandidateId(candidateId).length;
+  const testDay = repos.snapshotsRepo.getTestDayByCandidateId(candidateId) ? 1 : 0;
+  const immersion = repos.snapshotsRepo.getImmersionByCandidateId(candidateId) ? 1 : 0;
+  const trainingBotDialogs = repos.snapshotsRepo.listTrainingBotDialogsByCandidateId(candidateId).length;
+  const candidateScores = repos.candidateScoresRepo.getByCandidateId(candidateId) ? 1 : 0;
+  const analysisRuns = repos.analysisRunsRepo.listByBaseKey(baseKey).length;
+  const importRuns = repos.importRunsRepo.listByBaseKey(baseKey).length;
+  // legacy_targets_map has no repo — count directly.
+  let legacyTargets = 0;
+  try {
+    const row = db.prepare('SELECT COUNT(*) AS c FROM legacy_targets_map WHERE candidate_id = ?').get(candidateId);
+    legacyTargets = row ? Number(row.c) || 0 : 0;
+  } catch (_) { /* table may not exist on very old DBs — treat as 0 */ }
+  const tmpFiles = listTmpFilesForBaseKey(baseKey);
+  // SECURITY: never return raw absolute tmp paths from the service. The
+  // dry-run response is sent to the API caller and would leak the server's
+  // directory layout. We return only the count + a redacted preview (each
+  // path run through redactPath() → basename-only or relative-to-allowed-root).
+  // The raw paths are still available internally to purgeCandidateData()
+  // via listTmpFilesForBaseKey() during the live purge — they just never
+  // reach the response / audit log.
+  return {
+    manual_inputs: manualInputs,
+    candidate_files: candidateFiles,
+    ai_profile: aiProfile,
+    source_links: sourceLinks,
+    test_day_snapshot: testDay,
+    immersion_snapshot: immersion,
+    training_bot_dialogs: trainingBotDialogs,
+    candidate_scores: candidateScores,
+    analysis_runs: analysisRuns,
+    import_runs: importRuns,
+    legacy_targets_map: legacyTargets,
+    tmp_files: tmpFiles.length,
+    tmp_files_preview: tmpFiles.map(p => redactPath(p)),
+  };
+}
+
+/**
+ * Purge sensitive candidate data from the server.
+ *
+ * Mode "candidate_data" (the only one supported in v1):
+ *   - removes manual_inputs, candidate_files, ai_profile, source_links,
+ *     test_day_snapshot, immersion_snapshot, training_bot_dialogs,
+ *     candidate_scores, analysis_runs, import_runs, legacy_targets_map,
+ *     and tmp/<base_key>* files
+ *   - KEEPS the candidates row (id, base_key, full_name, segment, direction,
+ *     mentor, recruiter, dates, status) so the candidate is still listed
+ *   - KEEPS candidate_keys (session_key/key_type/etc.) — keys are needed
+ *     for re-imports and for the candidate's identity chain. A separate
+ *     full_delete mode (described in PATCH_REPORT) would also remove keys
+ *     and the candidate row itself.
+ *   - Writes an audit_log row with action=candidate_data_purge. The payload
+ *     contains ONLY counts + mode + dry_run — never raw call/interview text.
+ *
+ * Safety:
+ *   - confirm_base_key MUST equal the base_key being purged. Returns 400 otherwise.
+ *   - dry_run defaults to true. When true, nothing is deleted — the response
+ *     contains the same would_delete counts as a live run would produce.
+ *   - All DB deletes run inside a single transaction. If any delete throws,
+ *     the whole transaction rolls back and the error propagates.
+ *   - tmp/ file unlinking happens AFTER the DB transaction commits. A failed
+ *     unlink is reported in the response but does NOT roll back the DB.
+ *
+ * @param {string} baseKey
+ * @param {object} opts
+ *   - mode: 'candidate_data' (only supported value in v1)
+ *   - confirm_base_key: must equal baseKey
+ *   - dry_run: boolean (default true)
+ *   - admin_key: required for audit_log (hashed before storage)
+ * @returns {object} { ok, dry_run, base_key, candidate, would_delete | deleted, audit_log_id? }
+ * @throws {Error} with .code = 'CANDIDATE_NOT_FOUND' | 'PURGE_CONFIRM_MISMATCH' | 'PURGE_UNSUPPORTED_MODE'
+ */
+function purgeCandidateData(baseKey, opts) {
+  const mode = String(opts && opts.mode || 'candidate_data');
+  const confirmBaseKey = String(opts && opts.confirm_base_key || '');
+  const dryRun = opts && opts.dry_run === false ? false : true; // default true
+  const adminKey = opts && opts.admin_key || 'unknown';
+
+  if (mode !== 'candidate_data') {
+    const err = new Error(`unsupported_purge_mode:${mode}`);
+    err.code = 'PURGE_UNSUPPORTED_MODE';
+    throw err;
+  }
+  if (!confirmBaseKey || confirmBaseKey !== baseKey) {
+    const err = new Error('confirm_base_key_mismatch');
+    err.code = 'PURGE_CONFIRM_MISMATCH';
+    throw err;
+  }
+
+  const db = ensureDb();
+  const repos = buildRepos(db);
+  const candidate = repos.candidatesRepo.findByBaseKey(baseKey);
+  if (!candidate) {
+    const err = new Error('candidate_not_found');
+    err.code = 'CANDIDATE_NOT_FOUND';
+    throw err;
+  }
+
+  const counts = countCandidateData(repos, db, candidate.id, baseKey);
+
+  // Public profile (no secrets) returned in the response so the caller can
+  // double-check they purged the right person.
+  const candidatePublic = {
+    base_key: candidate.base_key,
+    full_name: candidate.full_name,
+    seller_segment: candidate.seller_segment,
+    direction: candidate.direction,
+    mentor: candidate.mentor,
+    recruiter: candidate.recruiter,
+    status: candidate.status,
+  };
+
+  if (dryRun) {
+    return {
+      ok: true,
+      dry_run: true,
+      mode,
+      base_key: baseKey,
+      candidate: candidatePublic,
+      would_delete: counts,
+    };
+  }
+
+  // ---- LIVE PURGE -----------------------------------------------------
+  // All DB deletes run inside one transaction. better-sqlite3's transaction()
+  // returns a function that runs its body and commits on normal return /
+  // rolls back on throw. We capture the per-table counts inside the body so
+  // the response can report exactly what was removed.
+  let deleted = null;
+  const tx = db.transaction(() => {
+    const manualInputs = repos.manualInputsRepo.deleteByCandidateId(candidate.id);
+    const filesResult = repos.candidateFilesRepo.deleteByCandidateId(candidate.id);
+    const aiProfile = repos.aiProfileRepo.deleteByCandidateId(candidate.id);
+    const sourceLinks = repos.sourceLinksRepo.deleteByCandidateId(candidate.id);
+    const snapCounts = repos.snapshotsRepo.deleteByCandidateId(candidate.id);
+    const candidateScores = repos.candidateScoresRepo.deleteByCandidateId(candidate.id);
+    const analysisRuns = repos.analysisRunsRepo.deleteByBaseKey(baseKey);
+    const importRuns = repos.importRunsRepo.deleteByBaseKey(baseKey);
+    // legacy_targets_map — delete directly (no repo).
+    let legacyTargets = 0;
+    try {
+      const info = db.prepare('DELETE FROM legacy_targets_map WHERE candidate_id = ?').run(candidate.id);
+      legacyTargets = info.changes || 0;
+    } catch (_) { /* table missing — nothing to delete */ }
+
+    deleted = {
+      manual_inputs: manualInputs,
+      candidate_files: filesResult.count,
+      ai_profile: aiProfile,
+      source_links: sourceLinks,
+      test_day_snapshot: snapCounts.test_day_snapshot,
+      immersion_snapshot: snapCounts.immersion_snapshot,
+      training_bot_dialogs: snapCounts.training_bot_dialogs,
+      candidate_scores: candidateScores,
+      analysis_runs: analysisRuns,
+      import_runs: importRuns,
+      legacy_targets_map: legacyTargets,
+      tmp_files: 0, // filled in after the tx commits + unlinks run
+    };
+
+    // Stash the file paths collected during countCandidateData so we can
+    // unlink them AFTER the transaction commits. We attach to `deleted` so
+    // the post-tx code can read them — but they are stripped from the final
+    // response (no absolute paths in the API contract).
+    // SECURITY: these paths come from the DB (candidate_files.stored_path)
+    // and from tmp/ readdir. They are NOT trusted — unlinkFiles() resolves
+    // each to absolute form and refuses to unlink anything outside
+    // PURGE_ALLOWED_ROOTS (see unlinkFiles docs).
+    // NOTE: we re-read tmp paths via listTmpFilesForBaseKey() here instead
+    // of using counts.tmp_file_paths because countCandidateData() no longer
+    // returns raw paths (they would leak via the dry-run response). The
+    // count is still available as counts.tmp_files.
+    const liveTmpPaths = listTmpFilesForBaseKey(baseKey);
+    deleted.__tmp_paths = filesResult.stored_paths.concat(liveTmpPaths);
+    deleted.__stored_paths = filesResult.stored_paths;
+
+    // Audit log INSIDE the same transaction — so a rollback also drops the
+    // audit row. Payload contains ONLY counts + mode + dry_run, never raw
+    // call/interview text or session_keys. tmp_files count here is the
+    // number of candidate paths we INTEND to unlink; the actual deleted /
+    // failed / unsafe split is added post-commit (not in the audit payload
+    // to keep the row shape stable across dry_run / live).
+    const auditPayload = {
+      mode,
+      dry_run: false,
+      deleted_counts: {
+        manual_inputs: deleted.manual_inputs,
+        candidate_files: deleted.candidate_files,
+        ai_profile: deleted.ai_profile,
+        source_links: deleted.source_links,
+        test_day_snapshot: deleted.test_day_snapshot,
+        immersion_snapshot: deleted.immersion_snapshot,
+        training_bot_dialogs: deleted.training_bot_dialogs,
+        candidate_scores: deleted.candidate_scores,
+        analysis_runs: deleted.analysis_runs,
+        import_runs: deleted.import_runs,
+        legacy_targets_map: deleted.legacy_targets_map,
+        tmp_files: deleted.__tmp_paths.length,
+      },
+      candidate: candidatePublic,
+    };
+    appendAuditLog(db, adminKey, 'candidate_data_purge', 'candidate', candidate.id, baseKey, auditPayload);
+  });
+  tx();
+
+  // ---- POST-COMMIT: unlink on-disk files -----------------------------
+  // We do this AFTER the tx commits so a failed unlink does NOT roll back
+  // the DB. unlinkFiles() applies a path-safety allowlist: only files
+  // inside <repoRoot>/tmp/ or <cwd>/data/uploads/phase1/ are unlinked.
+  // Anything outside is reported as `unsafe` (redacted basename) and left
+  // on disk — the operator should investigate the DB row.
+  const allPaths = deleted.__tmp_paths || [];
+  const unlinkResult = unlinkFiles(allPaths);
+  deleted.tmp_files = unlinkResult.deleted;
+  deleted.tmp_files_failed = unlinkResult.failed.length;
+  deleted.unsafe_paths_count = unlinkResult.unsafe.length;
+
+  // Fetch the audit_log row id we just wrote (the most recent one for this
+  // candidate + action). This is best-effort — if the lookup fails, we still
+  // return ok:true with audit_log_id:null.
+  let auditLogId = null;
+  try {
+    const row = db.prepare(
+      `SELECT id FROM audit_log WHERE base_key = ? AND action = 'candidate_data_purge'
+       ORDER BY datetime(created_at) DESC, id DESC LIMIT 1`
+    ).get(baseKey);
+    auditLogId = row ? row.id : null;
+  } catch (_) { /* ignore */ }
+
+  // Strip internal helpers from the response.
+  delete deleted.__tmp_paths;
+  delete deleted.__stored_paths;
+
+  return {
+    ok: true,
+    dry_run: false,
+    mode,
+    base_key: baseKey,
+    candidate: candidatePublic,
+    deleted,
+    audit_log_id: auditLogId,
+    // SECURITY: never return raw absolute paths in the API. failed / unsafe
+    // paths are redacted to basename-only (or relative-to-allowed-root) so
+    // the operator can debug without leaking the server's directory layout
+    // or the attacker's original payload.
+    tmp_files_failed: unlinkResult.failed.length,
+    tmp_files_failed_paths: unlinkResult.failed.map(f => f.path),
+    unsafe_paths_count: unlinkResult.unsafe.length,
+    unsafe_paths: unlinkResult.unsafe.map(u => u.path),
+  };
+}
+
 module.exports = {
   addKeysToCandidate,
   appendCallToManualInput,
@@ -2273,6 +2694,7 @@ module.exports = {
   importTrainingBot,
   listCandidates,
   listSourceLinks,
+  purgeCandidateData,
   saveAiProfile,
   saveCandidateFile,
   saveCandidateFileWithManualInput,

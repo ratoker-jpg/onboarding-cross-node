@@ -5,6 +5,7 @@ const {
   buildImportSummary,
   checkImportSourceLink,
   createCandidateWithKeys,
+  exportCandidateReportHtml,
   getCandidateCard,
   getCandidateIntakeView,
   getCandidateScores,
@@ -288,6 +289,60 @@ function createPhase1Routes(options) {
           admin_key: adminKey,
         });
         return safeSendJson(res, 200, result);
+      }
+
+      // STATIC-HTML-EXPORT-V1: export a candidate's report as a self-
+      // contained HTML file. Admin-only. Body: { confirm_base_key: '<base_key>' }
+      // Writes to <repoRoot>/tmp/exports/<filename>. Returns the filename +
+      // relative path + size. Never returns the absolute server path.
+      const exportHtmlMatch = cleanUrl.match(/^\/api\/admin\/phase1\/candidates\/([^/]+)\/export-html$/);
+      if (exportHtmlMatch && req.method === 'POST') {
+        const baseKey = exportHtmlMatch[1];
+        const payload = await readJsonBody(req);
+        const result = exportCandidateReportHtml(baseKey, {
+          confirm_base_key: payload && payload.confirm_base_key ? String(payload.confirm_base_key) : '',
+          admin_key: adminKey,
+        });
+        return safeSendJson(res, 200, result);
+      }
+
+      // STATIC-HTML-EXPORT-V1: download an exported HTML report by filename.
+      // Admin-only. The filename is the one returned by the POST export-html
+      // endpoint. We serve the file from <repoRoot>/tmp/exports/ and enforce
+      // path-safety (no traversal, basename only).
+      const downloadMatch = cleanUrl.match(/^\/api\/admin\/phase1\/exports\/([^/]+)\/download$/);
+      if (downloadMatch && req.method === 'GET') {
+        const fs = require('fs');
+        const path = require('path');
+        const filename = path.basename(downloadMatch[1]);
+        // Reject anything that looks like a traversal attempt early.
+        if (filename !== downloadMatch[1] || filename.includes('..') || filename.includes('/')) {
+          return safeSendJson(res, 400, { ok: false, error: 'invalid_filename' });
+        }
+        const repoRoot = path.resolve(__dirname, '..');
+        const exportsDir = path.join(repoRoot, 'tmp', 'exports');
+        const absPath = path.resolve(exportsDir, filename);
+        // Final path-safety: resolved path must be inside exportsDir.
+        const rel = path.relative(exportsDir, absPath);
+        if (rel.startsWith('..') || path.isAbsolute(rel) || rel === '') {
+          return safeSendJson(res, 400, { ok: false, error: 'invalid_filename' });
+        }
+        if (!fs.existsSync(absPath)) {
+          return safeSendJson(res, 404, { ok: false, error: 'export_not_found' });
+        }
+        const stat = fs.statSync(absPath);
+        if (!stat.isFile()) {
+          return safeSendJson(res, 400, { ok: false, error: 'not_a_file' });
+        }
+        // Stream the file with a content-disposition header so browsers
+        // download it with the right filename.
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Length': stat.size,
+          'Content-Disposition': `attachment; filename="${filename.replace(/"/g, '_')}"`,
+        });
+        fs.createReadStream(absPath).pipe(res);
+        return true;
       }
 
       if (cleanUrl === '/api/dashboard/phase1/mvp' && req.method === 'GET') {

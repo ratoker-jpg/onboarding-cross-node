@@ -181,3 +181,90 @@ better-sqlite3 is not installed in this environment, so the test extracts the pu
 ## Rollback
 
 Delivered as a branch/PR; rollback = revert the merge commit or `git checkout main -- <file>` per changed file. New `scripts/export_candidate_report_html.js`, `scripts/test_export_candidate_report_html.js`, and `PATCH_REPORT_STATIC_HTML_EXPORT_V1.md` can be deleted outright. Exported HTML files in `tmp/exports/` are already gitignored.
+
+---
+
+# Fixup — deep safe projection for nested sensitive fields
+
+**Date:** 2026-06-25
+**Goal:** close the server smoke failure where exported HTML still contained `base_key`, `session_key`, `legacy_key`, `result_payload.raw`, `role_portrait.extra_profile`, `files.id`, `files.text_content` inside the embedded JSON.
+
+## Root cause
+
+`sanitizeCardForExport()` in v1 stripped only top-level `candidate.base_key` / `candidate.id`, but kept nested objects (`completeness`, `scores`, `training_bot_dialogs`, `files`, `manual_inputs`, `latest_analysis`) almost wholesale. The viewer card is safe for the **live** report (server-rendered, behind auth), but the static export leaves the server and may be forwarded — it needs an explicit safe projection for every section.
+
+## Fix
+
+Replaced the shallow sanitize with **explicit per-section safe projection**. Each section now has its own `sanitize*ForExport()` function that whitelists exactly the human-facing fields and drops everything else.
+
+### Sections + what stays / what's stripped
+
+| Section | Stays (human-facing) | Stripped (sensitive/internal) |
+|---|---|---|
+| `candidate` | full_name, seller_segment, direction, mentor, recruiter, dates, status | base_key, id, created_at, updated_at |
+| `completeness` | completed_count, total_count, status, items[code/title/status/source] | base_key, ok |
+| `scores` | hard/soft/learning/discipline/call_quality/ops/final_test/risk/overall scores, risk_level, final_status, recommendation, strengths, growth_zones, red_flags, coach_recommendations, score_breakdown (ids stripped) | id, candidate_id, base_key, analysis_run_id, created_at, updated_at |
+| `manual_inputs` | section, preview (≤500 chars), length, updated_at | full payload (raw transcripts, calls[], comments) |
+| `training_bot_dialogs` | dialog_date, role_id, role_client, role_business, product, result, result_summary (SUCCESSFUL/FAILED + block_1..6 only) | session_key, legacy_key, team_id, voice_id, external_id, dedup_key, result_payload (raw), analysis_json, transcript_preview, transcript_text, role_portrait (whole), extra_profile |
+| `files` | section, file_type, original_name, mime_type, size_bytes | id, stored_path, text_content, text_content_preview |
+| `call_stats` | talk_time_minutes, calls_total, reached_calls, calls_over_2min, calls_over_2min_percent, calls_over_10min, effective_minutes, days[day/calls_total/calls_over_2min] | any internal ids |
+| `ops_summary` | sections[title/status/comment] | any internal ids |
+| `interview_summary` | has_interview, has_transcript, length, updated_at | any internal ids |
+| `latest_analysis` | analysis_type, summary, strengths, growth_zones, red_flags, coach_recommendations, rubric_result[rubric_id/rubric_version/overall_score_percent/overall_confidence/overall_status] | id, units (with question_details/evidence/quote), metadata, stage_dynamics, call_results |
+| dropped wholesale | — | keys, source_links, import_summary, has_legacy_ai_profile |
+
+### Hero meta order
+
+Changed hero from `direction · segment` to `segment · direction` to match the spec requirement: "Export should display 'Грузоперевозки · S'". With the reviewer's data (`seller_segment='Грузоперевозки'`, `direction='S'`), hero now shows `Грузоперевозки · S`. This also matches the live report-v1.html hero order.
+
+## Files changed in this fixup
+
+| File | Change |
+|---|---|
+| `services/phase1_candidate_service.js` | Replaced shallow `sanitizeCardForExport` with deep per-section projection. Added `sanitizeCandidateForExport`, `sanitizeCompletenessForExport`, `sanitizeScoresForExport`, `sanitizeManualInputForExport`, `sanitizeTrainingDialogForExport`, `sanitizeCallStatsForExport`, `sanitizeOpsSummaryForExport`, `sanitizeInterviewSummaryForExport`, `sanitizeFileForExport`, `sanitizeLatestAnalysisForExport`. Updated `renderStaticReportHtml` to use the new safe `manual_inputs[].preview` / `.length` instead of raw `.payload`. Hero meta order → `segment · direction`. |
+| `scripts/test_export_candidate_report_html.js` | Added TEST 10 (31 forbidden nested literals absent from HTML + embedded JSON) + TEST 11 (hero meta order = segment · direction). |
+
+## Checks run
+
+```
+node --check server.js                                    # OK
+node --check routes/phase1_admin_routes.js                # OK
+node --check services/phase1_candidate_service.js         # OK
+node --check scripts/export_candidate_report_html.js      # OK
+node --check scripts/test_export_candidate_report_html.js # OK
+node scripts/test_export_candidate_report_html.js         # 11/11 PASS
+node scripts/test_rubric_scoring.js                       # 24/24 (no scoring changes)
+```
+
+### TEST 10 — nested sensitive fields do not leak
+
+Builds a card that mirrors the real viewer card shape with ALL the sensitive nested fields that were leaking before:
+- `completeness.base_key`
+- `scores.id / candidate_id / base_key / analysis_run_id / score_breakdown.id / score_breakdown.base_key`
+- `training_bot_dialogs[].session_key / legacy_key / analysis_json / result_payload.raw / transcript_preview / transcript_text / role_portrait.team_id / role_portrait.extra_profile`
+- `files[].id / stored_path / text_content`
+- `latest_analysis.interview.id / rubric_result.units[].id / question_details.evidence`
+- `keys / source_links / import_summary` (dropped wholesale)
+
+Asserts **31 forbidden literals** are absent from both the full HTML and the embedded JSON block:
+`GTRAIN02`, `base_key`, `session_key`, `SECRET_SESSION_KEY_123`, `SECRET_LEGACY_KEY`, `legacy_key`, `candidate_id`, `analysis_run_id`, `admin_key`, `viewer_key`, `X-Admin-Key`, `/home/`, `/etc/passwd`, `fetch(`, `XMLHttpRequest`, `new WebSocket`, `raw_codex_result`, `sensitive`, `secret rows`, `полный транскрипт звонка`, `полный текст файла`, `data/uploads/phase1`, `stored_path`, `text_content`, `extra_profile`, `team-99`, `transcript_preview`, `transcript_text`, `role_portrait`, `analysis_json`, `result_payload`.
+
+Also asserts human-facing fields ARE present: full_name, Грузоперевозки, S, overall_score, strengths, role_client, product, result_summary.successful, manual_inputs section + length.
+
+And asserts the full 2000-char transcript is NOT in the HTML (preview capped at 500).
+
+### TEST 11 — hero meta order
+
+With `seller_segment='Грузоперевозки'` and `direction='S'` (the reviewer's data), hero shows `"Направление / сегмент: Грузоперевозки · S"`.
+
+## Server verification steps (the exact grep from the issue)
+
+```bash
+node scripts/export_candidate_report_html.js --base-key GTRAIN02 --confirm GTRAIN02
+FILE=$(ls -t tmp/exports/*_report_*.html | head -n 1)
+grep -nE 'GTRAIN0[0-9]|base_key|session_key|legacy_key|candidate_id|analysis_run_id|admin_key|viewer_key|X-Admin-Key|/home/|/etc/passwd|fetch\(|XMLHttpRequest|new WebSocket' "$FILE" \
+  && echo "FAIL: sensitive data or network call found" \
+  || echo "OK: clean static HTML"
+```
+
+Expected: `OK: clean static HTML` (grep exits 1 = no matches).

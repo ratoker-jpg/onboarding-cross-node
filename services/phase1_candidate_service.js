@@ -2758,19 +2758,63 @@ function safeJsonForScript(json) {
 
 /**
  * Strip sensitive fields from the viewer card before embedding in the
- * exported HTML. The viewer card is already a safe projection (no session
- * keys, no source_links.legacy_key), but we also drop:
- *   - candidate.base_key   (technical id — must not appear in the export)
- *   - candidate.id         (internal DB id)
- *   - import_summary       (contains source_code / legacy_key refs)
- *   - has_legacy_ai_profile (internal flag, not user-facing)
+ * exported HTML. The viewer card is already a safe projection for the
+ * live report (no session keys in `candidate`), but the static export
+ * must be stricter: it leaves the server, gets opened in browsers outside
+ * our control, and may be forwarded. So we apply an EXPLICIT safe
+ * projection to every section — never embed raw nested objects.
  *
- * The remaining fields are exactly what the static report needs to render.
+ * What gets stripped (security-critical):
+ *   - candidate.base_key, candidate.id            (technical ids)
+ *   - candidate.created_at/updated_at             (not user-facing)
+ *   - completeness.base_key                        (technical id)
+ *   - scores.id, scores.candidate_id, scores.base_key, scores.analysis_run_id
+ *   - scores.created_at/updated_at                 (not user-facing)
+ *   - training_bot_dialogs[].session_key, legacy_key, team_id, voice_id,
+ *     external_id, dedup_key                       (technical ids)
+ *   - training_bot_dialogs[].result_payload        (raw import payload)
+ *   - training_bot_dialogs[].analysis_json         (raw Codex result)
+ *   - training_bot_dialogs[].transcript_preview, transcript_text (full text)
+ *   - training_bot_dialogs[].role_portrait.extra_profile, team_id, raw rows
+ *   - files[].id, stored_path, text_content        (technical id + full text)
+ *   - manual_inputs[].payload (raw)                (replaced with preview/length)
+ *   - import_summary, has_legacy_ai_profile, keys, source_links (dropped wholesale)
+ *
+ * What stays (human-facing):
+ *   - candidate: full_name, seller_segment, direction, mentor, recruiter,
+ *     test_day_started_at, immersion_started_at, status
+ *   - completeness: completed_count, total_count, status, items[code/title/status/source]
+ *   - scores: overall_score, hard/soft/learning/discipline/call_quality/ops/
+ *     final_test/risk scores, risk_level, final_status, recommendation,
+ *     strengths, growth_zones, red_flags, coach_recommendations,
+ *     score_breakdown (structure only, no ids)
+ *   - training_bot_dialogs: dialog_date, role_id, role_client, role_business,
+ *     product, result (SUCCESSFUL/FAILED) + safe summary from result_payload
+ *   - files: section, file_type, original_name, size_bytes, mime_type
+ *   - manual_inputs: section + safe preview (≤500 chars) + length
+ *   - latest_analysis: interview/calls/training_agents/ops — each with
+ *     summary, strengths, growth_zones, red_flags, coach_recommendations,
+ *     rubric_result.overall_score_percent (no ids, no raw evidence)
  */
 function sanitizeCardForExport(card) {
   if (!card) return null;
-  const c = card.candidate || {};
-  const safeCandidate = {
+  return {
+    candidate: sanitizeCandidateForExport(card.candidate),
+    completeness: sanitizeCompletenessForExport(card.completeness),
+    scores: sanitizeScoresForExport(card.scores),
+    manual_inputs: (card.manual_inputs || []).map(sanitizeManualInputForExport),
+    training_bot_dialogs: (card.training_bot_dialogs || []).map(sanitizeTrainingDialogForExport),
+    call_stats: sanitizeCallStatsForExport(card.call_stats),
+    ops_summary: sanitizeOpsSummaryForExport(card.ops_summary),
+    interview_summary: sanitizeInterviewSummaryForExport(card.interview_summary),
+    files: (card.files || []).map(sanitizeFileForExport),
+    latest_analysis: sanitizeLatestAnalysisForExport(card.latest_analysis),
+  };
+}
+
+function sanitizeCandidateForExport(c) {
+  if (!c) return null;
+  return {
     full_name: c.full_name || 'Без ФИО',
     seller_segment: c.seller_segment || null,
     direction: c.direction || null,
@@ -2780,20 +2824,197 @@ function sanitizeCardForExport(card) {
     immersion_started_at: c.immersion_started_at || null,
     immersion_finished_at: c.immersion_finished_at || c.immersion_ended_at || null,
     status: c.status || null,
-    created_at: c.created_at || null,
-    updated_at: c.updated_at || null,
+  };
+}
+
+function sanitizeCompletenessForExport(comp) {
+  if (!comp) return null;
+  return {
+    completed_count: comp.completed_count != null ? comp.completed_count : 0,
+    total_count: comp.total_count != null ? comp.total_count : 0,
+    status: comp.status || 'missing',
+    items: Array.isArray(comp.items)
+      ? comp.items.map(it => ({
+          code: it.code || null,
+          title: it.title || null,
+          status: it.status || 'missing',
+          source: it.source || null,
+        }))
+      : [],
+  };
+}
+
+function sanitizeScoresForExport(s) {
+  if (!s) return null;
+  // score_breakdown may contain nested objects with scores — keep the
+  // structure but strip any id/base_key/candidate_id fields that might
+  // sneak in.
+  const safeBreakdown = s.score_breakdown && typeof s.score_breakdown === 'object'
+    ? JSON.parse(JSON.stringify(s.score_breakdown, (k, v) => {
+        if (k === 'id' || k === 'candidate_id' || k === 'base_key' || k === 'analysis_run_id') return undefined;
+        return v;
+      }))
+    : null;
+  return {
+    hard_score: s.hard_score ?? null,
+    soft_score: s.soft_score ?? null,
+    learning_score: s.learning_score ?? null,
+    discipline_score: s.discipline_score ?? null,
+    call_quality_score: s.call_quality_score ?? null,
+    ops_score: s.ops_score ?? null,
+    final_test_score: s.final_test_score ?? null,
+    risk_score: s.risk_score ?? null,
+    overall_score: s.overall_score ?? null,
+    risk_level: s.risk_level || null,
+    final_status: s.final_status || null,
+    recommendation: s.recommendation || null,
+    strengths: Array.isArray(s.strengths) ? s.strengths.filter(Boolean) : [],
+    growth_zones: Array.isArray(s.growth_zones) ? s.growth_zones.filter(Boolean) : [],
+    red_flags: Array.isArray(s.red_flags) ? s.red_flags.filter(Boolean) : [],
+    coach_recommendations: Array.isArray(s.coach_recommendations) ? s.coach_recommendations.filter(Boolean) : [],
+    score_breakdown: safeBreakdown,
+  };
+}
+
+function sanitizeManualInputForExport(m) {
+  if (!m) return null;
+  // Extract a safe short preview + length. Never embed the full payload
+  // (it may contain full call/interview transcripts).
+  let preview = '';
+  let length = 0;
+  if (m.payload && typeof m.payload === 'object') {
+    const p = m.payload;
+    const text = p.text_content || p.transcript || p.text ||
+      (typeof p === 'string' ? p : '');
+    if (text) {
+      length = String(text).length;
+      preview = String(text).slice(0, 500);
+    } else if (Array.isArray(p.calls)) {
+      length = p.calls.length;
+      preview = `Звонков в разделе: ${p.calls.length}`;
+    } else if (p.comment) {
+      length = String(p.comment).length;
+      preview = String(p.comment).slice(0, 500);
+    }
+  }
+  return {
+    section: m.section || null,
+    preview: preview || null,
+    length,
+    updated_at: m.updated_at || null,
+  };
+}
+
+function sanitizeTrainingDialogForExport(d) {
+  if (!d) return null;
+  // Extract a safe summary from result_payload if it's an object — keep
+  // only SUCCESSFUL/FAILED counts + block scores, never raw rows.
+  let resultSummary = null;
+  if (d.result_payload && typeof d.result_payload === 'object') {
+    const rp = d.result_payload;
+    resultSummary = {};
+    if (rp.SUCCESSFUL != null) resultSummary.successful = rp.SUCCESSFUL;
+    if (rp.FAILED != null) resultSummary.failed = rp.FAILED;
+    // Block scores (BLOCK_1..BLOCK_6) are safe scalar values.
+    for (const k of Object.keys(rp)) {
+      if (/^BLOCK_\d+$/.test(k) && typeof rp[k] !== 'object') {
+        resultSummary[k.toLowerCase()] = rp[k];
+      }
+    }
+    if (Object.keys(resultSummary).length === 0) resultSummary = null;
+  }
+  return {
+    dialog_date: d.dialog_date || null,
+    role_id: d.role_id || null,
+    role_client: d.role_client || null,
+    role_business: d.role_business || null,
+    product: d.product || null,
+    result: d.result || null,
+    result_summary: resultSummary,
+  };
+}
+
+function sanitizeCallStatsForExport(cs) {
+  if (!cs) return null;
+  return {
+    talk_time_minutes: cs.talk_time_minutes ?? null,
+    calls_total: cs.calls_total ?? null,
+    reached_calls: cs.reached_calls ?? null,
+    calls_over_2min: cs.calls_over_2min ?? null,
+    calls_over_2min_percent: cs.calls_over_2min_percent ?? null,
+    calls_over_10min: cs.calls_over_10min ?? null,
+    effective_minutes: cs.effective_minutes ?? null,
+    days: Array.isArray(cs.days)
+      ? cs.days.map(dy => ({
+          day: dy.day || dy.label || null,
+          calls_total: dy.calls_total ?? null,
+          calls_over_2min: dy.calls_over_2min ?? null,
+        }))
+      : [],
+  };
+}
+
+function sanitizeOpsSummaryForExport(ops) {
+  if (!ops) return null;
+  return {
+    sections: Array.isArray(ops.sections)
+      ? ops.sections.map(sec => ({
+          title: sec.title || null,
+          status: sec.status || 'not_checked',
+          comment: sec.comment || null,
+        }))
+      : [],
+  };
+}
+
+function sanitizeInterviewSummaryForExport(is) {
+  if (!is) return null;
+  return {
+    has_interview: Boolean(is.has_interview),
+    has_transcript: Boolean(is.has_transcript),
+    length: is.length ?? null,
+    updated_at: is.updated_at || null,
+  };
+}
+
+function sanitizeFileForExport(f) {
+  if (!f) return null;
+  // NEVER embed text_content or stored_path — only safe metadata.
+  return {
+    section: f.section || null,
+    file_type: f.file_type || null,
+    original_name: f.original_name || null,
+    mime_type: f.mime_type || null,
+    size_bytes: f.size_bytes ?? null,
+  };
+}
+
+function sanitizeLatestAnalysisForExport(la) {
+  if (!la) return null;
+  const sanitizeOne = (a) => {
+    if (!a) return null;
+    const rr = a.rubric_result || {};
+    return {
+      analysis_type: a.analysis_type || null,
+      summary: a.summary || null,
+      strengths: Array.isArray(a.strengths) ? a.strengths.filter(Boolean) : [],
+      growth_zones: Array.isArray(a.growth_zones) ? a.growth_zones.filter(Boolean) : [],
+      red_flags: Array.isArray(a.red_flags) ? a.red_flags.filter(Boolean) : [],
+      coach_recommendations: Array.isArray(a.coach_recommendations) ? a.coach_recommendations.filter(Boolean) : [],
+      rubric_result: {
+        rubric_id: rr.rubric_id || null,
+        rubric_version: rr.rubric_version || null,
+        overall_score_percent: rr.overall_score_percent ?? null,
+        overall_confidence: rr.overall_confidence || null,
+        overall_status: rr.overall_status || null,
+      },
+    };
   };
   return {
-    candidate: safeCandidate,
-    completeness: card.completeness || null,
-    scores: card.scores || null,
-    manual_inputs: card.manual_inputs || [],
-    training_bot_dialogs: card.training_bot_dialogs || [],
-    call_stats: card.call_stats || null,
-    ops_summary: card.ops_summary || null,
-    interview_summary: card.interview_summary || null,
-    files: card.files || [],
-    latest_analysis: card.latest_analysis || null,
+    interview: sanitizeOne(la.interview),
+    calls: sanitizeOne(la.calls),
+    training_agents: sanitizeOne(la.training_agents),
+    ops: sanitizeOne(la.ops),
   };
 }
 
@@ -2875,33 +3096,29 @@ function renderStaticReportHtml(card, exportedAtIso) {
     return `<div class="list-box ${cls}"><h4>${escapeHtmlStrict(title)}</h4><ul>${arr.map(i => `<li>${escapeHtmlStrict(i)}</li>`).join('')}</ul></div>`;
   };
 
-  // Manual inputs — show section + a preview of the payload.
+  // Manual inputs — show section + safe preview (already sanitized to ≤500
+  // chars by sanitizeManualInputForExport). Never reach into raw payload.
   const manualInputsHtml = (safe.manual_inputs || []).map(m => {
     const section = escapeHtmlStrict(m.section || '');
-    let preview = '';
-    if (m.payload && typeof m.payload === 'object') {
-      // Show a short text preview from common payload shapes.
-      const p = m.payload;
-      const text = p.text_content || p.transcript || p.text || (typeof p === 'string' ? p : '');
-      if (text) {
-        const sliced = String(text).slice(0, 500);
-        preview = `<div class="mi-preview">${escapeHtmlStrict(sliced)}${String(text).length > 500 ? ' …' : ''}</div>`;
-      } else if (Array.isArray(p.calls)) {
-        preview = `<div class="mi-preview">Звонков в разделе: ${p.calls.length}</div>`;
-      } else if (p.comment) {
-        preview = `<div class="mi-preview">${escapeHtmlStrict(String(p.comment).slice(0, 500))}</div>`;
-      }
-    }
-    return `<div class="mi-row"><div class="mi-section">${section}</div>${preview}</div>`;
+    const preview = m.preview ? `<div class="mi-preview">${escapeHtmlStrict(m.preview)}</div>` : '';
+    const lengthInfo = m.length ? `<div class="mi-length">длина: ${escapeHtmlStrict(m.length)}</div>` : '';
+    return `<div class="mi-row"><div class="mi-section">${section}</div>${preview}${lengthInfo}</div>`;
   }).join('');
 
-  // Training dialogs — show role + date + result.
+  // Training dialogs — show role + date + result + safe summary.
   const trainingHtml = (safe.training_bot_dialogs || []).map(d => {
     const role = escapeHtmlStrict([d.role_client, d.role_business].filter(Boolean).join(' / ') || 'Диалог');
     const date = escapeHtmlStrict(d.dialog_date || '—');
     const result = escapeHtmlStrict(d.result || '—');
-    const product = escapeHtmlStrict(d.product || d.role_title || '');
-    return `<div class="td-row"><div class="td-head"><b>${role}</b>${product ? ` · ${product}` : ''}</div><div class="td-meta">Дата: ${date} · Результат: ${result}</div></div>`;
+    const product = escapeHtmlStrict(d.product || '');
+    let summary = '';
+    if (d.result_summary && typeof d.result_summary === 'object') {
+      const parts = [];
+      if (d.result_summary.successful != null) parts.push(`успешно: ${d.result_summary.successful}`);
+      if (d.result_summary.failed != null) parts.push(`провалено: ${d.result_summary.failed}`);
+      if (parts.length) summary = `<div class="td-summary">${escapeHtmlStrict(parts.join(' · '))}</div>`;
+    }
+    return `<div class="td-row"><div class="td-head"><b>${role}</b>${product ? ` · ${product}` : ''}</div><div class="td-meta">Дата: ${date} · Результат: ${result}</div>${summary}</div>`;
   }).join('');
 
   // Completeness items.
@@ -3032,7 +3249,7 @@ body {
 
   <section class="hero">
     <h1>${escapedName}</h1>
-    <div class="hero-sub">Направление / сегмент: ${escapedDirection} · ${escapedSegment}</div>
+    <div class="hero-sub">Направление / сегмент: ${escapedSegment} · ${escapedDirection}</div>
     <div class="hero-grid">
       <div class="hero-cell"><div class="label">Статус</div><div class="value">${escapedStatus}</div></div>
       <div class="hero-cell"><div class="label">Наставник</div><div class="value">${escapedMentor}</div></div>

@@ -2673,6 +2673,748 @@ function purgeCandidateData(baseKey, opts) {
   };
 }
 
+// ----------------------------------------------------------------------
+// STATIC-HTML-EXPORT-V1
+// ----------------------------------------------------------------------
+
+/**
+ * Sanitize a candidate's full_name (or any free-form string) into a safe
+ * filename component. Strips path separators, control chars, and characters
+ * that are illegal in filenames on Windows / macOS / Linux. Collapses
+ * whitespace into single underscores. Returns a non-empty fallback when the
+ * input is empty or all-illegal.
+ *
+ * Examples:
+ *   'Иванов Иван'            → 'Ivanov_Ivan'  (translit not applied — we keep
+ *                                              Cyrillic, just trim/sanitize)
+ *   'Иванов/Иван'            → 'Иванов_Иван'
+ *   '../../../etc/passwd'    → 'etc_passwd'
+ *   ''                       → 'candidate'
+ */
+function sanitizeFilenameComponent(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return 'candidate';
+  // Replace path separators + control chars + illegal-in-filename chars.
+  // Keep letters (incl. Cyrillic), digits, dashes, underscores, dots.
+  const cleaned = raw
+    .replace(/[\\/\x00-\x1f<>:"|?*]/g, '_') // illegal chars → underscore
+    .replace(/\s+/g, '_')                    // whitespace → underscore
+    .replace(/_+/g, '_')                     // collapse runs
+    .replace(/^[_.\-]+|[_.\-]+$/g, '');      // trim leading/trailing seps
+  return cleaned || 'candidate';
+}
+
+/**
+ * Build the export filename: <Full_Name>_report_<YYYY-MM-DD>.html
+ * The name uses the candidate's full_name (sanitized) + the export date.
+ * No base_key, no timestamps with colons (illegal on Windows).
+ */
+function buildExportFilename(candidate, exportedAtIso) {
+  const name = sanitizeFilenameComponent(candidate.full_name);
+  const d = new Date(exportedAtIso);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `${name}_report_${yyyy}-${mm}-${dd}.html`;
+}
+
+/**
+ * Escape a string for safe inclusion in HTML text content / attribute values.
+ * Replaces & < > " ' with their entity equivalents. Used for every user-
+ * controlled value that lands in the exported HTML (full_name, direction,
+ * segment, mentor, recommendations, etc.).
+ */
+function escapeHtmlStrict(value) {
+  return String(value == null ? '' : value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+/**
+ * Serialize JSON for safe embedding inside <script type="application/json">.
+ *
+ * The naive JSON.stringify can produce "</script>" if a string value
+ * contains that literal — the browser's HTML parser would close the script
+ * tag early. We escape "<" (which covers </script> and <!--) and also U+2028
+ * / U+2029 (line/paragraph separators that are valid in JSON strings but
+ * break JS string literals in older browsers — harmless inside a JSON
+ * script tag, but escaping is cheap insurance).
+ *
+ * Returns a string that is safe to interpolate between
+ *   <script type="application/json"> ... </script>
+ */
+function safeJsonForScript(json) {
+  const str = JSON.stringify(json);
+  return str
+    .replace(/</g, '\\u003c')   // covers </script>, <!--
+    .replace(/>/g, '\\u003e')   // symmetry — covers -->
+    .replace(/&/g, '\\u0026')   // covers & in case of HTML entity confusion
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+/**
+ * Strip sensitive fields from the viewer card before embedding in the
+ * exported HTML. The viewer card is already a safe projection for the
+ * live report (no session keys in `candidate`), but the static export
+ * must be stricter: it leaves the server, gets opened in browsers outside
+ * our control, and may be forwarded. So we apply an EXPLICIT safe
+ * projection to every section — never embed raw nested objects.
+ *
+ * What gets stripped (security-critical):
+ *   - candidate.base_key, candidate.id            (technical ids)
+ *   - candidate.created_at/updated_at             (not user-facing)
+ *   - completeness.base_key                        (technical id)
+ *   - scores.id, scores.candidate_id, scores.base_key, scores.analysis_run_id
+ *   - scores.created_at/updated_at                 (not user-facing)
+ *   - training_bot_dialogs[].session_key, legacy_key, team_id, voice_id,
+ *     external_id, dedup_key                       (technical ids)
+ *   - training_bot_dialogs[].result_payload        (raw import payload)
+ *   - training_bot_dialogs[].analysis_json         (raw Codex result)
+ *   - training_bot_dialogs[].transcript_preview, transcript_text (full text)
+ *   - training_bot_dialogs[].role_portrait.extra_profile, team_id, raw rows
+ *   - files[].id, stored_path, text_content        (technical id + full text)
+ *   - manual_inputs[].payload (raw)                (replaced with preview/length)
+ *   - import_summary, has_legacy_ai_profile, keys, source_links (dropped wholesale)
+ *
+ * What stays (human-facing):
+ *   - candidate: full_name, seller_segment, direction, mentor, recruiter,
+ *     test_day_started_at, immersion_started_at, status
+ *   - completeness: completed_count, total_count, status, items[code/title/status/source]
+ *   - scores: overall_score, hard/soft/learning/discipline/call_quality/ops/
+ *     final_test/risk scores, risk_level, final_status, recommendation,
+ *     strengths, growth_zones, red_flags, coach_recommendations,
+ *     score_breakdown (structure only, no ids)
+ *   - training_bot_dialogs: dialog_date, role_id, role_client, role_business,
+ *     product, result (SUCCESSFUL/FAILED) + safe summary from result_payload
+ *   - files: section, file_type, original_name, size_bytes, mime_type
+ *   - manual_inputs: section + safe preview (≤500 chars) + length
+ *   - latest_analysis: interview/calls/training_agents/ops — each with
+ *     summary, strengths, growth_zones, red_flags, coach_recommendations,
+ *     rubric_result.overall_score_percent (no ids, no raw evidence)
+ */
+function sanitizeCardForExport(card) {
+  if (!card) return null;
+  return {
+    candidate: sanitizeCandidateForExport(card.candidate),
+    completeness: sanitizeCompletenessForExport(card.completeness),
+    scores: sanitizeScoresForExport(card.scores),
+    manual_inputs: (card.manual_inputs || []).map(sanitizeManualInputForExport),
+    training_bot_dialogs: (card.training_bot_dialogs || []).map(sanitizeTrainingDialogForExport),
+    call_stats: sanitizeCallStatsForExport(card.call_stats),
+    ops_summary: sanitizeOpsSummaryForExport(card.ops_summary),
+    interview_summary: sanitizeInterviewSummaryForExport(card.interview_summary),
+    files: (card.files || []).map(sanitizeFileForExport),
+    latest_analysis: sanitizeLatestAnalysisForExport(card.latest_analysis),
+  };
+}
+
+function sanitizeCandidateForExport(c) {
+  if (!c) return null;
+  return {
+    full_name: c.full_name || 'Без ФИО',
+    seller_segment: c.seller_segment || null,
+    direction: c.direction || null,
+    mentor: c.mentor || null,
+    recruiter: c.recruiter || null,
+    test_day_started_at: c.test_day_started_at || null,
+    immersion_started_at: c.immersion_started_at || null,
+    immersion_finished_at: c.immersion_finished_at || c.immersion_ended_at || null,
+    status: c.status || null,
+  };
+}
+
+function sanitizeCompletenessForExport(comp) {
+  if (!comp) return null;
+  return {
+    completed_count: comp.completed_count != null ? comp.completed_count : 0,
+    total_count: comp.total_count != null ? comp.total_count : 0,
+    status: comp.status || 'missing',
+    items: Array.isArray(comp.items)
+      ? comp.items.map(it => ({
+          code: it.code || null,
+          title: it.title || null,
+          status: it.status || 'missing',
+          source: it.source || null,
+        }))
+      : [],
+  };
+}
+
+function sanitizeScoresForExport(s) {
+  if (!s) return null;
+  // score_breakdown may contain nested objects with scores — keep the
+  // structure but strip any id/base_key/candidate_id fields that might
+  // sneak in.
+  const safeBreakdown = s.score_breakdown && typeof s.score_breakdown === 'object'
+    ? JSON.parse(JSON.stringify(s.score_breakdown, (k, v) => {
+        if (k === 'id' || k === 'candidate_id' || k === 'base_key' || k === 'analysis_run_id') return undefined;
+        return v;
+      }))
+    : null;
+  return {
+    hard_score: s.hard_score ?? null,
+    soft_score: s.soft_score ?? null,
+    learning_score: s.learning_score ?? null,
+    discipline_score: s.discipline_score ?? null,
+    call_quality_score: s.call_quality_score ?? null,
+    ops_score: s.ops_score ?? null,
+    final_test_score: s.final_test_score ?? null,
+    risk_score: s.risk_score ?? null,
+    overall_score: s.overall_score ?? null,
+    risk_level: s.risk_level || null,
+    final_status: s.final_status || null,
+    recommendation: s.recommendation || null,
+    strengths: Array.isArray(s.strengths) ? s.strengths.filter(Boolean) : [],
+    growth_zones: Array.isArray(s.growth_zones) ? s.growth_zones.filter(Boolean) : [],
+    red_flags: Array.isArray(s.red_flags) ? s.red_flags.filter(Boolean) : [],
+    coach_recommendations: Array.isArray(s.coach_recommendations) ? s.coach_recommendations.filter(Boolean) : [],
+    score_breakdown: safeBreakdown,
+  };
+}
+
+function sanitizeManualInputForExport(m) {
+  if (!m) return null;
+  // Extract a safe short preview + length. Never embed the full payload
+  // (it may contain full call/interview transcripts).
+  let preview = '';
+  let length = 0;
+  if (m.payload && typeof m.payload === 'object') {
+    const p = m.payload;
+    const text = p.text_content || p.transcript || p.text ||
+      (typeof p === 'string' ? p : '');
+    if (text) {
+      length = String(text).length;
+      preview = String(text).slice(0, 500);
+    } else if (Array.isArray(p.calls)) {
+      length = p.calls.length;
+      preview = `Звонков в разделе: ${p.calls.length}`;
+    } else if (p.comment) {
+      length = String(p.comment).length;
+      preview = String(p.comment).slice(0, 500);
+    }
+  }
+  return {
+    section: m.section || null,
+    preview: preview || null,
+    length,
+    updated_at: m.updated_at || null,
+  };
+}
+
+function sanitizeTrainingDialogForExport(d) {
+  if (!d) return null;
+  // Extract a safe summary from result_payload if it's an object — keep
+  // only SUCCESSFUL/FAILED counts + block scores, never raw rows.
+  let resultSummary = null;
+  if (d.result_payload && typeof d.result_payload === 'object') {
+    const rp = d.result_payload;
+    resultSummary = {};
+    if (rp.SUCCESSFUL != null) resultSummary.successful = rp.SUCCESSFUL;
+    if (rp.FAILED != null) resultSummary.failed = rp.FAILED;
+    // Block scores (BLOCK_1..BLOCK_6) are safe scalar values.
+    for (const k of Object.keys(rp)) {
+      if (/^BLOCK_\d+$/.test(k) && typeof rp[k] !== 'object') {
+        resultSummary[k.toLowerCase()] = rp[k];
+      }
+    }
+    if (Object.keys(resultSummary).length === 0) resultSummary = null;
+  }
+  return {
+    dialog_date: d.dialog_date || null,
+    role_id: d.role_id || null,
+    role_client: d.role_client || null,
+    role_business: d.role_business || null,
+    product: d.product || null,
+    result: d.result || null,
+    result_summary: resultSummary,
+  };
+}
+
+function sanitizeCallStatsForExport(cs) {
+  if (!cs) return null;
+  return {
+    talk_time_minutes: cs.talk_time_minutes ?? null,
+    calls_total: cs.calls_total ?? null,
+    reached_calls: cs.reached_calls ?? null,
+    calls_over_2min: cs.calls_over_2min ?? null,
+    calls_over_2min_percent: cs.calls_over_2min_percent ?? null,
+    calls_over_10min: cs.calls_over_10min ?? null,
+    effective_minutes: cs.effective_minutes ?? null,
+    days: Array.isArray(cs.days)
+      ? cs.days.map(dy => ({
+          day: dy.day || dy.label || null,
+          calls_total: dy.calls_total ?? null,
+          calls_over_2min: dy.calls_over_2min ?? null,
+        }))
+      : [],
+  };
+}
+
+function sanitizeOpsSummaryForExport(ops) {
+  if (!ops) return null;
+  return {
+    sections: Array.isArray(ops.sections)
+      ? ops.sections.map(sec => ({
+          title: sec.title || null,
+          status: sec.status || 'not_checked',
+          comment: sec.comment || null,
+        }))
+      : [],
+  };
+}
+
+function sanitizeInterviewSummaryForExport(is) {
+  if (!is) return null;
+  return {
+    has_interview: Boolean(is.has_interview),
+    has_transcript: Boolean(is.has_transcript),
+    length: is.length ?? null,
+    updated_at: is.updated_at || null,
+  };
+}
+
+function sanitizeFileForExport(f) {
+  if (!f) return null;
+  // NEVER embed text_content or stored_path — only safe metadata.
+  return {
+    section: f.section || null,
+    file_type: f.file_type || null,
+    original_name: f.original_name || null,
+    mime_type: f.mime_type || null,
+    size_bytes: f.size_bytes ?? null,
+  };
+}
+
+function sanitizeLatestAnalysisForExport(la) {
+  if (!la) return null;
+  const sanitizeOne = (a) => {
+    if (!a) return null;
+    const rr = a.rubric_result || {};
+    return {
+      analysis_type: a.analysis_type || null,
+      summary: a.summary || null,
+      strengths: Array.isArray(a.strengths) ? a.strengths.filter(Boolean) : [],
+      growth_zones: Array.isArray(a.growth_zones) ? a.growth_zones.filter(Boolean) : [],
+      red_flags: Array.isArray(a.red_flags) ? a.red_flags.filter(Boolean) : [],
+      coach_recommendations: Array.isArray(a.coach_recommendations) ? a.coach_recommendations.filter(Boolean) : [],
+      rubric_result: {
+        rubric_id: rr.rubric_id || null,
+        rubric_version: rr.rubric_version || null,
+        overall_score_percent: rr.overall_score_percent ?? null,
+        overall_confidence: rr.overall_confidence || null,
+        overall_status: rr.overall_status || null,
+      },
+    };
+  };
+  return {
+    interview: sanitizeOne(la.interview),
+    calls: sanitizeOne(la.calls),
+    training_agents: sanitizeOne(la.training_agents),
+    ops: sanitizeOne(la.ops),
+  };
+}
+
+/**
+ * Render a self-contained HTML report for a candidate.
+ *
+ * The HTML is a single file with inline CSS + a single <script
+ * type="application/json"> block holding the sanitized card. When opened
+ * via file://, a tiny inline <script> reads the JSON and renders the
+ * report — NO fetch() calls, NO viewer key, NO server dependency.
+ *
+ * Security:
+ *   - Every user-controlled string is HTML-escaped via escapeHtmlStrict().
+ *   - The embedded JSON is escaped via safeJsonForScript() so </script>
+ *     inside a transcript cannot break out of the script tag.
+ *   - base_key / candidate.id / session keys / source_links / import_summary
+ *     are stripped by sanitizeCardForExport() BEFORE embedding.
+ *   - No absolute server paths anywhere in the HTML.
+ *   - No ADMIN_KEY / VIEWER_KEY / X-Admin-Key / session_key literals.
+ */
+function renderStaticReportHtml(card, exportedAtIso) {
+  const safe = sanitizeCardForExport(card);
+  const c = safe.candidate;
+  const escapedName = escapeHtmlStrict(c.full_name);
+  const escapedDirection = escapeHtmlStrict(c.direction || '—');
+  const escapedSegment = escapeHtmlStrict(c.seller_segment || '—');
+  const escapedMentor = escapeHtmlStrict(c.mentor || '—');
+  const escapedRecruiter = escapeHtmlStrict(c.recruiter || '—');
+  const escapedStatus = escapeHtmlStrict(c.status || '—');
+
+  // Format export timestamp in Russian locale (DD.MM.YYYY HH:MM, Moscow tz).
+  const exportDate = new Date(exportedAtIso);
+  const fmtDt = (d) => {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
+  };
+  // Use Europe/Moscow timezone for the displayed timestamp.
+  let exportedAtRu;
+  try {
+    exportedAtRu = exportDate.toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch (_) {
+    exportedAtRu = fmtDt(exportDate);
+  }
+
+  // Format optional date fields (immersion_started_at, etc.).
+  const fmtDate = (iso) => {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return fmtDt(d).split(' ')[0]; // DD.MM.YYYY only
+    } catch (_) { return '—'; }
+  };
+
+  // Scores summary — extract the headline numbers if present.
+  const s = safe.scores || {};
+  const scoreRow = (label, value, isRisk) => {
+    if (value == null || value === '') {
+      return `<div class="score-cell empty"><div class="sc-label">${escapeHtmlStrict(label)}</div><div class="sc-value">—</div></div>`;
+    }
+    const num = Number(value);
+    const display = Number.isFinite(num) ? Math.round(num * 10) / 10 : escapeHtmlStrict(value);
+    const cls = isRisk ? 'risk' : '';
+    return `<div class="score-cell ${cls}"><div class="sc-label">${escapeHtmlStrict(label)}</div><div class="sc-value">${escapeHtmlStrict(display)}</div></div>`;
+  };
+
+  // Lists (strengths / growth_zones / red_flags / coach_recommendations).
+  const renderList = (items, title, cls) => {
+    const arr = Array.isArray(items) ? items.filter(Boolean) : [];
+    if (!arr.length) return '';
+    return `<div class="list-box ${cls}"><h4>${escapeHtmlStrict(title)}</h4><ul>${arr.map(i => `<li>${escapeHtmlStrict(i)}</li>`).join('')}</ul></div>`;
+  };
+
+  // Manual inputs — show section + safe preview (already sanitized to ≤500
+  // chars by sanitizeManualInputForExport). Never reach into raw payload.
+  const manualInputsHtml = (safe.manual_inputs || []).map(m => {
+    const section = escapeHtmlStrict(m.section || '');
+    const preview = m.preview ? `<div class="mi-preview">${escapeHtmlStrict(m.preview)}</div>` : '';
+    const lengthInfo = m.length ? `<div class="mi-length">длина: ${escapeHtmlStrict(m.length)}</div>` : '';
+    return `<div class="mi-row"><div class="mi-section">${section}</div>${preview}${lengthInfo}</div>`;
+  }).join('');
+
+  // Training dialogs — show role + date + result + safe summary.
+  const trainingHtml = (safe.training_bot_dialogs || []).map(d => {
+    const role = escapeHtmlStrict([d.role_client, d.role_business].filter(Boolean).join(' / ') || 'Диалог');
+    const date = escapeHtmlStrict(d.dialog_date || '—');
+    const result = escapeHtmlStrict(d.result || '—');
+    const product = escapeHtmlStrict(d.product || '');
+    let summary = '';
+    if (d.result_summary && typeof d.result_summary === 'object') {
+      const parts = [];
+      if (d.result_summary.successful != null) parts.push(`успешно: ${d.result_summary.successful}`);
+      if (d.result_summary.failed != null) parts.push(`провалено: ${d.result_summary.failed}`);
+      if (parts.length) summary = `<div class="td-summary">${escapeHtmlStrict(parts.join(' · '))}</div>`;
+    }
+    return `<div class="td-row"><div class="td-head"><b>${role}</b>${product ? ` · ${product}` : ''}</div><div class="td-meta">Дата: ${date} · Результат: ${result}</div>${summary}</div>`;
+  }).join('');
+
+  // Completeness items.
+  const completenessHtml = (safe.completeness && Array.isArray(safe.completeness.items))
+    ? safe.completeness.items.map(item => {
+        const st = item.status === 'ready' ? '✓' : '—';
+        const cls = item.status === 'ready' ? 'ready' : 'not-ready';
+        return `<div class="ci-row ${cls}"><span class="ci-title">${escapeHtmlStrict(item.title || item.code)}</span><span class="ci-status">${st}</span></div>`;
+      }).join('')
+    : '';
+
+  // Latest analysis summary.
+  const la = safe.latest_analysis || {};
+  const analysisBlock = (label, a) => {
+    if (!a) return '';
+    const rr = a.rubric_result || {};
+    const score = rr.overall_score_percent != null ? rr.overall_score_percent : '—';
+    const summary = a.summary ? escapeHtmlStrict(String(a.summary).slice(0, 500)) : '';
+    const strengths = renderList(a.strengths, 'Сильные стороны', 'strengths');
+    const growth = renderList(a.growth_zones, 'Зоны роста', 'growth');
+    const risks = renderList(a.red_flags, 'Риски', 'red-flags');
+    const coach = renderList(a.coach_recommendations, 'Рекомендации тренеру', 'coach');
+    return `<div class="analysis-card">
+      <h3>${escapeHtmlStrict(label)}</h3>
+      <div class="analysis-meta">общий балл: <b>${escapeHtmlStrict(score)}</b></div>
+      ${summary ? `<div class="analysis-summary">${summary}</div>` : ''}
+      <div class="lists-grid">${strengths}${growth}${risks}${coach}</div>
+    </div>`;
+  };
+
+  const embeddedJson = safeJsonForScript(safe);
+
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Отчёт по новичку — ${escapedName}</title>
+<style>
+:root {
+  --bg: #f6f1ff; --panel: #ffffff; --panel-soft: #faf7ff;
+  --text: #1f1733; --muted: #73668f; --line: #e5d6ff;
+  --accent: #7f42e1; --accent-soft: #f0e6ff;
+  --ok: #23824f; --ok-soft: #d8f3e3;
+  --warn: #b46b00; --warn-soft: #fff1d6;
+  --danger: #d85c3a; --danger-soft: #ffe0d4;
+  --radius-lg: 20px; --radius-md: 14px; --radius-sm: 10px;
+  --shadow: 0 12px 36px rgba(82, 45, 145, 0.10);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Manrope, sans-serif;
+  background: linear-gradient(180deg, #f7f2ff 0%, #ffffff 100%);
+  color: var(--text); min-height: 100vh; line-height: 1.5;
+}
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 18px 80px; }
+.export-header {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 18px 22px; box-shadow: var(--shadow); margin-bottom: 20px;
+}
+.export-header .eh-title { font-size: 20px; font-weight: 800; margin: 0 0 6px; }
+.export-header .eh-sub { color: var(--muted); font-size: 13px; margin: 0; }
+.export-header .eh-meta { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.hero {
+  background: linear-gradient(135deg, #7f42e1 0%, #6934c7 100%);
+  color: #fff; border-radius: var(--radius-lg); padding: 28px 28px;
+  margin-bottom: 20px; box-shadow: var(--shadow);
+}
+.hero h1 { margin: 0 0 8px; font-size: 30px; font-weight: 800; }
+.hero .hero-sub { font-size: 15px; opacity: 0.92; }
+.hero .hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 18px; }
+.hero .hero-cell { background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.16); border-radius: var(--radius-sm); padding: 10px 12px; }
+.hero .hero-cell .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
+.hero .hero-cell .value { font-size: 15px; font-weight: 700; margin-top: 2px; }
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 20px 22px; box-shadow: var(--shadow); margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 12px; font-size: 18px; font-weight: 700; }
+.card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+.score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.score-cell { background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
+.score-cell.empty .sc-value { color: var(--muted); }
+.score-cell.risk .sc-value { color: var(--danger); }
+.sc-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.sc-value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+.lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 10px; }
+.list-box { background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; }
+.list-box h4 { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.list-box ul { margin: 0; padding-left: 18px; font-size: 14px; }
+.list-box.strengths h4 { color: var(--ok); }
+.list-box.red-flags h4 { color: var(--danger); }
+.list-box.growth h4 { color: var(--warn); }
+.mi-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.mi-row:last-child { border-bottom: 0; }
+.mi-section { font-weight: 700; font-size: 13px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.mi-preview { font-size: 13px; color: var(--text); white-space: pre-wrap; word-wrap: break-word; }
+.td-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.td-row:last-child { border-bottom: 0; }
+.td-head { font-weight: 700; font-size: 14px; }
+.td-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ci-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.ci-row:last-child { border-bottom: 0; }
+.ci-status.ready { color: var(--ok); font-weight: 700; }
+.ci-status.not-ready { color: var(--muted); }
+.analysis-card { background: var(--panel-soft); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 12px; }
+.analysis-meta { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.analysis-summary { font-size: 14px; margin-bottom: 8px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.tab { padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; }
+@media (max-width: 720px) {
+  .hero h1 { font-size: 24px; }
+  .card { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="export-header">
+    <h1 class="eh-title">Отчёт по новичку</h1>
+    <p class="eh-sub">Автономный экспорт — открывается локально без сервера</p>
+    <p class="eh-meta">Отчёт выгружен: ${escapeHtmlStrict(exportedAtRu)}</p>
+  </div>
+
+  <section class="hero">
+    <h1>${escapedName}</h1>
+    <div class="hero-sub">Направление / сегмент: ${escapedSegment} · ${escapedDirection}</div>
+    <div class="hero-grid">
+      <div class="hero-cell"><div class="label">Статус</div><div class="value">${escapedStatus}</div></div>
+      <div class="hero-cell"><div class="label">Наставник</div><div class="value">${escapedMentor}</div></div>
+      <div class="hero-cell"><div class="label">Рекрутёр</div><div class="value">${escapedRecruiter}</div></div>
+      <div class="hero-cell"><div class="label">Начало погружения</div><div class="value">${escapeHtmlStrict(fmtDate(c.immersion_started_at))}</div></div>
+      <div class="hero-cell"><div class="label">Дата тестового дня</div><div class="value">${escapeHtmlStrict(fmtDate(c.test_day_started_at))}</div></div>
+    </div>
+  </section>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">Обзор</button>
+    <button class="tab" data-tab="scores">Оценки</button>
+    <button class="tab" data-tab="inputs">Данные</button>
+    <button class="tab" data-tab="training">Учебные агенты</button>
+    <button class="tab" data-tab="analysis">Анализ</button>
+  </div>
+
+  <div class="tab-content active" id="tab-overview">
+    <div class="card">
+      <h2>Готовность данных</h2>
+      ${completenessHtml || '<div class="empty">Нет данных по готовности.</div>'}
+    </div>
+    <div class="card">
+      <h2>Краткое резюме</h2>
+      <div class="score-grid">
+        ${scoreRow('Общий балл', s.overall_score)}
+        ${scoreRow('Качество звонков', s.call_quality_score)}
+        ${scoreRow('Софт-навыки', s.soft_score)}
+        ${scoreRow('Профессиональные навыки', s.hard_score)}
+        ${scoreRow('Обучаемость', s.learning_score)}
+        ${scoreRow('Дисциплина', s.discipline_score)}
+        ${scoreRow('Операционка', s.ops_score)}
+        ${scoreRow('Выпускной тест', s.final_test_score)}
+        ${scoreRow('Риск', s.risk_score, true)}
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-scores">
+    <div class="card">
+      <h2>Итоговые оценки</h2>
+      ${s.recommendation ? `<div class="list-box"><h4>Рекомендация</h4><p>${escapeHtmlStrict(s.recommendation)}</p></div>` : ''}
+      <div class="lists-grid">
+        ${renderList(s.strengths, 'Сильные стороны', 'strengths')}
+        ${renderList(s.growth_zones, 'Зоны роста', 'growth')}
+        ${renderList(s.red_flags, 'Риски', 'red-flags')}
+        ${renderList(s.coach_recommendations, 'Рекомендации тренеру', 'coach')}
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-inputs">
+    <div class="card">
+      <h2>Введённые данные</h2>
+      ${manualInputsHtml || '<div class="empty">Нет введённых данных.</div>'}
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-training">
+    <div class="card">
+      <h2>Учебные диалоги</h2>
+      ${trainingHtml || '<div class="empty">Нет учебных диалогов.</div>'}
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-analysis">
+    <div class="card">
+      <h2>Анализ Codex</h2>
+      ${analysisBlock('Собеседование', la.interview)}
+      ${analysisBlock('Звонки', la.calls)}
+      ${analysisBlock('Учебные агенты', la.training_agents)}
+      ${analysisBlock('Операционка', la.ops)}
+      ${(!la.interview && !la.calls && !la.training_agents && !la.ops) ? '<div class="empty">Анализ ещё не рассчитан.</div>' : ''}
+    </div>
+  </div>
+
+  <div class="footer">
+    Отчёт сформирован автоматически. Данные актуальны на момент экспорта.
+  </div>
+</div>
+
+<script type="application/json" id="card-data">${embeddedJson}</script>
+<script>
+  // Minimal tab switching — no fetch, no external deps.
+  document.querySelectorAll('.tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var target = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+      btn.classList.add('active');
+      var el = document.getElementById('tab-' + target);
+      if (el) el.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>`;
+}
+
+/**
+ * Export a candidate's report as a self-contained HTML file.
+ *
+ * Writes the file to <repoRoot>/tmp/exports/<filename>. Returns a public
+ * descriptor with the filename + relative path + size. The absolute path
+ * is NEVER returned (it would leak the server's directory layout).
+ *
+ * @param {string} baseKey
+ * @param {object} opts
+ *   - confirm_base_key: MUST equal baseKey (400 on mismatch)
+ *   - admin_key: for audit_log (hashed)
+ * @returns {{ok, base_key_redacted, file: {filename, path, size_bytes}, exported_at}}
+ * @throws {Error} with .code = 'CANDIDATE_NOT_FOUND' | 'PURGE_CONFIRM_MISMATCH'
+ */
+function exportCandidateReportHtml(baseKey, opts) {
+  const confirmBaseKey = String(opts && opts.confirm_base_key || '');
+  const adminKey = opts && opts.admin_key || 'unknown';
+  if (!confirmBaseKey || confirmBaseKey !== baseKey) {
+    const err = new Error('confirm_base_key_mismatch');
+    err.code = 'PURGE_CONFIRM_MISMATCH';
+    throw err;
+  }
+
+  const card = getViewerCandidateCard(baseKey);
+  if (!card || !card.candidate) {
+    const err = new Error('candidate_not_found');
+    err.code = 'CANDIDATE_NOT_FOUND';
+    throw err;
+  }
+
+  const exportedAt = nowIso();
+  const filename = buildExportFilename(card.candidate, exportedAt);
+  const html = renderStaticReportHtml(card, exportedAt);
+
+  // Write to <repoRoot>/tmp/exports/. Create the dir if missing.
+  const repoRoot = path.resolve(__dirname, '..');
+  const exportsDir = path.join(repoRoot, 'tmp', 'exports');
+  fs.mkdirSync(exportsDir, { recursive: true });
+  const absPath = path.join(exportsDir, filename);
+  fs.writeFileSync(absPath, html, 'utf8');
+  const sizeBytes = fs.statSync(absPath).size;
+
+  // Audit log — payload contains only the filename + base_key hash, never
+  // the card contents or absolute path.
+  const db = ensureDb();
+  appendAuditLog(db, adminKey, 'candidate_report_exported', 'candidate', null, baseKey, {
+    filename,
+    size_bytes: sizeBytes,
+    exported_at: exportedAt,
+  });
+
+  return {
+    ok: true,
+    // Do NOT return base_key in the response — it's a technical id. The
+    // caller already knows it (they passed it in the URL). We return a
+    // redacted hint only.
+    exported_at: exportedAt,
+    file: {
+      filename,
+      // Relative path only — never leak the absolute server path.
+      path: `tmp/exports/${filename}`,
+      size_bytes: sizeBytes,
+    },
+  };
+}
+
 module.exports = {
   addKeysToCandidate,
   appendCallToManualInput,
@@ -2708,6 +3450,8 @@ module.exports = {
   getViewerHealth,
   saveManualInput,
   upsertSourceLink,
+  // STATIC-HTML-EXPORT-V1
+  exportCandidateReportHtml,
   // Phase 3D2 constants exposed for routes
   IMPORT_REQUIRED_SOURCE,
   IMPORT_LABEL_RU,
